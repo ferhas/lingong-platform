@@ -1,0 +1,20 @@
+<view class="tc-card" hover-class="tc-hover" hover-stay-time="80" bindtap="onTap">
+  <view class="tc-top">
+    <view class="tc-title-wrap">
+      <view class="tc-title">{{task.title}}</view>
+      <view class="tc-tags">
+        <text wx:if="{{task.city}}" class="tc-tag tc-tag-city">{{task.city}}</text>
+        <text wx:if="{{task.category}}" class="tc-tag">{{task.category}}</text>
+        <text wx:if="{{task.trade}}" class="tc-tag tc-tag-trade">{{task.trade}}</text>
+      </view>
+      <view class="tc-unit">{{task.payMethod}} · 截止 {{task.deadline}}</view>
+    </view>
+    <view class="tc-price"><text class="tc-symbol">¥</text>{{task.price}}</view>
+  </view>
+  <view class="tc-bottom">
+    <view class="tc-company"><text class="tc-mark"></text><text>{{task.companyName}}</text></view>
+    <view wx:if="{{task.applicants !== undefined}}" class="tc-applicants">{{task.applicants}}人报名 ›</view>
+    <view wx:elif="{{task.status}}" class="tc-status {{task.recruiting ? '' : 'tc-status-off'}}">{{task.recruiting ? '招募中' : (task.expired ? '已截止' : '已结束')}}</view>
+  </view>
+  <slot></slot>
+</view>

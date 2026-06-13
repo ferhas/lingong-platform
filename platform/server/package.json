@@ -1,0 +1,30 @@
+{
+  "name": "gigwork-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "灵活用工平台 API 服务（承揽后分包模式）",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "seed": "node src/seed.js",
+    "mock": "node ../scripts/mock.mjs",
+    "test": "node tests/migration.test.mjs && node tests/taxengine.test.mjs && node tests/copy.test.mjs && node tests/integration.test.mjs && node tests/commercial.test.mjs && node tests/worker_features.test.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.10.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "node-cron": "^4.2.1",
+    "pino": "^10.3.1",
+    "pino-http": "^11.0.0",
+    "zod": "^3.23.8"
+  }
+}

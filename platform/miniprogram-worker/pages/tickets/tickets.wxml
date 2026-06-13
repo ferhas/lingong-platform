@@ -1,0 +1,33 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="page-hero">
+  <view>
+    <view class="hero-kicker">在线客服</view>
+    <view class="hero-title">我的工单</view>
+  </view>
+  <view class="hero-btn" bindtap="onNew">+ 新建工单</view>
+</view>
+
+<view class="ticket-list">
+  <view wx:if="{{!loading && !list.length}}" class="empty">暂无工单，遇到问题点右上角新建工单联系客服</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="card"
+    hover-class="card-hover"
+    hover-stay-time="80"
+    data-id="{{item.id}}"
+    bindtap="onTapItem"
+  >
+    <view class="card-top">
+      <view class="card-title">{{item.title}}</view>
+      <view class="status status-{{item.status}}">{{item.statusText}}</view>
+    </view>
+    <view class="card-meta">
+      {{item.categoryText}} · {{item.no}} · {{item.createdAt}}
+      <text wx:if="{{item.priority === 'urgent'}}" class="prio prio-urgent">紧急</text>
+      <text wx:elif="{{item.priority === 'high'}}" class="prio prio-high">优先</text>
+    </view>
+    <view wx:if="{{item.satisfaction}}" class="rated">已评价 {{item.satisfaction}} 星</view>
+  </view>
+</view>

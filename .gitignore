@@ -1,0 +1,33 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+output/
+screenshots/
+reports/
+coverage/
+
+# Local runtime data and logs
+*.log
+*.out.log
+*.err.log
+platform/server/data/
+platform/server/uploads/
+platform/server/backups/
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment and local IDE files
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# WeChat DevTools local project preferences
+project.private.config.json

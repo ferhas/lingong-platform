@@ -1,0 +1,229 @@
+/* ============================================================
+   设计系统:语义 CSS 变量双主题(:root 浅色 / html.dark 深色)
+   ============================================================ */
+:root {
+  /* —— 语义变量(浅色)—— */
+  --bg-page: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-hover: #f9fafb;
+  --text-1: #111827;
+  --text-2: #4b5563;
+  --text-3: #9ca3af;
+  --border: #e5e7eb;
+  --accent: #6366f1;
+  --accent-weak: #eef2ff;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow-card: 0 1px 3px rgba(17, 24, 39, 0.06), 0 1px 2px rgba(17, 24, 39, 0.04);
+
+  /* —— 侧边栏(两主题同为深底)—— */
+  --sidebar-bg: linear-gradient(180deg, #0b1220 0%, #111827 100%);
+  --sidebar-text: #9ca3af;
+  --sidebar-text-active: #ffffff;
+  --sidebar-divider: rgba(255, 255, 255, 0.06);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-muted: #6b7280;
+
+  /* —— 兼容旧别名 —— */
+  --brand-900: var(--text-1);
+  --brand-800: #1f2937;
+  --brand-700: var(--text-2);
+  --page-bg: var(--bg-page);
+
+  /* —— Element Plus 主色统一为 accent —— */
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #898bf4;
+  --el-color-primary-light-5: #a6a8f7;
+  --el-color-primary-light-7: #c4c5fa;
+  --el-color-primary-light-8: #d3d4fb;
+  --el-color-primary-light-9: #f0f0fe;
+  --el-color-primary-dark-2: #5052c4;
+}
+
+html.dark {
+  --bg-page: #0b1220;
+  --bg-card: #151e30;
+  --bg-hover: #1c2840;
+  --text-1: #e7eaf0;
+  --text-2: #a3adc2;
+  --text-3: #6b7689;
+  --border: #283450;
+  --accent: #818cf8;
+  --accent-weak: rgba(99, 102, 241, 0.16);
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+
+  --sidebar-bg: linear-gradient(180deg, #070d19 0%, #0d1424 100%);
+  --sidebar-divider: rgba(255, 255, 255, 0.05);
+
+  --brand-800: #cbd5e1;
+
+  /* —— 深色下覆盖 Element Plus 关键变量 —— */
+  color-scheme: dark;
+  --el-bg-color: #151e30;
+  --el-bg-color-page: #0b1220;
+  --el-bg-color-overlay: #1b2538;
+  --el-fill-color-blank: #151e30;
+  --el-fill-color-light: #1c2840;
+  --el-fill-color-lighter: #19243a;
+  --el-border-color: #2b3754;
+  --el-border-color-light: #283450;
+  --el-border-color-lighter: #232e48;
+  --el-border-color-extra-light: #1e2940;
+  --el-text-color-primary: #e7eaf0;
+  --el-text-color-regular: #c0c8d8;
+  --el-text-color-secondary: #a3adc2;
+  --el-text-color-placeholder: #5d6880;
+  --el-disabled-bg-color: #1a2438;
+  --el-disabled-text-color: #5d6880;
+  --el-color-primary: #818cf8;
+  --el-color-primary-light-3: #6a6fd9;
+  --el-color-primary-light-5: #4d51a8;
+  --el-color-primary-light-7: #333a6e;
+  --el-color-primary-light-8: #2a2f56;
+  --el-color-primary-light-9: #20254a;
+  --el-color-primary-dark-2: #a5b0fa;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s, color 0.25s;
+}
+
+/* —— 通用页面结构 —— */
+.page {
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-1);
+  margin: 0;
+}
+
+.page-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--text-3);
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* —— 卡片 —— */
+.panel {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 20px;
+  transition: background-color 0.25s;
+}
+
+html.dark .panel {
+  border: 1px solid var(--border);
+}
+
+/* —— 统计卡 —— */
+.stat-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 20px 22px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: background-color 0.25s, transform 0.15s, box-shadow 0.15s;
+}
+
+html.dark .stat-card {
+  border: 1px solid var(--border);
+}
+
+.stat-card.clickable {
+  cursor: pointer;
+}
+
+.stat-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(99, 102, 241, 0.18);
+}
+
+.stat-card .stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.stat-card .stat-label {
+  font-size: 13px;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
+.stat-card .stat-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-1);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+/* —— 金额与编号 —— */
+.money {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'SFMono-Regular', Consolas, 'Courier New', monospace;
+}
+
+/* —— 分页统一 —— */
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+/* —— Element Plus 细节统一 —— */
+.el-card {
+  border-radius: 12px;
+}
+
+.el-table .cell {
+  font-variant-numeric: tabular-nums;
+}

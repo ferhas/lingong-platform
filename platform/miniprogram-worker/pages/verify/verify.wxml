@@ -1,0 +1,109 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<block wx:if="{{profile && profile.verified}}">
+  <view class="done-card">
+    <view class="done-icon">✓</view>
+    <view class="done-title">已完成实名认证</view>
+    <view class="done-sub">主体属性：{{profile.subjectType === 'person' ? '自然人（算税走累计预扣）' : '个体工商户（经营所得）'}}</view>
+    <view class="done-sub">绑定银行卡：{{profile.bankCard}}</view>
+    <view class="done-sub">分包协议（框架）：{{profile.frameContractNo}}</view>
+    <view wx:if="{{profile.faceVerified}}" class="done-sub">人脸核身：已通过</view>
+  </view>
+  <view class="card">
+    <view class="terms-title">《分包协议》承揽核心条款</view>
+    <view class="terms-body">按成果/计件计酬 · 不约定固定工作时间 · 工具设备自备 · 不接受用工方考勤管理 · 成果不合格不计酬</view>
+  </view>
+</block>
+
+<block wx:elif="{{needFace}}">
+  <view class="verify-hero">
+    <view class="hero-kicker">实名认证 · 第二步</view>
+    <view class="hero-title">人脸核身</view>
+    <view class="hero-sub">身份证核验已通过，请完成人脸核身以确认本人操作。</view>
+  </view>
+
+  <view class="card face-card">
+    <view class="face-circle">脸</view>
+    <view class="face-title">请正对屏幕完成人脸识别</view>
+    <view class="face-tips">
+      <view class="face-tip">· 确保光线充足，正脸入框</view>
+      <view class="face-tip">· 按提示完成眨眼、张嘴等动作</view>
+      <view class="face-tip">· 人脸信息仅用于本次实名核验，不另作他用</view>
+    </view>
+    <button class="btn-primary face-btn" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onFaceDone">模拟人脸核身完成（开发环境）</button>
+    <view class="face-cancel" bindtap="onFaceCancel">返回重新填写</view>
+  </view>
+</block>
+
+<block wx:else>
+  <view class="verify-hero">
+    <view class="hero-kicker">接单前准备</view>
+    <view class="hero-title">完成实名认证</view>
+    <view class="hero-sub">认证后可报名任务，并在线签署《分包协议（框架）》。</view>
+  </view>
+
+  <view class="intro">
+    <view class="intro-step">1 身份证核验</view>
+    <view class="intro-step">2 人脸核身</view>
+    <view class="intro-step">3 银行卡三要素</view>
+  </view>
+
+  <view class="card">
+    <view class="field">
+      <view class="field-label">真实姓名</view>
+      <input class="field-input" placeholder="与身份证一致" value="{{realName}}" data-field="realName" bindinput="onInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">身份证号</view>
+      <input class="field-input" maxlength="18" placeholder="18位身份证号" value="{{idCard}}" data-field="idCard" bindinput="onInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">本人银行卡号</view>
+      <input class="field-input" type="number" maxlength="19" placeholder="须为本人一类卡" value="{{bankCard}}" data-field="bankCard" bindinput="onInput" />
+    </view>
+  </view>
+
+  <view class="notice">下一步将弹出个人信息处理单独同意书，逐项确认后方可提交核验，并在线签署《分包协议（框架）》（电子签 + 司法存证）。</view>
+
+  <button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">提交认证并签署协议</button>
+</block>
+
+<!-- PIPL 敏感个人信息处理单独同意弹窗（逐项说明 + 非默认勾选） -->
+<view wx:if="{{showConsent}}" class="modal-mask">
+  <view class="modal-box">
+    <view class="modal-title">个人信息处理单独同意</view>
+    <view class="modal-sub">依据《个人信息保护法》，处理以下敏感个人信息前需取得您的单独同意，请逐项阅读并勾选</view>
+
+    <view class="consent-item" data-key="consentIdcard" bindtap="onToggleConsent">
+      <view class="consent-box {{consentIdcard ? 'consent-on' : ''}}">{{consentIdcard ? '✓' : ''}}</view>
+      <view class="consent-body">
+        <view class="consent-name">身份证信息</view>
+        <view class="consent-desc">用于公安实名二要素核验、签署分包协议与税务申报；密文存储，仅在核验与申报场景使用。</view>
+      </view>
+    </view>
+
+    <view class="consent-item" data-key="consentFace" bindtap="onToggleConsent">
+      <view class="consent-box {{consentFace ? 'consent-on' : ''}}">{{consentFace ? '✓' : ''}}</view>
+      <view class="consent-body">
+        <view class="consent-name">人脸信息</view>
+        <view class="consent-desc">用于人脸核身确认本人操作，核验完成后即时删除，不留存人脸原始图像。</view>
+      </view>
+    </view>
+
+    <view class="consent-item" data-key="consentBankcard" bindtap="onToggleConsent">
+      <view class="consent-box {{consentBankcard ? 'consent-on' : ''}}">{{consentBankcard ? '✓' : ''}}</view>
+      <view class="consent-body">
+        <view class="consent-name">银行卡信息</view>
+        <view class="consent-desc">用于银行卡要素一致性核验与分包款结算出金；仅保留掩码卡号，明文不落库。</view>
+      </view>
+    </view>
+
+    <view class="modal-actions">
+      <button class="modal-btn modal-btn-plain" bindtap="onCloseConsent">暂不同意</button>
+      <button
+        class="modal-btn modal-btn-primary"
+        disabled="{{!(consentIdcard && consentFace && consentBankcard)}}"
+        bindtap="onConsentAgree"
+      >同意并提交</button>
+    </view>
+  </view>
+</view>

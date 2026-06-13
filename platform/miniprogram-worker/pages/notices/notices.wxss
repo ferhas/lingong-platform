@@ -1,0 +1,94 @@
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 32rpx 8rpx;
+}
+.head-title { font-size: calc(38rpx * var(--fs, 1)); font-weight: 800; color: #172033; }
+.head-info { color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); margin-top: 4rpx; }
+.head-action {
+  color: #0F766E;
+  font-size: calc(27rpx * var(--fs, 1));
+  font-weight: 700;
+  padding: 12rpx 24rpx;
+  border-radius: 999rpx;
+  background: #E0F2EF;
+}
+
+.list { padding: 16rpx 24rpx 40rpx; }
+
+.item {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  margin-bottom: 18rpx;
+  display: flex;
+  border: 1rpx solid rgba(15, 118, 110, 0.06);
+  box-shadow: 0 2rpx 8rpx rgba(15, 23, 42, 0.03), 0 14rpx 36rpx rgba(15, 23, 42, 0.06);
+}
+.item-unread { border-left: 6rpx solid #14B8A6; }
+.item-icon {
+  width: 52rpx;
+  height: 52rpx;
+  border-radius: 16rpx;
+  background: #E7F4F1;
+  color: #0F766E;
+  font-size: calc(22rpx * var(--fs, 1));
+  font-weight: 800;
+  margin-right: 20rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.item-main { flex: 1; }
+.item-title { font-size: calc(28rpx * var(--fs, 1)); font-weight: 700; color: #172033; }
+.dot {
+  display: inline-block;
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 7rpx;
+  background: #DC2626;
+  margin-left: 10rpx;
+}
+.item-body { color: #64748B; font-size: calc(28rpx * var(--fs, 1)); line-height: 1.65; margin-top: 8rpx; }
+.item-time { color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); margin-top: 10rpx; }
+
+@media (prefers-color-scheme: dark) {
+  .head-title {
+    color: #E5E7EB;
+  }
+
+  .head-info,
+  .item-time {
+    color: #94A3B8;
+  }
+
+  .head-action {
+    color: #5EEAD4;
+    background: rgba(20, 184, 166, 0.16);
+  }
+
+  .item {
+    background: #121C2B;
+    border-color: #233149;
+    box-shadow: none;
+  }
+
+  .item-unread {
+    border-left-color: #5EEAD4;
+  }
+
+  .item-icon {
+    background: rgba(20, 184, 166, 0.16);
+    color: #5EEAD4;
+  }
+
+  .item-title {
+    color: #E5E7EB;
+  }
+
+  .item-body {
+    color: #CBD5E1;
+  }
+}

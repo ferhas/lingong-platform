@@ -1,0 +1,166 @@
+page { padding: 24rpx 24rpx 80rpx; }
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-title { font-size: calc(32rpx * var(--fs, 1)); font-weight: 700; flex: 1; margin-right: 16rpx; color: #172033; line-height: 1.45; }
+.status { font-size: calc(24rpx * var(--fs, 1)); padding: 8rpx 20rpx; border-radius: 999rpx; flex-shrink: 0; font-weight: 600; }
+.status-negotiating { background: #FFF7ED; color: #EA580C; }
+.status-arbitrating { background: #EDE9FE; color: #7C3AED; }
+.status-ruled { background: #E0F2FE; color: #0284C7; }
+.status-executed { background: #ECFDF5; color: #059669; }
+.status-closed { background: #F1F5F9; color: #64748B; }
+.status-withdrawn { background: #F1F5F9; color: #64748B; }
+.status-escalated { background: #FEF2F2; color: #DC2626; }
+
+.card-meta { color: #8A99A8; font-size: calc(25rpx * var(--fs, 1)); margin-top: 8rpx; }
+
+.claim-block {
+  background: #F7FAF9;
+  border-radius: 16rpx;
+  padding: 20rpx 22rpx;
+  margin-top: 18rpx;
+}
+.claim-label { color: #8A99A8; font-size: calc(24rpx * var(--fs, 1)); margin-bottom: 8rpx; }
+.claim-body { color: #334155; font-size: calc(28rpx * var(--fs, 1)); line-height: 1.7; }
+.claim-amount { color: #D97706; font-size: calc(28rpx * var(--fs, 1)); font-weight: 700; margin-top: 12rpx; }
+.deadline-tip {
+  margin-top: 16rpx;
+  background: #FFFBEB;
+  border: 1rpx solid #FDE68A;
+  color: #B45309;
+  border-radius: 14rpx;
+  padding: 14rpx 18rpx;
+  font-size: calc(25rpx * var(--fs, 1));
+  line-height: 1.6;
+}
+
+/* 裁决结果卡片 */
+.ruling-card { border: 1rpx solid #BAE6FD; }
+.ruling-head { font-size: calc(29rpx * var(--fs, 1)); font-weight: 700; color: #172033; display: flex; align-items: center; }
+.ruling-type { font-size: calc(34rpx * var(--fs, 1)); font-weight: 800; color: #0284C7; margin-top: 14rpx; }
+.ruling-amount { font-size: calc(34rpx * var(--fs, 1)); }
+.ruling-note { color: #475569; font-size: calc(27rpx * var(--fs, 1)); line-height: 1.7; margin-top: 12rpx; }
+.escalate-link {
+  margin-top: 18rpx;
+  padding-top: 18rpx;
+  border-top: 1rpx solid #EEF3F1;
+  color: #DC2626;
+  font-size: calc(26rpx * var(--fs, 1));
+}
+
+/* 时间线 */
+.tl-title { font-size: calc(29rpx * var(--fs, 1)); font-weight: 700; color: #172033; display: flex; align-items: center; margin-bottom: 22rpx; }
+.tl-item { display: flex; }
+.tl-dot-col { display: flex; flex-direction: column; align-items: center; margin-right: 18rpx; }
+.tl-dot {
+  width: 20rpx;
+  height: 20rpx;
+  border-radius: 50%;
+  background: #94A3B8;
+  margin-top: 8rpx;
+  flex-shrink: 0;
+}
+.tl-dot-worker { background: #0F766E; }
+.tl-dot-company { background: #2563EB; }
+.tl-dot-admin { background: #7C3AED; }
+.tl-line { width: 2rpx; flex: 1; background: #E2E8F0; margin: 6rpx 0; }
+.tl-body { flex: 1; min-width: 0; padding-bottom: 26rpx; }
+.tl-head { display: flex; align-items: center; gap: 12rpx; flex-wrap: wrap; }
+.tl-role { font-size: calc(23rpx * var(--fs, 1)); font-weight: 700; padding: 2rpx 14rpx; border-radius: 999rpx; background: #F1F5F9; color: #475569; }
+.tl-role-worker { background: #E7F4F1; color: #0F766E; }
+.tl-role-company { background: #E0F2FE; color: #0284C7; }
+.tl-role-admin { background: #EDE9FE; color: #7C3AED; }
+.tl-action { font-size: calc(27rpx * var(--fs, 1)); font-weight: 600; color: #172033; }
+.tl-time { color: #B0BCC9; font-size: calc(23rpx * var(--fs, 1)); margin-left: auto; }
+.tl-content {
+  margin-top: 10rpx;
+  background: #F7FAF9;
+  border-radius: 14rpx;
+  padding: 14rpx 18rpx;
+  color: #475569;
+  font-size: calc(26rpx * var(--fs, 1));
+  line-height: 1.65;
+  word-break: break-all;
+}
+
+.act-row {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16rpx;
+  margin-top: 20rpx;
+}
+.btn-send {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  color: #FFFFFF;
+  border-radius: 999rpx;
+  font-size: calc(27rpx * var(--fs, 1));
+  min-height: 64rpx;
+}
+.btn-send[disabled] { background: #C2D2CF; color: #FFFFFF; }
+.btn-withdraw {
+  background: #FFFFFF;
+  color: #DC2626;
+  border: 1rpx solid rgba(220, 38, 38, 0.3);
+  border-radius: 999rpx;
+  font-size: calc(27rpx * var(--fs, 1));
+  min-height: 64rpx;
+}
+
+.closed-tip { text-align: center; color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); padding: 20rpx 0 40rpx; }
+
+@media (prefers-color-scheme: dark) {
+  .card-title,
+  .ruling-head,
+  .tl-title,
+  .tl-action {
+    color: #E5E7EB;
+  }
+
+  .card-meta {
+    color: #94A3B8;
+  }
+
+  .claim-block,
+  .tl-content {
+    background: #0F172A;
+  }
+
+  .claim-body,
+  .ruling-note {
+    color: #CBD5E1;
+  }
+
+  .deadline-tip {
+    background: rgba(180, 83, 9, 0.18);
+    border-color: rgba(251, 191, 36, 0.26);
+    color: #FCD34D;
+  }
+
+  .status-negotiating { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
+  .status-arbitrating { background: rgba(124, 58, 237, 0.18); color: #C4B5FD; }
+  .status-ruled { background: rgba(2, 132, 199, 0.18); color: #7DD3FC; }
+  .status-executed { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; }
+  .status-closed,
+  .status-withdrawn { background: #1E293B; color: #94A3B8; }
+  .status-escalated { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
+
+  .ruling-card { border-color: #233149; }
+  .ruling-type { color: #7DD3FC; }
+
+  .tl-line { background: #233149; }
+  .tl-role { background: #1E293B; color: #CBD5E1; }
+  .tl-role-worker { background: rgba(20, 184, 166, 0.16); color: #5EEAD4; }
+  .tl-role-company { background: rgba(2, 132, 199, 0.18); color: #7DD3FC; }
+  .tl-role-admin { background: rgba(124, 58, 237, 0.18); color: #C4B5FD; }
+
+  .escalate-link {
+    border-top-color: #233149;
+    color: #FCA5A5;
+  }
+
+  .btn-withdraw {
+    background: #121C2B;
+    border-color: rgba(248, 113, 113, 0.3);
+    color: #FCA5A5;
+  }
+}

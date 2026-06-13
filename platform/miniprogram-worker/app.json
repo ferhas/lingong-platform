@@ -1,0 +1,47 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/login/login",
+    "pages/detail/detail",
+    "pages/verify/verify",
+    "pages/orders/orders",
+    "pages/income/income",
+    "pages/mine/mine",
+    "pages/notices/notices",
+    "pages/password/password",
+    "pages/legal/legal",
+    "pages/contracts/contracts",
+    "pages/bindcard/bindcard",
+    "pages/disputes/disputes",
+    "pages/disputes/detail",
+    "pages/tickets/tickets",
+    "pages/tickets/new",
+    "pages/tickets/detail",
+    "pages/help/help",
+    "pages/help/article",
+    "pages/skills/skills",
+    "pages/favorites/favorites",
+    "pages/insurance/insurance",
+    "pages/soletrader/soletrader"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "@navBg",
+    "navigationBarTitleText": "灵工云",
+    "navigationBarTextStyle": "@navTextStyle",
+    "backgroundColor": "@pageBg"
+  },
+  "tabBar": {
+    "custom": true,
+    "color": "@tabColor",
+    "selectedColor": "@tabSelectedColor",
+    "backgroundColor": "@tabBg",
+    "list": [
+      { "pagePath": "pages/index/index", "text": "任务大厅" },
+      { "pagePath": "pages/orders/orders", "text": "我的接单" },
+      { "pagePath": "pages/mine/mine", "text": "我的" }
+    ]
+  },
+  "darkmode": true,
+  "themeLocation": "theme.json",
+  "sitemapLocation": "sitemap.json"
+}

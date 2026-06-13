@@ -1,0 +1,76 @@
+.page-hero {
+  margin: 24rpx 24rpx 0;
+  padding: 32rpx;
+  border-radius: 28rpx;
+  background: linear-gradient(130deg, #14B8A6 -10%, #0F766E 40%, #2563EB 130%);
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 14rpx 36rpx rgba(15, 118, 110, 0.2);
+}
+.page-hero::after {
+  content: '';
+  position: absolute;
+  right: -70rpx;
+  top: -90rpx;
+  width: 240rpx;
+  height: 240rpx;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+.hero-kicker { color: rgba(255, 255, 255, 0.78); font-size: calc(24rpx * var(--fs, 1)); font-weight: 600; letter-spacing: 2rpx; }
+.hero-title { font-size: calc(38rpx * var(--fs, 1)); font-weight: 800; margin-top: 4rpx; }
+.hero-btn {
+  position: relative;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1rpx solid rgba(255, 255, 255, 0.28);
+  border-radius: 999rpx;
+  padding: 12rpx 26rpx;
+  font-size: calc(26rpx * var(--fs, 1));
+  font-weight: 700;
+}
+
+.ticket-list { padding: 20rpx 24rpx 80rpx; }
+
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.card-title { font-size: calc(31rpx * var(--fs, 1)); font-weight: 700; flex: 1; margin-right: 16rpx; color: #172033; line-height: 1.45; }
+.status { font-size: calc(24rpx * var(--fs, 1)); padding: 8rpx 20rpx; border-radius: 999rpx; flex-shrink: 0; font-weight: 600; }
+.status-open { background: #FFF7ED; color: #EA580C; }
+.status-pending_user { background: #FEF2F2; color: #DC2626; }
+.status-pending_agent { background: #E0F2FE; color: #0284C7; }
+.status-resolved { background: #ECFDF5; color: #059669; }
+.status-closed { background: #F1F5F9; color: #64748B; }
+
+.card-meta { color: #8A99A8; font-size: calc(25rpx * var(--fs, 1)); margin-top: 8rpx; display: flex; align-items: center; gap: 10rpx; flex-wrap: wrap; }
+.prio { font-size: calc(22rpx * var(--fs, 1)); font-weight: 700; padding: 2rpx 14rpx; border-radius: 999rpx; }
+.prio-urgent { background: #FEF2F2; color: #DC2626; }
+.prio-high { background: #FFF7ED; color: #EA580C; }
+.rated { color: #D97706; font-size: calc(25rpx * var(--fs, 1)); margin-top: 12rpx; }
+
+@media (prefers-color-scheme: dark) {
+  .page-hero {
+    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+    box-shadow: none;
+  }
+
+  .card-title {
+    color: #E5E7EB;
+  }
+
+  .card-meta {
+    color: #94A3B8;
+  }
+
+  .status-open { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
+  .status-pending_user { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
+  .status-pending_agent { background: rgba(2, 132, 199, 0.18); color: #7DD3FC; }
+  .status-resolved { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; }
+  .status-closed { background: #1E293B; color: #94A3B8; }
+
+  .prio-urgent { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
+  .prio-high { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
+}

@@ -1,0 +1,80 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="hero">
+  <view class="logo">灵工云</view>
+  <view class="slogan">合规接单 · 工单留痕 · 结算透明</view>
+</view>
+
+<view class="form-card">
+  <block wx:if="{{mode === 'bind'}}">
+    <view class="bind-title">完善信息</view>
+    <view class="bind-sub">微信首次登录，补充手机号与姓名即可完成注册</view>
+    <view class="field">
+      <view class="field-label">姓名</view>
+      <input class="field-input" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">手机号</view>
+      <input class="field-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+    </view>
+    <view class="agree-row">
+      <view class="agree-box {{agreed ? 'agree-on' : ''}}" bindtap="onToggleAgree">{{agreed ? '✓' : ''}}</view>
+      <view class="agree-text">
+        我已阅读并同意
+        <text class="agree-link" data-type="tos" bindtap="goLegal">《平台服务协议》</text>和
+        <text class="agree-link" data-type="privacy" bindtap="goLegal">《隐私政策》</text>
+      </view>
+    </view>
+    <button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onWechatBind">完成注册并登录</button>
+    <view class="back-link" data-mode="login" bindtap="onSwitchMode">返回账号登录</view>
+  </block>
+
+  <block wx:else>
+    <view class="tabs">
+      <view class="tab {{mode === 'login' ? 'tab-active' : ''}}" data-mode="login" bindtap="onSwitchMode">登录</view>
+      <view class="tab {{mode === 'register' ? 'tab-active' : ''}}" data-mode="register" bindtap="onSwitchMode">注册</view>
+    </view>
+
+    <view wx:if="{{mode === 'register'}}" class="field">
+      <view class="field-label">姓名</view>
+      <input class="field-input" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
+    </view>
+
+    <view class="field">
+      <view class="field-label">手机号</view>
+      <input class="field-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+    </view>
+
+    <view class="field">
+      <view class="field-label">密码</view>
+      <input class="field-input" password placeholder="至少10位，含字母和数字" value="{{password}}" data-field="password" bindinput="onInput" />
+    </view>
+
+    <view wx:if="{{mode === 'register'}}" class="field">
+      <view class="field-label">企业邀请码（选填）</view>
+      <input class="field-input" maxlength="20" placeholder="受企业邀请注册请填写" value="{{inviteCode}}" data-field="inviteCode" bindinput="onInput" />
+    </view>
+
+    <button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">
+      {{mode === 'login' ? '登 录' : '注册并登录'}}
+    </button>
+
+    <view class="divider"><text class="divider-text">或</text></view>
+
+    <button class="wechat-btn" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onWechatLogin">
+      <text class="wechat-icon">微</text> 微信一键登录
+    </button>
+
+    <view class="agree-row" wx:if="{{mode === 'register'}}">
+      <view class="agree-box {{agreed ? 'agree-on' : ''}}" bindtap="onToggleAgree">{{agreed ? '✓' : ''}}</view>
+      <view class="agree-text">
+        我已阅读并同意
+        <text class="agree-link" data-type="tos" bindtap="goLegal">《平台服务协议》</text>和
+        <text class="agree-link" data-type="privacy" bindtap="goLegal">《隐私政策》</text>
+      </view>
+    </view>
+    <view class="tip" wx:if="{{mode === 'login'}}">登录即表示同意
+      <text class="agree-link" data-type="tos" bindtap="goLegal">《平台服务协议》</text>与
+      <text class="agree-link" data-type="privacy" bindtap="goLegal">《隐私政策》</text>
+    </view>
+  </block>
+</view>

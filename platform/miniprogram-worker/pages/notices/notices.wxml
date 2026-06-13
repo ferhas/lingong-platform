@@ -1,0 +1,27 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="head">
+  <view>
+    <view class="head-title">消息中心</view>
+    <view class="head-info">未读 {{unread}} 条</view>
+  </view>
+  <view class="head-action" bindtap="onReadAll">全部已读</view>
+</view>
+
+<view class="list">
+  <view wx:if="{{!loading && !list.length}}" class="empty">暂无消息</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="item {{item.read ? '' : 'item-unread'}}"
+    data-id="{{item.id}}"
+    bindtap="onTapItem"
+  >
+    <view class="item-icon">{{item.icon}}</view>
+    <view class="item-main">
+      <view class="item-title">{{item.title}}<text wx:if="{{!item.read}}" class="dot"></text></view>
+      <view class="item-body">{{item.body}}</view>
+      <view class="item-time">{{item.created_at}}</view>
+    </view>
+  </view>
+</view>

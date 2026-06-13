@@ -1,0 +1,6 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="doc">
+  <view class="doc-title">{{title}}</view>
+  <view class="doc-version">当前版本：v{{version}}</view>
+  <text class="doc-content" user-select>{{content}}</text>
+</view>

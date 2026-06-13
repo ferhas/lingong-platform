@@ -1,0 +1,21 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="card">
+  <view class="field">
+    <view class="field-label">问题分类</view>
+    <picker range="{{categories}}" range-key="label" value="{{categoryIndex}}" bindchange="onCategory">
+      <view class="picker-box">{{categories[categoryIndex].label}} ▾</view>
+    </picker>
+  </view>
+  <view class="field">
+    <view class="field-label">问题标题</view>
+    <input class="field-input" maxlength="80" placeholder="一句话概括您的问题" value="{{title}}" data-field="title" bindinput="onInput" />
+  </view>
+  <view class="field">
+    <view class="field-label">问题描述</view>
+    <textarea class="field-textarea ta-lg" maxlength="2000" placeholder="请详细描述问题，可附订单号/提现单号等信息便于快速定位" value="{{content}}" data-field="content" bindinput="onInput" />
+  </view>
+</view>
+
+<view class="notice">提现、结算类问题将自动升级为紧急工单（2小时内首响）；投诉举报将同步平台风控核查。</view>
+
+<button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">提交工单</button>

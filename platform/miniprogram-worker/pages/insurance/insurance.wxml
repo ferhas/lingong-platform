@@ -1,0 +1,41 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="page-head">
+  <view class="ph-title">我的保险</view>
+  <view class="ph-sub">接单即按单投保意外险，接单生效、交付终止</view>
+</view>
+
+<view class="tabs">
+  <view class="tab {{tab === 'policy' ? 'tab-on' : ''}}" data-tab="policy" bindtap="switchTab">我的保单</view>
+  <view class="tab {{tab === 'claim' ? 'tab-on' : ''}}" data-tab="claim" bindtap="switchTab">理赔记录</view>
+</view>
+
+<view class="wrap">
+  <block wx:if="{{tab === 'policy'}}">
+    <view wx:if="{{!loading && !policies.length}}" class="empty">暂无保单，接单后自动投保</view>
+    <view wx:for="{{policies}}" wx:key="id" class="card">
+      <view class="row-top">
+        <view class="p-task">{{item.taskTitle}}</view>
+        <view class="p-state {{item.active ? 'state-on' : 'state-off'}}">{{item.active ? '生效中' : '已终止'}}</view>
+      </view>
+      <view class="p-meta">{{item.plan}} · 保费 ¥{{item.premium}}（平台承担）</view>
+      <view class="p-no">保单号 {{item.policyNo}}</view>
+      <view class="p-foot">
+        <text wx:if="{{item.hasClaim}}" class="p-claimed">已报案</text>
+        <text wx:elif="{{item.active}}" class="p-report" data-taskid="{{item.taskId}}" bindtap="onReport">一键报案</text>
+      </view>
+    </view>
+  </block>
+
+  <block wx:if="{{tab === 'claim'}}">
+    <view wx:if="{{!loading && !claims.length}}" class="empty">暂无理赔记录</view>
+    <view wx:for="{{claims}}" wx:key="id" class="card">
+      <view class="row-top">
+        <view class="p-task">{{item.taskTitle}}</view>
+        <view class="c-state c-{{item.status}}">{{item.statusLabel}}</view>
+      </view>
+      <view class="c-desc">{{item.description}}</view>
+      <view wx:if="{{item.result}}" class="c-result">处理结果：{{item.result}}</view>
+      <view class="c-time">报案时间 {{item.createdAt}}</view>
+    </view>
+  </block>
+</view>

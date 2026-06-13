@@ -1,0 +1,156 @@
+/* ============================================================
+   灵工云·企业端 设计系统
+   语义 CSS 变量双主题：:root 浅色 / html.dark 深色
+   ============================================================ */
+
+:root {
+  /* —— 语义变量（浅色）—— */
+  --bg-page: #f5f6fa;
+  --bg-card: #ffffff;
+  --bg-hover: #f3f4f6;
+  --text-1: #1f2937;
+  --text-2: #4b5563;
+  --text-3: #9ca3af;
+  --border: #e5e7eb;
+  --brand: #4f46e5;
+  --brand-weak: #eeecfd;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #6b7280;
+
+  /* 侧边栏（两种主题下均保持深底） */
+  --sidebar-bg-from: #1e1b4b;
+  --sidebar-bg-to: #272063;
+  --sidebar-text: #a5b4fc;
+  --sidebar-text-active: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-hover: rgba(255, 255, 255, 0.08);
+
+  /* 卡片阴影与品牌渐变 */
+  --shadow-card: 0 2px 12px rgba(30, 27, 75, 0.06);
+  --shadow-pop: 0 8px 32px rgba(30, 27, 75, 0.1);
+  --brand-gradient: linear-gradient(135deg, #4f46e5 0%, #7c6ff0 100%);
+
+  /* —— Element Plus 主色覆盖 —— */
+  --el-color-primary: #4f46e5;
+  --el-color-primary-light-3: #7c6ff0;
+  --el-color-primary-light-5: #a39bf5;
+  --el-color-primary-light-7: #c9c4f9;
+  --el-color-primary-light-8: #dcd9fb;
+  --el-color-primary-light-9: #eeecfd;
+  --el-color-primary-dark-2: #4338ca;
+}
+
+html.dark {
+  /* —— 语义变量（深色）—— */
+  --bg-page: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-hover: #242837;
+  --text-1: #e5e7eb;
+  --text-2: #b4b9c5;
+  --text-3: #6f7585;
+  --border: #2e3342;
+  --brand: #6366f1;
+  --brand-weak: rgba(99, 102, 241, 0.16);
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --danger: #f87171;
+  --info: #9ca3af;
+
+  --sidebar-bg-from: #14122e;
+  --sidebar-bg-to: #1a1640;
+  --sidebar-text: #8b93d8;
+  --sidebar-text-active: #ffffff;
+  --sidebar-border: rgba(255, 255, 255, 0.06);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --brand-gradient: linear-gradient(135deg, #4338ca 0%, #6d5fe0 100%);
+
+  /* —— Element Plus 深色关键变量协调 —— */
+  --el-color-primary: #6366f1;
+  --el-color-primary-light-3: #818cf8;
+  --el-color-primary-light-5: #4c4a8f;
+  --el-color-primary-light-7: #3b3970;
+  --el-color-primary-light-8: #312f5c;
+  --el-color-primary-light-9: #272548;
+  --el-color-primary-dark-2: #4f46e5;
+
+  --el-bg-color: #1a1d27;
+  --el-bg-color-page: #0f1117;
+  --el-bg-color-overlay: #21242f;
+  --el-text-color-primary: #e5e7eb;
+  --el-text-color-regular: #b4b9c5;
+  --el-text-color-secondary: #8b909e;
+  --el-text-color-placeholder: #6f7585;
+  --el-border-color: #2e3342;
+  --el-border-color-light: #2a2e3c;
+  --el-border-color-lighter: #262a37;
+  --el-border-color-extra-light: #222633;
+  --el-fill-color: #242837;
+  --el-fill-color-light: #20242f;
+  --el-fill-color-lighter: #1d212b;
+  --el-fill-color-blank: #1a1d27;
+  --el-mask-color: rgba(0, 0, 0, 0.7);
+  --el-disabled-bg-color: #20242f;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg-page);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  transition: background-color 0.25s, color 0.25s;
+}
+
+/* —— 公共类 —— */
+.page-card {
+  background: var(--bg-card);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+  padding: 20px 24px;
+  transition: background-color 0.25s;
+}
+
+.page-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-1);
+  margin: 0 0 16px;
+}
+
+.page-desc {
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.money {
+  font-variant-numeric: tabular-nums;
+}
+
+.mono {
+  font-family: 'JetBrains Mono', Consolas, 'Courier New', monospace;
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.pager {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

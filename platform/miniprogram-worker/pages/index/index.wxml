@@ -1,0 +1,91 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="header">
+  <view class="hero-top">
+    <view>
+      <view class="kicker">灵工云任务大厅</view>
+      <view class="hello">你好{{userName ? '，' + userName : ''}}</view>
+    </view>
+    <view class="count-pill">
+      <text class="count-num">{{total}}</text>
+      <text class="count-label">招募中</text>
+    </view>
+  </view>
+  <view class="sub">筛选合规承揽任务，报名后自动生成工单并按单投保</view>
+  <view class="search">
+    <view class="search-icon">搜</view>
+    <input
+      class="search-input"
+      placeholder="搜索任务，如：设计、翻译"
+      confirm-type="search"
+      value="{{keyword}}"
+      bindinput="onKeywordInput"
+      bindfocus="onFocusSearch"
+      bindblur="onBlurSearch"
+      bindconfirm="onSearch"
+    />
+    <view class="search-btn" bindtap="onSearch">搜索</view>
+  </view>
+  <view wx:if="{{showHistory}}" class="history-pop">
+    <view class="history-head">
+      <text>搜索历史</text>
+      <text class="history-clear" bindtap="onClearHistory">清空</text>
+    </view>
+    <view class="history-tags">
+      <text wx:for="{{searchHistory}}" wx:key="*this" class="history-tag" data-kw="{{item}}" bindtap="onTapHistory">{{item}}</text>
+    </view>
+  </view>
+</view>
+
+<scroll-view class="category-bar" scroll-x enable-flex>
+  <view
+    wx:for="{{categories}}"
+    wx:key="*this"
+    class="chip {{activeCategory === item ? 'chip-active' : ''}}"
+    data-category="{{item}}"
+    bindtap="onSelectCategory"
+  >{{item}}</view>
+</scroll-view>
+
+<view class="filter-bar">
+  <view class="sort-group">
+    <view
+      wx:for="{{sorts}}"
+      wx:key="key"
+      class="sort-item {{activeSort === item.key ? 'sort-active' : ''}}"
+      data-key="{{item.key}}"
+      bindtap="onSelectSort"
+    >{{item.label}}</view>
+  </view>
+  <view class="picker-group">
+    <picker range="{{payFilters}}" range-key="label" value="{{payIndex}}" bindchange="onSelectPay">
+      <view class="price-picker">{{payFilters[payIndex].label}} ▾</view>
+    </picker>
+    <picker range="{{priceFilters}}" range-key="label" value="{{priceIndex}}" bindchange="onSelectPrice">
+      <view class="price-picker">{{priceFilters[priceIndex].label}} ▾</view>
+    </picker>
+  </view>
+</view>
+
+<view class="filter-bar2">
+  <picker class="f2-item" range="{{cityFilters}}" range-key="label" value="{{cityIndex}}" bindchange="onSelectCity">
+    <view class="f2-picker">📍 {{cityFilters[cityIndex].label}} ▾</view>
+  </picker>
+  <picker class="f2-item" range="{{tradeFilters}}" range-key="label" value="{{tradeIndex}}" bindchange="onSelectTrade">
+    <view class="f2-picker">🔧 {{tradeFilters[tradeIndex].label}} ▾</view>
+  </picker>
+  <view class="match-toggle {{matchSkills ? 'match-on' : ''}}" bindtap="onToggleMatch">匹配我的技能</view>
+</view>
+
+<view class="task-list">
+  <view wx:if="{{!loading && !tasks.length}}" class="empty">{{matchSkills ? '没有匹配你已认证技能的任务，试试关闭技能匹配' : '暂无符合条件的招募任务'}}</view>
+
+  <task-card
+    wx:for="{{tasks}}"
+    wx:key="id"
+    task="{{item}}"
+    bind:tap="onTapTask"
+  />
+
+  <view wx:if="{{loading}}" class="loading">加载中…</view>
+  <view wx:if="{{finished && tasks.length}}" class="loading">没有更多了</view>
+</view>

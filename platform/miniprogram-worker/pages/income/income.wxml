@@ -1,0 +1,87 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<block wx:if="{{income}}">
+  <view class="balance-card">
+    <view class="balance-kicker">收入账户</view>
+    <view class="balance-label">可提现余额（元）</view>
+    <view class="balance-num">¥{{income.account.balance}}</view>
+    <view class="balance-sub">分包款由存管银行直接结算至本人银行卡</view>
+    <button class="withdraw-btn" bindtap="onWithdraw">提现</button>
+  </view>
+
+  <view wx:if="{{income.soletraderGuide.suggest}}" class="guide-banner" bindtap="goSoletrader">
+    <view class="gb-text">
+      <view class="gb-title">本月收入已达 ¥{{income.soletraderGuide.threshold}}，建议登记个体工商户</view>
+      <view class="gb-sub">转入B线享进项抵扣、按经营所得申报，长期更省税</view>
+    </view>
+    <view class="gb-btn">去登记 ›</view>
+  </view>
+
+  <view class="card" wx:if="{{monthly.length}}">
+    <view class="tax-title"><text class="title-mark"></text>近6个月实收</view>
+    <view class="chart">
+      <view wx:for="{{monthly}}" wx:key="period" class="chart-col">
+        <view class="chart-val">¥{{item.net}}</view>
+        <view class="chart-bar-wrap"><view class="chart-bar" style="height: {{item.pct}}%"></view></view>
+        <view class="chart-label">{{item.label}}</view>
+      </view>
+    </view>
+  </view>
+
+  <view class="card" wx:if="{{withdrawals.length}}">
+    <view class="tax-title"><text class="title-mark"></text>提现记录</view>
+    <view wx:for="{{withdrawals}}" wx:key="id" class="wd-item">
+      <view class="wd-left">
+        <view class="wd-amount">¥{{item.amount}}</view>
+        <view class="wd-time">{{item.createdAt}}{{item.failReason ? ' · ' + item.failReason : ''}}</view>
+      </view>
+      <view class="wd-status wd-{{item.status}}">{{item.status === 'done' ? '已到账' : item.status === 'failed' ? '失败已退回' : item.status === 'processing' ? '出金中' : '已受理'}}</view>
+    </view>
+  </view>
+
+  <view class="card">
+    <view class="tax-title"><text class="title-mark"></text>税务查询（累计预扣法）</view>
+    <view class="tax-row"><text>本年累计劳务报酬</text><text>¥{{income.taxSummary.yearGross}}</text></view>
+    <view class="tax-row"><text>连续接单月份数</text><text>{{income.taxSummary.consecutiveMonths}} 个月</text></view>
+    <view class="tax-row"><text>已累计减除费用</text><text>¥{{income.taxSummary.cumulativeDeduction}}（5000元/月）</text></view>
+    <view class="tax-row"><text>累计已预扣个税</text><text>¥{{income.taxSummary.yearTax}}</text></view>
+    <view class="tax-row"><text>本月销售额 / 增值税</text><text>¥{{income.taxSummary.monthSales}} · {{income.taxSummary.vatFree ? '免征' : '应税'}}</text></view>
+    <view class="tax-tip">{{income.taxSummary.taxNote}}</view>
+    <view class="voucher-link" bindtap="onVoucher">查看年度扣缴凭证 ›</view>
+  </view>
+
+  <view class="card">
+    <view class="record-title"><text class="title-mark"></text>收入明细</view>
+    <view wx:if="{{!income.records.length}}" class="empty-sm">完成任务结算后这里会展示收入记录</view>
+    <view wx:for="{{income.records}}" wx:key="id" class="record-item">
+      <view class="record-left">
+        <view class="record-name">{{item.taskTitle}}</view>
+        <view class="record-time">{{item.createdAt}} · 个税 ¥{{item.tax}}{{item.vat > 0 ? ' · 增值税 ¥' + item.vat : ''}}</view>
+        <view wx:if="{{item.taxVoucherNo}}" class="record-voucher">完税凭证 {{item.taxVoucherNo}}</view>
+      </view>
+      <view class="record-net">+¥{{item.net}}</view>
+    </view>
+  </view>
+</block>
+
+<!-- 提现弹窗（平台开启短信验证时展示验证码流程） -->
+<view wx:if="{{showWithdraw}}" class="modal-mask">
+  <view class="modal-box">
+    <view class="modal-title">提现到银行卡</view>
+    <view class="modal-sub">可提现余额 ¥{{income.account.balance}} · T+1到账</view>
+    <view class="field">
+      <view class="field-label">提现金额（元）</view>
+      <input class="field-input" type="digit" placeholder="请输入提现金额" value="{{wdAmount}}" data-field="wdAmount" bindinput="onWdInput" />
+    </view>
+    <view class="field" wx:if="{{wdNeedSms}}">
+      <view class="field-label">短信验证码</view>
+      <view class="sms-row">
+        <input class="field-input" type="number" maxlength="6" placeholder="发送至本人手机号" value="{{wdSmsCode}}" data-field="wdSmsCode" bindinput="onWdInput" />
+        <view class="sms-btn {{wdCounting > 0 ? 'sms-disabled' : ''}}" bindtap="onWdSendSms">{{wdCounting > 0 ? wdCounting + 's 后重发' : '获取验证码'}}</view>
+      </view>
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn modal-btn-plain" bindtap="onCloseWithdraw">取消</button>
+      <button class="modal-btn modal-btn-primary" disabled="{{wdSubmitting}}" bindtap="onWdSubmit">确认提现</button>
+    </view>
+  </view>
+</view>

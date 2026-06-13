@@ -1,0 +1,33 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="card">
+  <view class="sec-title"><text class="title-mark"></text>申请技能认证</view>
+  <view class="sec-sub">认证通过后将在个人主页展示技能徽章，企业选人时优先展示</view>
+  <view class="field">
+    <view class="field-label">技能</view>
+    <picker range="{{catalog}}" value="{{skillIndex}}" bindchange="onSkill">
+      <view class="picker-box">{{catalog.length ? catalog[skillIndex] : '加载中…'}} ▾</view>
+    </picker>
+  </view>
+  <view class="field">
+    <view class="field-label">等级</view>
+    <picker range="{{levels}}" value="{{levelIndex}}" bindchange="onLevel">
+      <view class="picker-box">{{levels[levelIndex]}} ▾</view>
+    </picker>
+  </view>
+  <view class="field">
+    <view class="field-label">技能证书（选填，有证书更易通过）</view>
+    <view class="cert-btn" bindtap="onPickCert">{{certName || '+ 选择证书文件'}}</view>
+  </view>
+  <button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">提交认证申请</button>
+</view>
+
+<view class="card" wx:if="{{list.length}}">
+  <view class="sec-title"><text class="title-mark"></text>我的技能</view>
+  <view wx:for="{{list}}" wx:key="id" class="skill-item">
+    <view class="skill-left">
+      <view class="skill-name">{{item.skill}} · {{item.level}}</view>
+      <view wx:if="{{item.verifyNote}}" class="skill-note">{{item.verifyNote}}</view>
+    </view>
+    <view class="skill-status st-{{item.status}}">{{item.statusText}}</view>
+  </view>
+</view>

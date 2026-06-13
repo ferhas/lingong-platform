@@ -1,0 +1,8 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="doc">
+  <view class="doc-title">{{title}}</view>
+  <view class="doc-meta">{{category}}{{updatedAt ? ' · 更新于 ' + updatedAt : ''}}</view>
+  <text class="doc-content" user-select>{{content}}</text>
+</view>
+
+<view class="contact-tip" bindtap="goTickets">没有解决您的问题？联系在线客服 ›</view>

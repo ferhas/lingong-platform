@@ -1,0 +1,155 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="profile">
+  <view class="avatar">{{user.name ? user.name[0] : '我'}}</view>
+  <view class="profile-info">
+    <view class="profile-kicker">零工工作台</view>
+    <view class="name" bindtap="onEditName">
+      {{user.name || ''}}
+      <text wx:if="{{profile.verified}}" class="verified">已实名</text>
+      <text wx:else class="unverified">未实名</text>
+      <text class="edit-hint">编辑</text>
+    </view>
+    <view class="role">{{profile.subjectType === 'soletrader' ? '个体工商户' : '自然人'}} · {{user.phone || ''}}</view>
+  </view>
+</view>
+
+<view class="stats" hover-class="card-hover" hover-stay-time="80" bindtap="goIncome">
+  <view class="stat">
+    <view class="stat-num">¥{{profile.account.balance}}</view>
+    <view class="stat-label">可提现余额</view>
+  </view>
+  <view class="stat-link">收入明细 ›</view>
+</view>
+
+<!-- 信用分卡片 -->
+<view wx:if="{{profile && profile.credit}}" class="credit-card">
+  <view class="credit-top">
+    <view class="credit-score-wrap">
+      <view class="credit-score">{{profile.credit.creditScore}}</view>
+      <view class="credit-label">信用分</view>
+    </view>
+    <view class="credit-grade grade-{{profile.credit.gradeClass}}">{{profile.credit.grade}}</view>
+  </view>
+  <view class="credit-stats">
+    <view class="credit-stat">
+      <view class="cs-num">{{profile.credit.settledCount}}</view>
+      <view class="cs-label">完单数</view>
+    </view>
+    <view class="credit-stat">
+      <view class="cs-num">{{profile.credit.reviewCount}}</view>
+      <view class="cs-label">收到评价</view>
+    </view>
+    <view class="credit-stat">
+      <view class="cs-num">{{profile.credit.avgScore !== null ? profile.credit.avgScore + '分' : '—'}}</view>
+      <view class="cs-label">好评均分</view>
+    </view>
+  </view>
+  <view wx:if="{{profile.credit.verifiedSkills.length}}" class="skill-badges" bindtap="goSkills">
+    <text wx:for="{{profile.credit.verifiedSkills}}" wx:key="skill" class="skill-badge">{{item.skill}} · {{item.level}}</text>
+  </view>
+</view>
+
+<view wx:if="{{profile && !profile.verified}}" class="verify-banner" bindtap="goVerify">
+  <view class="vb-text">完成实名认证并签署分包协议后才能接单</view>
+  <view class="vb-btn">去认证 ›</view>
+</view>
+
+<view wx:if="{{profile && profile.locked}}" class="locked-banner">
+  🔒 滚动12个月收入已达强制登记阈值，自然人接单权限已锁定，请完成个体工商户登记
+</view>
+
+<view class="menu-list">
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goNotices">
+    <view class="menu-icon">信</view>
+    <text class="menu-label">消息中心</text>
+    <text wx:if="{{unread > 0}}" class="menu-unread">{{unread}}</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goVerify">
+    <view class="menu-icon">证</view>
+    <text class="menu-label">实名认证</text>
+    <text wx:if="{{profile.verified}}" class="menu-badge">已认证</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goIncome">
+    <view class="menu-icon">收</view>
+    <text class="menu-label">收入与提现 · 税务查询</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="onContract">
+    <view class="menu-icon">合</view>
+    <text class="menu-label">我的分包协议</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goBindcard">
+    <view class="menu-icon">卡</view>
+    <text class="menu-label">提现银行卡</text>
+    <text wx:if="{{profile.cardBound}}" class="menu-badge">已绑卡</text>
+    <text wx:elif="{{profile.verified}}" class="menu-badge badge-warn">未绑卡</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goSkills">
+    <view class="menu-icon">技</view>
+    <text class="menu-label">技能认证</text>
+    <text wx:if="{{profile.credit.verifiedSkills.length}}" class="menu-badge">{{profile.credit.verifiedSkills.length}}项已认证</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goFavorites">
+    <view class="menu-icon">藏</view>
+    <text class="menu-label">我的收藏</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goInsurance">
+    <view class="menu-icon">保</view>
+    <text class="menu-label">我的保险 · 理赔报案</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goDisputes">
+    <view class="menu-icon">议</view>
+    <text class="menu-label">争议处理</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goTickets">
+    <view class="menu-icon">客</view>
+    <text class="menu-label">联系客服</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goHelp">
+    <view class="menu-icon">帮</view>
+    <text class="menu-label">帮助中心</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goSoletraderZone">
+    <view class="menu-icon">商</view>
+    <text class="menu-label">个体户专区 · 登记/发票</text>
+    <text wx:if="{{profile.subjectType === 'soletrader'}}" class="menu-badge">已登记</text>
+    <text class="menu-arrow">›</text>
+  </view>
+  <view class="menu-item" hover-class="menu-hover" hover-stay-time="80" bindtap="goPassword">
+    <view class="menu-icon">密</view>
+    <text class="menu-label">修改密码</text>
+    <text class="menu-arrow">›</text>
+  </view>
+</view>
+
+<view class="fs-card">
+  <view class="title-row fs-head">
+    <text class="title-mark"></text>
+    <text class="fs-title">字体大小</text>
+    <text class="fs-cur">当前：{{fsKey === 'small' ? '小' : fsKey === 'large' ? '大' : fsKey === 'xlarge' ? '特大' : '标准'}}</text>
+  </view>
+  <view class="fs-seg">
+    <view
+      wx:for="{{fontOptions}}"
+      wx:key="key"
+      class="fs-opt {{fsKey === item.key ? 'fs-opt-on' : ''}}"
+      hover-class="fs-opt-hover"
+      hover-stay-time="60"
+      data-key="{{item.key}}"
+      bindtap="onPickFont"
+    >{{item.label}}</view>
+  </view>
+  <view class="fs-tip">字号更大，看任务详情和合同条款更清晰；设置后小程序全程生效。</view>
+</view>
+
+<view class="logout" hover-class="card-hover" hover-stay-time="80" bindtap="onLogout">退出登录</view>

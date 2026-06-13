@@ -1,0 +1,57 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<block wx:if="{{detail}}">
+  <view class="card head-card">
+    <view class="card-top">
+      <view class="card-title">{{detail.taskTitle}}</view>
+      <view class="status status-{{detail.status}}">{{detail.statusText}}</view>
+    </view>
+    <view class="card-meta">{{detail.typeText}} · {{detail.no}} · {{detail.createdAt}}</view>
+    <view class="claim-block">
+      <view class="claim-label">诉求描述</view>
+      <view class="claim-body">{{detail.claim}}</view>
+      <view wx:if="{{detail.claimAmount > 0}}" class="claim-amount">主张金额 ¥{{detail.claimAmount}}</view>
+    </view>
+    <view wx:if="{{detail.stageDeadline && detail.canAct}}" class="deadline-tip">当前阶段截止：{{detail.stageDeadline}}，逾期自动进入下一阶段</view>
+  </view>
+
+  <!-- 裁决结果卡片 -->
+  <view wx:if="{{detail.rulingType}}" class="card ruling-card">
+    <view class="ruling-head">
+      <text class="title-mark"></text>平台裁决结果
+    </view>
+    <view class="ruling-type">{{detail.rulingTypeText}}<text wx:if="{{detail.rulingAmount !== null}}" class="ruling-amount"> · ¥{{detail.rulingAmount}}</text></view>
+    <view wx:if="{{detail.rulingNote}}" class="ruling-note">{{detail.rulingNote}}</view>
+    <view wx:if="{{detail.canEscalate}}" class="escalate-link" bindtap="onEscalate">对裁决不服？声明线下仲裁/诉讼 ›</view>
+  </view>
+
+  <!-- 时间线 -->
+  <view class="card">
+    <view class="tl-title"><text class="title-mark"></text>处理时间线</view>
+    <view wx:for="{{detail.timeline}}" wx:key="id" class="tl-item">
+      <view class="tl-dot-col">
+        <view class="tl-dot tl-dot-{{item.actorRole}}"></view>
+        <view wx:if="{{index < detail.timeline.length - 1}}" class="tl-line"></view>
+      </view>
+      <view class="tl-body">
+        <view class="tl-head">
+          <text class="tl-role tl-role-{{item.actorRole}}">{{item.roleText}}</text>
+          <text class="tl-action">{{item.actionText}}</text>
+          <text class="tl-time">{{item.createdAt}}</text>
+        </view>
+        <view wx:if="{{item.content}}" class="tl-content">{{item.content}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 举证留言输入 -->
+  <view wx:if="{{detail.canAct}}" class="card">
+    <view class="tl-title"><text class="title-mark"></text>举证留言</view>
+    <textarea class="field-textarea" maxlength="1000" placeholder="补充说明或提交证据描述（交付记录/沟通截图说明等）" value="{{msg}}" bindinput="onMsgInput" />
+    <view class="act-row">
+      <button wx:if="{{detail.canWithdraw}}" class="btn-withdraw" size="mini" bindtap="onWithdraw">撤回争议</button>
+      <button class="btn-send" size="mini" disabled="{{sending}}" bindtap="onSendMsg">提交留言</button>
+    </view>
+  </view>
+
+  <view wx:if="{{!detail.canAct && !detail.rulingType}}" class="closed-tip">该争议已结束，如有新问题可在订单上重新发起或联系客服</view>
+</block>

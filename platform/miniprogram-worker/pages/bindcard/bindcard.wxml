@@ -1,0 +1,43 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<block wx:if="{{profile && profile.cardBound}}">
+  <view class="done-card">
+    <view class="done-icon">✓</view>
+    <view class="done-title">提现卡已绑定</view>
+    <view class="done-sub">{{profile.bankCard}}</view>
+    <view class="done-sub">分包款与提现均出金至该卡（存管银行直连）</view>
+  </view>
+  <view class="card">
+    <view class="tip-title">换绑说明</view>
+    <view class="tip-body">如需更换提现卡，请在下方重新填写新卡信息并提交，核验通过后自动替换。</view>
+  </view>
+</block>
+
+<block wx:else>
+  <view class="bind-hero">
+    <view class="hero-kicker">提现准备</view>
+    <view class="hero-title">绑定提现银行卡</view>
+    <view class="hero-sub">须为本人一类卡，绑定后提现出金至该卡。需先完成实名认证。</view>
+  </view>
+</block>
+
+<view class="card">
+  <view class="field">
+    <view class="field-label">银行卡号</view>
+    <input class="field-input" type="number" maxlength="19" placeholder="须为本人一类卡" value="{{bankCard}}" data-field="bankCard" bindinput="onInput" />
+  </view>
+  <view class="field">
+    <view class="field-label">银行预留手机号</view>
+    <input class="field-input" type="number" maxlength="11" placeholder="办卡时预留的手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+  </view>
+  <view class="field" wx:if="{{needSms}}">
+    <view class="field-label">短信验证码</view>
+    <view class="sms-row">
+      <input class="field-input" type="number" maxlength="6" placeholder="发送至本人注册手机号" value="{{smsCode}}" data-field="smsCode" bindinput="onInput" />
+      <view class="sms-btn {{counting > 0 ? 'sms-disabled' : ''}}" bindtap="onSendSms">{{counting > 0 ? counting + 's 后重发' : '获取验证码'}}</view>
+    </view>
+  </view>
+</view>
+
+<view class="notice">绑卡将进行银行卡四要素核验（卡号+姓名+身份证+预留手机），出金凭存管绑卡协议号执行，平台不留存卡号明文。</view>
+
+<button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">{{profile && profile.cardBound ? '提交换绑' : '提交绑卡'}}</button>

@@ -1,0 +1,15 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="page-head">
+  <view class="ph-title">我的收藏</view>
+  <view class="ph-sub">共 {{list.length}} 个收藏任务 · 点卡片查看详情</view>
+</view>
+
+<view class="wrap">
+  <view wx:if="{{!loading && !list.length}}" class="empty">还没有收藏任务，在任务详情点「☆ 收藏」即可加入</view>
+
+  <task-card wx:for="{{list}}" wx:key="id" task="{{item}}" bind:tap="onTapTask">
+    <view class="fav-foot">
+      <text class="fav-remove" catch:tap="onRemove" data-id="{{item.id}}">取消收藏</text>
+    </view>
+  </task-card>
+</view>

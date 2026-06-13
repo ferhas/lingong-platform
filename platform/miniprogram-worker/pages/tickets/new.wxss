@@ -1,0 +1,29 @@
+page { padding: 24rpx; }
+
+.field { margin-bottom: 26rpx; }
+.field:last-child { margin-bottom: 6rpx; }
+
+.picker-box {
+  background: #F4F8F7;
+  border-radius: 20rpx;
+  padding: 22rpx 26rpx;
+  font-size: calc(29rpx * var(--fs, 1));
+  color: #172033;
+  min-height: 84rpx;
+}
+
+.ta-lg { min-height: 240rpx; }
+
+.notice { color: #64748B; font-size: calc(26rpx * var(--fs, 1)); line-height: 1.7; margin: 8rpx 8rpx 28rpx; }
+.submit { margin: 0 8rpx; }
+
+@media (prefers-color-scheme: dark) {
+  .picker-box {
+    background: #0F172A;
+    color: #F8FAFC;
+  }
+
+  .notice {
+    color: #94A3B8;
+  }
+}

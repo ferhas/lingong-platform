@@ -1,0 +1,54 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="page-head">
+  <view class="ph-title">个体户专区</view>
+  <view class="ph-sub">{{profile.subjectType === 'soletrader' ? '经营所得线（B线）· 自行申报' : '自然人（A线）· 平台代扣代缴'}}</view>
+</view>
+
+<view class="wrap" wx:if="{{profile}}">
+  <view wx:if="{{!profile.verified}}" class="verify-banner" bindtap="goVerify">
+    <view class="vb-text">需先完成实名认证才能登记个体工商户</view>
+    <view class="vb-btn">去认证 ›</view>
+  </view>
+
+  <!-- 自然人：转线引导 -->
+  <block wx:if="{{profile.subjectType === 'person'}}">
+    <view class="card guide-card {{guide.suggest ? 'guide-hot' : ''}}">
+      <view class="g-title">{{guide.suggest ? '建议登记个体工商户' : '个体工商户登记引导'}}</view>
+      <view class="g-bars">
+        <view class="g-line"><text>本月收入</text><text class="g-val">¥{{guide.monthGross}}</text></view>
+        <view class="g-line"><text>引导阈值</text><text class="g-val">¥{{guide.threshold}}</text></view>
+      </view>
+      <view class="g-note">{{guide.note}}</view>
+      <button class="btn-primary g-btn" hover-class="btn-hover" bindtap="onRegister">登记为个体工商户（转B线）</button>
+    </view>
+
+    <view class="card">
+      <view class="section-title"><text class="title-mark"></text>转入B线的影响</view>
+      <view class="li">· 平台不再代扣代缴个税，按经营所得自行申报（核定/查账征收）</view>
+      <view class="li">· 每次结算前需向平台开具发票（进项），否则不可结算</view>
+      <view class="li">· 适合长期、较高收入的零工，整体税负通常更优</view>
+      <view class="li">· 若已触发强制登记阈值导致接单锁定，登记后自动解锁</view>
+    </view>
+  </block>
+
+  <!-- 个体户：发票台账 -->
+  <block wx:else>
+    <view class="card b-tip">
+      <view class="section-title"><text class="title-mark"></text>B线结算须知</view>
+      <view class="li">结算前需在「我的接单」对应工单上传进项发票，平台认证后方可结算。</view>
+      <button class="btn-ghost b-btn" bindtap="goOrders">去我的接单上传发票 ›</button>
+    </view>
+
+    <view class="ledger-title">进项发票台账（{{invoices.length}}）</view>
+    <view wx:if="{{!loading && !invoices.length}}" class="empty">暂无已上传的进项发票</view>
+    <view wx:for="{{invoices}}" wx:key="id" class="card">
+      <view class="row-top">
+        <view class="i-task">{{item.taskTitle}}</view>
+        <view class="i-state s-{{item.status}}">{{item.statusLabel}}</view>
+      </view>
+      <view class="i-meta">{{item.invoiceType}} · 发票号 {{item.invoiceNo}}</view>
+      <view class="i-amt">金额 ¥{{item.amount}}<text wx:if="{{item.taxAmount > 0}}"> · 税额 ¥{{item.taxAmount}}</text></view>
+      <view wx:if="{{item.verifyNote}}" class="i-note">认证备注：{{item.verifyNote}}</view>
+    </view>
+  </block>
+</view>

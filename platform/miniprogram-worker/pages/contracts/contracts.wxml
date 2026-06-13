@@ -1,0 +1,31 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="tip">
+  <view class="tip-title">合同与工单</view>
+  <view class="tip-body">您与平台签署的全部协议与工单都在这里，点击可查看合同全文。</view>
+</view>
+
+<view class="list">
+  <view wx:if="{{!loading && !list.length}}" class="empty">完成实名认证后，这里会展示您签署的《分包协议》</view>
+
+  <view wx:for="{{list}}" wx:key="id" class="card" hover-class="card-hover" hover-stay-time="80" data-id="{{item.id}}" bindtap="onView">
+    <view class="card-top">
+      <view class="card-title">{{item.typeText}}</view>
+      <view class="card-arrow">查看全文 ›</view>
+    </view>
+    <view class="card-meta">编号 {{item.no}}</view>
+    <view wx:if="{{item.taskTitle}}" class="card-meta">关联任务：{{item.taskTitle}}</view>
+    <view class="card-meta">签署时间 {{item.signedAt}}</view>
+  </view>
+</view>
+
+<view wx:if="{{detail}}" class="mask" bindtap="onCloseDetail">
+  <view class="sheet" catchtap>
+    <view class="sheet-title">{{detail.typeText}}</view>
+    <view class="sheet-sub">编号 {{detail.no}} · 签署于 {{detail.signedAt}}</view>
+    <scroll-view class="sheet-body" scroll-y>
+      <text class="sheet-content" user-select>{{detail.content || '该合同签署较早，未生成正文快照，可联系平台客服获取。'}}</text>
+      <view class="sheet-hash">电子签存证：{{detail.contentHash}}</view>
+    </scroll-view>
+    <button class="btn-primary sheet-close" hover-class="btn-hover" bindtap="onCloseDetail">关 闭</button>
+  </view>
+</view>

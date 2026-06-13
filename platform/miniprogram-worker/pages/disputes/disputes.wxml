@@ -1,0 +1,34 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="page-hero">
+  <view>
+    <view class="hero-kicker">权益保障</view>
+    <view class="hero-title">争议处理</view>
+  </view>
+  <view class="hero-count">{{list.length}} 件</view>
+</view>
+
+<view class="dispute-list">
+  <view wx:if="{{!loading && !list.length}}" class="empty">暂无争议记录，履约遇到问题可在订单上申请平台介入</view>
+
+  <view
+    wx:for="{{list}}"
+    wx:key="id"
+    class="card"
+    hover-class="card-hover"
+    hover-stay-time="80"
+    data-id="{{item.id}}"
+    bindtap="onTapItem"
+  >
+    <view class="card-top">
+      <view class="card-title">{{item.taskTitle}}</view>
+      <view class="status status-{{item.status}}">{{item.statusText}}</view>
+    </view>
+    <view class="card-meta">{{item.typeText}} · {{item.no}} · {{item.createdAt}}</view>
+    <view class="claim-text">{{item.claim}}</view>
+    <view class="card-foot">
+      <view wx:if="{{item.claimAmount > 0}}" class="claim-amount">主张金额 ¥{{item.claimAmount}}</view>
+      <view wx:if="{{item.rulingNote}}" class="ruling-flag">已出裁决 ›</view>
+      <view wx:elif="{{item.stageDeadline}}" class="deadline">阶段截止 {{item.stageDeadline}}</view>
+    </view>
+  </view>
+</view>

@@ -1,0 +1,174 @@
+<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="orders-hero">
+  <view>
+    <view class="hero-kicker">履约工作台</view>
+    <view class="hero-title">我的接单</view>
+  </view>
+  <view class="hero-count">{{orders.length}} 单</view>
+</view>
+
+<!-- 派单邀约：企业定向派单，接受后成立承揽关系 -->
+<view wx:if="{{dispatches.length}}" class="dispatch-list">
+  <view class="dispatch-head">派单邀约 · {{dispatches.length}}</view>
+  <view wx:for="{{dispatches}}" wx:key="id" class="card dispatch-card">
+    <view class="card-top">
+      <view class="card-title">{{item.title}}</view>
+      <view class="dispatch-badge">待接受</view>
+    </view>
+    <view class="card-meta">{{item.companyName}} · {{item.payMethod}} · 截止 {{item.deadline}}</view>
+    <view class="card-price">分包报酬 ¥{{item.subPrice}} · 预估到手 ¥{{item.estimate.net}}</view>
+    <view wx:if="{{item.note}}" class="card-row deliver"><text class="row-icon">言</text>{{item.note}}</view>
+    <view class="card-actions">
+      <button class="btn btn-ghost" size="mini" data-id="{{item.id}}" bindtap="onRejectDispatch">拒绝</button>
+      <button class="btn btn-primary-mini" size="mini" data-id="{{item.id}}" bindtap="onAcceptDispatch">接受派单</button>
+    </view>
+  </view>
+</view>
+
+<view class="order-list">
+  <view wx:if="{{!loading && !orders.length}}" class="empty">暂无接单，去任务大厅看看吧</view>
+
+  <view wx:for="{{orders}}" wx:key="id" class="card">
+    <view class="card-top">
+      <view class="card-title">{{item.title}}</view>
+      <view class="status status-{{item.status}}">{{item.statusText}}</view>
+    </view>
+    <view class="card-meta">{{item.companyName}} · {{item.payMethod}} · 截止 {{item.deadline}}</view>
+    <view class="card-price">分包报酬 ¥{{item.subPrice}}</view>
+    <view class="card-row-flex">
+      <view class="card-row" data-id="{{item.id}}" bindtap="onViewOrder"><text class="row-icon">单</text>工单 {{item.workOrderNo}} · 已投保 ›</view>
+      <view class="claim-link" data-id="{{item.id}}" bindtap="onClaim"><text class="row-icon claim">险</text>保险报案</view>
+    </view>
+    <view wx:if="{{item.deliverable}}" class="card-row deliver"><text class="row-icon">附</text>{{item.deliverable}}</view>
+    <view wx:if="{{item.attachments.length}}" class="card-row files">
+      <text wx:for="{{item.attachments}}" wx:for-item="f" wx:key="id" class="file-chip">{{f.kind === 'invoice' ? '发票' : '文件'}} · {{f.name}}</text>
+    </view>
+
+    <view wx:if="{{subjectType === 'soletrader' && (item.status === 'working' || item.status === 'delivered') && !item.hasInvoice}}" class="invoice-tip">
+      个体工商户须先向平台上传发票，企业方可验收结算
+    </view>
+
+    <view class="card-actions">
+      <block wx:if="{{item.status === 'working'}}">
+        <view class="dispute-link" data-id="{{item.id}}" bindtap="onDispute">申请平台介入</view>
+        <button
+          wx:if="{{subjectType === 'soletrader' && !item.hasInvoice}}"
+          class="btn btn-ghost" size="mini" data-id="{{item.id}}" bindtap="onUploadInvoice"
+        >上传发票</button>
+        <button class="btn btn-primary-mini" size="mini" data-id="{{item.id}}" bindtap="onDeliver">上传交付物</button>
+      </block>
+      <block wx:elif="{{item.status === 'delivered'}}">
+        <view class="dispute-link" data-id="{{item.id}}" bindtap="onDispute">申请平台介入</view>
+        <button
+          wx:if="{{subjectType === 'soletrader' && !item.hasInvoice}}"
+          class="btn btn-ghost" size="mini" data-id="{{item.id}}" bindtap="onUploadInvoice"
+        >上传发票</button>
+        <view wx:else class="waiting">等待企业验收，验收合格后自动结算到账</view>
+      </block>
+      <block wx:elif="{{item.status === 'settled'}}">
+        <view class="done-tip">已验收结算 · 确认单 {{item.confirmNo}}</view>
+        <button class="btn btn-ghost" size="mini" data-id="{{item.id}}" bindtap="onViewReviews">查看评价</button>
+        <button class="btn btn-primary-mini" size="mini" data-id="{{item.id}}" bindtap="onReview">评价</button>
+      </block>
+    </view>
+  </view>
+</view>
+
+<!-- 申请平台介入（争议）弹窗 -->
+<view wx:if="{{dispute.show}}" class="modal-mask">
+  <view class="modal-box">
+    <view class="modal-title">申请平台介入</view>
+    <view class="modal-sub">提交后进入协商期，逾期未和解自动转平台仲裁；争议期间结算冻结</view>
+    <view class="field">
+      <view class="field-label">争议类型</view>
+      <view class="type-chips">
+        <view
+          wx:for="{{dispute.types}}"
+          wx:key="key"
+          class="type-chip {{dispute.typeKey === item.key ? 'type-chip-on' : ''}}"
+          data-key="{{item.key}}"
+          bindtap="onDisputeType"
+        >{{item.label}}</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="field-label">诉求描述（不少于10个字）</view>
+      <textarea class="field-textarea" maxlength="1000" placeholder="请说明争议经过与您的主张，可附时间节点与沟通记录摘要" value="{{dispute.claim}}" data-field="claim" bindinput="onDisputeInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">主张金额（元，可不填）</view>
+      <input class="field-input" type="digit" placeholder="如主张支付报酬金额" value="{{dispute.claimAmount}}" data-field="claimAmount" bindinput="onDisputeInput" />
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn modal-btn-plain" bindtap="onCloseDispute">取消</button>
+      <button class="modal-btn modal-btn-primary" bindtap="onSubmitDispute">提交申请</button>
+    </view>
+  </view>
+</view>
+
+<!-- 评价弹窗（星级 + 标签多选 + 评论） -->
+<view wx:if="{{review.show}}" class="modal-mask">
+  <view class="modal-box">
+    <view class="modal-title">评价本次合作</view>
+    <view class="modal-sub">互盲评价：双方均评价或窗口期满后互相可见</view>
+    <view class="star-row">
+      <view
+        wx:for="{{[1, 2, 3, 4, 5]}}"
+        wx:key="*this"
+        class="star {{review.score >= item ? 'star-on' : ''}}"
+        data-score="{{item}}"
+        bindtap="onReviewScore"
+      >★</view>
+    </view>
+    <view class="field">
+      <view class="field-label">印象标签（可多选）</view>
+      <view class="type-chips">
+        <view
+          wx:for="{{review.tags}}"
+          wx:key="name"
+          class="type-chip {{item.on ? 'type-chip-on' : ''}}"
+          data-index="{{index}}"
+          bindtap="onReviewTag"
+        >{{item.name}}</view>
+      </view>
+    </view>
+    <view class="field">
+      <view class="field-label">评论（可不填）</view>
+      <textarea class="field-textarea" maxlength="300" placeholder="说说本次合作体验" value="{{review.comment}}" bindinput="onReviewInput" />
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn modal-btn-plain" bindtap="onCloseReview">取消</button>
+      <button class="modal-btn modal-btn-primary" bindtap="onSubmitReview">提交评价</button>
+    </view>
+  </view>
+</view>
+
+<!-- B线发票信息补录弹窗 -->
+<view wx:if="{{invoice.show}}" class="modal-mask">
+  <view class="modal-box">
+    <view class="modal-title">发票信息</view>
+    <view class="modal-sub">已选文件：{{invoice.fileName}}</view>
+    <view class="field">
+      <view class="field-label">发票号码（可不填，后续补录）</view>
+      <input class="field-input" maxlength="30" placeholder="发票右上角号码" value="{{invoice.invoiceNo}}" data-field="invoiceNo" bindinput="onInvoiceInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">发票金额（元，默认为分包报酬）</view>
+      <input class="field-input" type="digit" placeholder="价税合计金额" value="{{invoice.amount}}" data-field="amount" bindinput="onInvoiceInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">税额（元，可不填）</view>
+      <input class="field-input" type="digit" placeholder="发票注明的税额" value="{{invoice.taxAmount}}" data-field="taxAmount" bindinput="onInvoiceInput" />
+    </view>
+    <view class="field">
+      <view class="field-label">发票类型</view>
+      <picker range="{{invoiceTypes}}" range-key="label" value="{{invoice.typeIndex}}" bindchange="onInvoiceType">
+        <view class="picker-box">{{invoiceTypes[invoice.typeIndex].label}} ▾</view>
+      </picker>
+    </view>
+    <view class="modal-actions">
+      <button class="modal-btn modal-btn-plain" bindtap="onCloseInvoice">取消</button>
+      <button class="modal-btn modal-btn-primary" bindtap="onSubmitInvoice">提交发票</button>
+    </view>
+  </view>
+</view>
