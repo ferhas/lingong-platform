@@ -1,4 +1,5 @@
 <page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<view class="sys-root">
 <view class="hero">
   <view class="logo">灵工云</view>
   <view class="slogan">合规接单 · 工单留痕 · 结算透明</view>
@@ -10,11 +11,11 @@
     <view class="bind-sub">微信首次登录，补充手机号与姓名即可完成注册</view>
     <view class="field">
       <view class="field-label">姓名</view>
-      <input class="field-input" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
+      <input class="field-input" cursor-spacing="40" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
     </view>
     <view class="field">
       <view class="field-label">手机号</view>
-      <input class="field-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+      <input class="field-input" type="digit" maxlength="11" cursor-spacing="40" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
     </view>
     <view class="agree-row">
       <view class="agree-box {{agreed ? 'agree-on' : ''}}" bindtap="onToggleAgree">{{agreed ? '✓' : ''}}</view>
@@ -36,22 +37,22 @@
 
     <view wx:if="{{mode === 'register'}}" class="field">
       <view class="field-label">姓名</view>
-      <input class="field-input" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
+      <input class="field-input" cursor-spacing="40" placeholder="请输入真实姓名" value="{{name}}" data-field="name" bindinput="onInput" />
     </view>
 
     <view class="field">
       <view class="field-label">手机号</view>
-      <input class="field-input" type="number" maxlength="11" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
+      <input class="field-input" type="digit" maxlength="11" cursor-spacing="40" placeholder="请输入手机号" value="{{phone}}" data-field="phone" bindinput="onInput" />
     </view>
 
     <view class="field">
       <view class="field-label">密码</view>
-      <input class="field-input" password placeholder="至少10位，含字母和数字" value="{{password}}" data-field="password" bindinput="onInput" />
+      <input class="field-input" password cursor-spacing="40" placeholder="至少10位，含字母和数字" value="{{password}}" data-field="password" bindinput="onInput" />
     </view>
 
     <view wx:if="{{mode === 'register'}}" class="field">
       <view class="field-label">企业邀请码（选填）</view>
-      <input class="field-input" maxlength="20" placeholder="受企业邀请注册请填写" value="{{inviteCode}}" data-field="inviteCode" bindinput="onInput" />
+      <input class="field-input" maxlength="20" cursor-spacing="40" placeholder="受企业邀请注册请填写" value="{{inviteCode}}" data-field="inviteCode" bindinput="onInput" />
     </view>
 
     <button class="btn-primary submit" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onSubmit">
@@ -63,6 +64,13 @@
     <button class="wechat-btn" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onWechatLogin">
       <text class="wechat-icon">微</text> 微信一键登录
     </button>
+
+    <block wx:if="{{showMock && mode === 'login'}}">
+      <button class="mock-btn" hover-class="btn-hover" disabled="{{submitting}}" bindtap="onMockLogin">
+        🧪 模拟登录（体验账号 · 含两月数据）
+      </button>
+      <view class="mock-tip">开发体验入口：免注册直接进入演示账号，方便测试</view>
+    </block>
 
     <view class="agree-row" wx:if="{{mode === 'register'}}">
       <view class="agree-box {{agreed ? 'agree-on' : ''}}" bindtap="onToggleAgree">{{agreed ? '✓' : ''}}</view>
@@ -77,4 +85,5 @@
       <text class="agree-link" data-type="privacy" bindtap="goLegal">《隐私政策》</text>
     </view>
   </block>
+</view>
 </view>

@@ -10,12 +10,12 @@
       </div>
       <div class="page-actions">
         <el-button v-if="canWrite" type="primary" :icon="Plus" @click="openCreate">创建凭据</el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="companyName" label="企业" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
@@ -54,7 +54,15 @@
             >
               停 用
             </el-button>
-            <span v-else class="empty-dash">—</span>
+            <el-button
+              v-else
+              type="success"
+              link
+              size="small"
+              @click="onEnable(row)"
+            >
+              启 用
+            </el-button>
           </template>
         </el-table-column>
         <template #empty>
@@ -64,7 +72,16 @@
     </div>
 
     <!-- 创建凭据 -->
-    <el-dialog v-model="createDialog.visible" title="创建API凭据" width="520px" destroy-on-close>
+    <!-- secret 展示阶段禁用遮罩/Esc/关闭按钮，避免误关导致 AppSecret 永久丢失 -->
+    <el-dialog
+      v-model="createDialog.visible"
+      title="创建API凭据"
+      width="520px"
+      destroy-on-close
+      :close-on-click-modal="!createDialog.result"
+      :close-on-press-escape="!createDialog.result"
+      :show-close="!createDialog.result"
+    >
       <template v-if="!createDialog.result">
         <el-alert type="info" :closable="false" show-icon style="margin-bottom: 14px">
           仅已通过准入的企业可创建。创建成功后 AppSecret 只展示一次，平台不留存明文。
@@ -127,7 +144,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Plus, CopyDocument } from '@element-plus/icons-vue'
-import { getApiCredentials, createApiCredential, disableApiCredential } from '../api/admin'
+import { getApiCredentials, createApiCredential, disableApiCredential, enableApiCredential } from '../api/admin'
 import { withStepUp } from '../utils/stepup'
 import { fmtTime } from '../utils/format'
 import { useAuthStore } from '../stores/auth'
@@ -215,6 +232,25 @@ async function onDisable(row) {
     load()
   } catch {
     /* 错误已统一提示 */
+  }
+}
+
+async function onEnable(row) {
+  try {
+    await ElMessageBox.confirm(
+      `重新启用「${row.companyName}」的凭据（${row.appKey}）后，其 API 调用将恢复可用。确定启用？`,
+      '启用确认',
+      { type: 'warning', confirmButtonText: '确认启用', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await withStepUp(totp => enableApiCredential(row.id, totp))
+    ElMessage.success('凭据已重新启用')
+    load()
+  } catch {
+    /* 错误已统一提示/用户取消 */
   }
 }
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div v-loading="loading" class="page">
     <div class="page-header">
       <div>
         <h2 class="page-title">业务参数配置</h2>
@@ -8,8 +8,19 @@
           <el-tag v-if="!canWrite" size="small" type="info" effect="plain" style="margin-left: 8px">只读</el-tag>
         </p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <div class="page-actions">
+        <el-input
+          v-model="keyword"
+          placeholder="搜索参数名称或键名"
+          clearable
+          :prefix-icon="Search"
+          style="width: 240px"
+        />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
+      </div>
     </div>
+
+    <el-empty v-if="keyword && groups.length === 0" :description="`没有匹配「${keyword}」的配置项`" :image-size="90" />
 
     <div v-for="group in groups" :key="group.key" class="panel group-panel">
       <div class="group-head">
@@ -32,13 +43,26 @@
         </div>
 
         <div class="config-control">
+          <!-- 0/1 开关 -->
+          <el-switch
+            v-if="isBoolean(item)"
+            v-model="item.draft"
+            :active-value="1"
+            :inactive-value="0"
+            active-text="开启"
+            inactive-text="关闭"
+            inline-prompt
+            :disabled="!canWrite"
+          />
+
           <!-- 数字 -->
           <el-input-number
-            v-if="item.type === 'number'"
+            v-else-if="item.type === 'number'"
             v-model="item.draft"
             :step="numberStep(item.value)"
             :precision="numberPrecision(item.value)"
             :min="0"
+            :max="numberMax(item)"
             :disabled="!canWrite"
             controls-position="right"
             style="width: 200px"
@@ -109,7 +133,7 @@
 <script setup>
 import { computed, h, nextTick, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Plus, Coin, Warning, Tickets, Umbrella } from '@element-plus/icons-vue'
+import { Refresh, Plus, Search, Coin, Warning, Tickets, Umbrella, Money, Service, Star, Lock, Bell, Opportunity } from '@element-plus/icons-vue'
 import { getConfigs, updateConfig } from '../api/admin'
 import { fmtTime } from '../utils/format'
 import { useAuthStore } from '../stores/auth'
@@ -120,21 +144,55 @@ const canWrite = computed(() => auth.can('config:write'))
 const loading = ref(false)
 const items = ref([])
 
+// 须覆盖后端 CONFIG_SEEDS 全部分组，否则该组配置在 UI 中无入口
 const GROUP_META = [
   { key: 'tax', title: '算税参数', icon: Coin, color: 'linear-gradient(135deg, #6366f1, #8b5cf6)' },
   { key: 'risk', title: '风控阈值', icon: Warning, color: 'linear-gradient(135deg, #ef4444, #f43f5e)' },
   { key: 'task', title: '任务规则', icon: Tickets, color: 'linear-gradient(135deg, #f59e0b, #f97316)' },
-  { key: 'insurance', title: '保险方案', icon: Umbrella, color: 'linear-gradient(135deg, #10b981, #14b8a6)' }
+  { key: 'insurance', title: '保险方案', icon: Umbrella, color: 'linear-gradient(135deg, #10b981, #14b8a6)' },
+  { key: 'dispute', title: '争议仲裁', icon: Opportunity, color: 'linear-gradient(135deg, #0ea5e9, #6366f1)' },
+  { key: 'fund', title: '资金规则', icon: Money, color: 'linear-gradient(135deg, #14b8a6, #10b981)' },
+  { key: 'ticket', title: '客服工单 SLA', icon: Service, color: 'linear-gradient(135deg, #8b5cf6, #d946ef)' },
+  { key: 'review', title: '评价 / 信用 / 技能', icon: Star, color: 'linear-gradient(135deg, #f59e0b, #eab308)' },
+  { key: 'security', title: '安全与导出', icon: Lock, color: 'linear-gradient(135deg, #64748b, #475569)' },
+  { key: 'notify', title: '消息通知', icon: Bell, color: 'linear-gradient(135deg, #ec4899, #f43f5e)' }
 ]
 
-const groups = computed(() =>
-  GROUP_META.map(g => ({ ...g, items: items.value.filter(i => i.group === g.key) }))
-)
+// 全局资金应急开关由「结算/提现单据·应急开关」step-up 复验入口治理，不在此明文编辑（避免绕过二次验证）
+const HIDDEN_KEYS = ['settlementPaused', 'withdrawalPaused']
+// 0/1 语义的开关型配置，渲染为开关而非数字框
+const BOOLEAN_KEYS = ['withdrawSmsRequired', 'faceVerifyRequired']
+// 允许保存为空数组的配置（如订阅消息模板ID，为空表示不发订阅消息）
+const ALLOW_EMPTY_ARRAY = ['subscribeTmplIds']
+
+// 关键字过滤：按参数名称或键名筛选，便于在长配置页快速定位（保存逻辑不受影响）
+const keyword = ref('')
+const groups = computed(() => {
+  const kw = keyword.value.trim().toLowerCase()
+  return GROUP_META.map(g => {
+    let groupItems = items.value.filter(i => i.group === g.key && !HIDDEN_KEYS.includes(i.key))
+    if (kw) {
+      groupItems = groupItems.filter(
+        i => (i.label || '').toLowerCase().includes(kw) || (i.key || '').toLowerCase().includes(kw)
+      )
+    }
+    return { ...g, items: groupItems }
+  }).filter(g => !kw || g.items.length > 0)
+})
 
 function valueType(value) {
   if (Array.isArray(value)) return 'array'
   if (typeof value === 'number') return 'number'
   return 'string'
+}
+
+function isBoolean(item) {
+  return BOOLEAN_KEYS.includes(item.key)
+}
+
+// 比率/阈值类配置后端强制 ≤1（configStore），前端同步上限避免无效输入
+function numberMax(item) {
+  return /(Rate|Threshold)$/.test(item.key) ? 1 : undefined
 }
 
 /** 数字步进:小数(比例类)0.01,大额整数 100,普通整数 1 */
@@ -219,7 +277,7 @@ function confirmSave(item) {
 }
 
 async function save(item) {
-  if (item.type === 'array' && item.draft.length === 0) {
+  if (item.type === 'array' && item.draft.length === 0 && !ALLOW_EMPTY_ARRAY.includes(item.key)) {
     ElMessage.warning('列表至少保留一项')
     return
   }

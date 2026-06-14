@@ -3,8 +3,18 @@
 // config: { "origin": "http://localhost:5173", "storage": {"token":"..."}, "pages": [{"path":"/dashboard","out":"x.png"}] }
 import { spawn } from 'node:child_process'
 import fs from 'node:fs'
+import path from 'node:path'
 
 const config = JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))
+// 截图输出限定在脚本运行目录下，防止 config.pages[].out 写入任意路径（运维脚本纵深防御）
+const OUT_ROOT = process.cwd()
+function safeOut(out) {
+  const full = path.resolve(OUT_ROOT, String(out))
+  if (full !== OUT_ROOT && !full.startsWith(OUT_ROOT + path.sep)) {
+    throw new Error(`非法输出路径（越出工作目录）：${out}`)
+  }
+  return full
+}
 const PORT = 9223
 const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
 
@@ -65,7 +75,7 @@ await send('Runtime.evaluate', { expression: setters })
 for (const page of config.pages) {
   await navigate(config.origin + page.path)
   const shot = await send('Page.captureScreenshot', { format: 'png' })
-  fs.writeFileSync(page.out, Buffer.from(shot.result.data, 'base64'))
+  fs.writeFileSync(safeOut(page.out), Buffer.from(shot.result.data, 'base64'))
   console.log('✓', page.path, '->', page.out)
 }
 

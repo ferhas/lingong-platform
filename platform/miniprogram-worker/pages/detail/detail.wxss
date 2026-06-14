@@ -44,7 +44,10 @@
   background: rgba(255, 255, 255, 0.18);
   border: 1rpx solid rgba(255, 255, 255, 0.32);
   border-radius: 999rpx;
-  padding: 6rpx 22rpx;
+  padding: 0 24rpx;
+  min-height: 56rpx;
+  display: inline-flex;
+  align-items: center;
 }
 .fav-on { color: #FDE68A; border-color: rgba(253, 230, 138, 0.6); }
 .d-title { position: relative; z-index: 1; color: #FFFFFF; font-size: calc(38rpx * var(--fs, 1)); font-weight: 700; line-height: 1.45; }
@@ -112,41 +115,44 @@ page { padding: 0 0 220rpx; }
 .footer-note { text-align: center; color: #8A99A8; font-size: calc(25rpx * var(--fs, 1)); margin-bottom: 12rpx; }
 .verify-btn { background: linear-gradient(135deg, #D97706 0%, #EA580C 100%); }
 
-@media (prefers-color-scheme: dark) {
-  .detail-header {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .detail-header {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .section-body {
-    color: #CBD5E1;
-  }
+.t-dark .section-body {
+  color: #CBD5E1;
+}
 
-  .income-row.gray,
-  .section-sub,
-  .income-tip,
-  .footer-note {
-    color: #94A3B8;
-  }
+.t-dark .income-row.gray,
+.t-dark .section-sub,
+.t-dark .income-tip,
+.t-dark .footer-note {
+  color: #94A3B8;
+}
 
-  .income-row {
-    color: #CBD5E1;
-  }
+.t-dark .income-row {
+  color: #CBD5E1;
+}
 
-  .income-row.net {
-    color: #5EEAD4;
-    background: rgba(20, 184, 166, 0.12);
-  }
+.t-dark .income-row.net {
+  color: #5EEAD4;
+  background: rgba(20, 184, 166, 0.12);
+}
 
-  .income-tip {
-    background: #0F172A;
-  }
+.t-dark .income-tip {
+  background: #0F172A;
+}
 
-  .ins-plan { color: #5EEAD4; }
-  .ins-free { color: #5EEAD4; background: rgba(20, 184, 166, 0.14); }
+.t-dark .ins-plan {
+  color: #5EEAD4;
+}
 
-  .footer {
-    background: rgba(18, 28, 43, 0.94);
-    box-shadow: none;
-  }
+.t-dark .ins-free {
+  color: #5EEAD4; background: rgba(20, 184, 166, 0.14);
+}
+
+.t-dark .footer {
+  background: rgba(18, 28, 43, 0.94);
+  box-shadow: none;
 }

@@ -26,7 +26,7 @@
     <div class="form-panel">
       <div class="form-card">
         <h2 class="form-title">欢迎使用灵工云</h2>
-        <p class="form-subtitle">企业控制台 · 仅限企业账号登录</p>
+        <p class="form-subtitle">企业控制台 · 登录或注册企业账号</p>
 
         <el-tabs v-model="activeTab" class="login-tabs">
           <el-tab-pane label="登录" name="login">
@@ -151,7 +151,8 @@ async function openLegal(type) {
   }
 }
 
-const industries = ['软件信息服务', '电商零售', '文化传媒', '教育培训', '建筑劳务分包', '其他']
+// 行业选项须与后端风控负面清单（industryBlacklist：建筑劳务/医美/直播打赏/贸易走账/金融放贷）不冲突，避免提供注定被拒的选项
+const industries = ['软件信息服务', '电商零售', '文化传媒', '教育培训', '专业技术服务', '本地生活服务', '其他']
 
 const phoneRule = [
   { required: true, message: '请输入手机号', trigger: 'blur' },

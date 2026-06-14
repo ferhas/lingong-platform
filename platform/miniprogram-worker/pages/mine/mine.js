@@ -27,8 +27,9 @@ Page({
         profile.credit.gradeClass = GRADE_CLASS[profile.credit.grade] || 'normal'
       }
       this.setData({ profile, unread: notices.unread })
-      if (notices.unread > 0) wx.showTabBarRedDot({ index: 2 })
-      else wx.hideTabBarRedDot({ index: 2 })
+      // 自定义 tabBar：红点通过组件方法驱动（原生 showTabBarRedDot 在 custom 模式下不生效）
+      const tb = this.getTabBar && this.getTabBar()
+      if (tb) tb.setDot(2, notices.unread > 0)
     } catch (e) {}
   },
 
@@ -134,8 +135,8 @@ Page({
       confirmText: '提交登记',
       success: async res => {
         if (!res.confirm) return
-        const licenseNo = (res.content || '').trim()
-        if (!licenseNo) return wx.showToast({ title: '请输入统一社会信用代码', icon: 'none' })
+        const licenseNo = (res.content || '').trim().toUpperCase()
+        if (!/^[0-9A-Z]{18}$/.test(licenseNo)) return wx.showToast({ title: '请输入18位统一社会信用代码', icon: 'none' })
         try {
           await api.post('/worker/soletrader', { licenseNo })
           wx.showModal({

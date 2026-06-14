@@ -18,5 +18,7 @@ if (exists) {
 } else {
   db.prepare(`INSERT INTO users (role, phone, password_hash, name, admin_role_id) VALUES ('admin', ?, ?, '平台运营', ?)`)
     .run(ADMIN_PHONE, bcrypt.hashSync(ADMIN_PASSWORD, 10), superRole.id)
-  console.log(`超级管理员已创建：${ADMIN_PHONE} / ${ADMIN_PASSWORD}`)
+  // 不回显由环境变量提供的生产密码（避免落入 CI/部署日志）；仅在使用内置默认占位密码时提示
+  const usedEnvPassword = !!process.env.ADMIN_PASSWORD
+  console.log(`超级管理员已创建：${ADMIN_PHONE} / ${usedEnvPassword ? '（已使用环境变量 ADMIN_PASSWORD 设置的密码，请妥善保管）' : ADMIN_PASSWORD}`)
 }

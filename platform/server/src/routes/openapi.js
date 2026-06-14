@@ -28,7 +28,9 @@ function authenticateHmac(req, _res, next) {
     const cred = db.prepare(`SELECT * FROM api_credentials WHERE app_key = ? AND status = 'active'`).get(String(appKey))
     if (!cred) throw unauthorized('凭据无效')
     // app_secret_hash 存的是 sha256(secret)；签名密钥为 secret 本身，校验用其哈希再做 HMAC（双方约定一致即可）
-    const payload = `${timestamp}.${JSON.stringify(req.body ?? {})}`
+    // 签名基于原始请求字节：避免服务端 JSON.stringify 重排键序/空白与客户端不一致导致验签不稳定（GET 无体回退 '{}'）
+    const rawBody = req.rawBody && req.rawBody.length ? req.rawBody.toString('utf8') : JSON.stringify(req.body ?? {})
+    const payload = `${timestamp}.${rawBody}`
     const expect = crypto.createHmac('sha256', cred.app_secret_hash).update(payload).digest('hex')
     if (!crypto.timingSafeEqual(Buffer.from(expect), Buffer.from(String(signature)))) {
       throw unauthorized('签名校验失败')

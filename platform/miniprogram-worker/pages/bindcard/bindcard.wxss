@@ -55,15 +55,13 @@ page { padding: 24rpx; }
 .tip-title { font-size: calc(28rpx * var(--fs, 1)); font-weight: 700; margin-bottom: 12rpx; }
 .tip-body { color: #64748B; font-size: calc(27rpx * var(--fs, 1)); line-height: 1.8; }
 
-@media (prefers-color-scheme: dark) {
-  .bind-hero,
-  .done-card {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .bind-hero,
+.t-dark .done-card {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .notice,
-  .tip-body {
-    color: #94A3B8;
-  }
+.t-dark .notice,
+.t-dark .tip-body {
+  color: #94A3B8;
 }

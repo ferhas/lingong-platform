@@ -18,3 +18,10 @@ export function fmtTime(value) {
   const p = n => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`
 }
+
+/** 本地日期 YYYY-MM-DD（用于导出文件名等，避免 toISOString 的 UTC 跨日偏差） */
+export function today() {
+  const d = new Date()
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
+}

@@ -22,7 +22,7 @@
         >
           新建角色
         </el-button>
-        <el-button :icon="Refresh" circle @click="reload" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
       </div>
     </div>
 
@@ -34,7 +34,7 @@
 
       <!-- ===== 账号列表 ===== -->
       <template v-if="activeTab === 'accounts'">
-        <el-table :data="list" v-loading="loading" stripe>
+        <el-table v-loading="loading" :data="list" stripe>
           <el-table-column prop="id" label="ID" width="70" align="center" />
           <el-table-column prop="name" label="姓名" min-width="110" />
           <el-table-column prop="phone" label="手机号" min-width="140">
@@ -190,8 +190,15 @@
       </template>
     </el-dialog>
 
-    <!-- 临时密码展示 -->
-    <el-dialog v-model="tempDialog.visible" :title="tempDialog.title" width="440px">
+    <!-- 临时密码展示：仅展示一次，禁用遮罩/Esc/关闭按钮，避免误关导致账号锁死 -->
+    <el-dialog
+      v-model="tempDialog.visible"
+      :title="tempDialog.title"
+      width="440px"
+      :close-on-click-modal="false"
+      :close-on-press-escape="false"
+      :show-close="false"
+    >
       <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 14px">
         临时密码仅展示一次,请立即复制并转交本人,首次登录后建议尽快修改。
       </el-alert>
@@ -292,6 +299,7 @@ import {
   resetUserPassword
 } from '../api/admin'
 import { fmtTime } from '../utils/format'
+import { withStepUp } from '../utils/stepup'
 import { useAuthStore } from '../stores/auth'
 
 const auth = useAuthStore()
@@ -307,13 +315,13 @@ const roles = ref([])
 const rolesLoading = ref(false)
 
 // 后端预置角色,与 server 端 PRESET_ROLES 对齐
-const PRESET_ROLE_NAMES = new Set(['超级管理员', '审核专员', '风控专员', '财务税务', '只读审计'])
+const PRESET_ROLE_NAMES = new Set(['超级管理员', '审核专员', '风控专员', '财务税务', '只读审计', '客服', '合规专员'])
 
 function isPreset(role) {
   return PRESET_ROLE_NAMES.has(role.name)
 }
 
-// 兜底文案(权限点清单接口加载前/失败时使用)
+// 兜底文案(权限点清单接口加载前/失败时使用)——须与后端 PERMISSION_CATALOG(29项)保持一致
 const PERM_TEXT_FALLBACK = {
   'dashboard:read': '查看运营总览',
   'company:read': '查看企业',
@@ -325,16 +333,27 @@ const PERM_TEXT_FALLBACK = {
   'tax:read': '查看税务',
   'tax:declare': '税务申报与报送',
   'flow:read': '资金流水/单据/对账',
+  'flow:write': '结算重推/对账差异处置',
   'archive:read': '凭证归档/证明包',
   'integration:read': '查看外部服务状态',
   'config:read': '查看业务参数配置',
   'config:write': '修改业务参数和协议模板',
   'user:read': '查看运营用户',
   'user:manage': '管理运营用户',
-  'audit:read': '查看审计日志'
+  'user:read_pii': '查看用户完整个人信息（审计）',
+  'audit:read': '查看审计日志',
+  'dispute:read': '查看争议',
+  'dispute:rule': '争议受理与裁决',
+  'ticket:read': '查看客服工单',
+  'ticket:manage': '处理客服工单',
+  'finance:read': '财务报表中心',
+  'export:approve': '个人信息导出审批',
+  'message:manage': '消息模板与外发日志',
+  'help:manage': '帮助中心管理',
+  'skill:review': '技能认证审核'
 }
 
-// 权限点中文清单:GET /admin/permissions(17项)
+// 权限点中文清单:GET /admin/permissions(29项)
 const permCatalog = ref(
   Object.entries(PERM_TEXT_FALLBACK).map(([key, label]) => ({ key, label }))
 )
@@ -347,7 +366,7 @@ function permText(perm) {
   return permLabelMap.value[perm] || PERM_TEXT_FALLBACK[perm] || perm
 }
 
-// 勾选时按业务模块分组,降低理解成本
+// 勾选时按业务模块分组,降低理解成本（须覆盖 PERMISSION_CATALOG 全部前缀，否则对应权限点无法授予）
 const PERM_GROUP_DEF = [
   { title: '运营总览', prefixes: ['dashboard:'] },
   { title: '企业入驻审核', prefixes: ['company:'] },
@@ -355,7 +374,14 @@ const PERM_GROUP_DEF = [
   { title: '风控 / 回访 / 理赔', prefixes: ['risk:'] },
   { title: '税务 / 发票', prefixes: ['tax:'] },
   { title: '资金 / 凭证 / 外部服务', prefixes: ['flow:', 'archive:', 'integration:'] },
+  { title: '财务报表', prefixes: ['finance:'] },
+  { title: '争议仲裁', prefixes: ['dispute:'] },
+  { title: '客服工单', prefixes: ['ticket:'] },
   { title: '业务参数 / 协议模板', prefixes: ['config:'] },
+  { title: '消息中心', prefixes: ['message:'] },
+  { title: '帮助中心', prefixes: ['help:'] },
+  { title: '技能认证审核', prefixes: ['skill:'] },
+  { title: '个人信息导出审批', prefixes: ['export:'] },
   { title: '运营用户', prefixes: ['user:'] },
   { title: '审计日志', prefixes: ['audit:'] }
 ]
@@ -454,11 +480,11 @@ async function submitCreate() {
   if (!valid) return
   createDialog.submitting = true
   try {
-    const res = await createAdminUser({
+    const res = await withStepUp(totp => createAdminUser({
       phone: createDialog.form.phone,
       name: createDialog.form.name,
       roleId: createDialog.form.roleId
-    })
+    }, totp))
     createDialog.visible = false
     tempDialog.title = '账号创建成功·临时密码'
     tempDialog.password = res.tempPassword
@@ -493,7 +519,7 @@ async function submitRole() {
   }
   roleDialog.submitting = true
   try {
-    await updateUserRole(roleDialog.user.id, roleDialog.roleId)
+    await withStepUp(totp => updateUserRole(roleDialog.user.id, roleDialog.roleId, totp))
     roleDialog.visible = false
     ElMessage.success('角色已更新')
     load()
@@ -540,10 +566,10 @@ async function submitRoleForm() {
       const payload = { permissions: [...roleForm.permissions] }
       // 预置角色不可改名,不传 name;自定义角色名称变化才传
       if (!roleForm.presetName && name !== roleForm.originName) payload.name = name
-      await updateRole(roleForm.id, payload)
+      await withStepUp(totp => updateRole(roleForm.id, payload, totp))
       ElMessage.success(`角色「${roleForm.presetName ? roleForm.originName : name}」已更新`)
     } else {
-      await createRole({ name, permissions: [...roleForm.permissions] })
+      await withStepUp(totp => createRole({ name, permissions: [...roleForm.permissions] }, totp))
       ElMessage.success(`角色「${name}」已创建,可在新建账号时选用`)
     }
     roleForm.visible = false
@@ -566,7 +592,7 @@ async function removeRole(role) {
     return
   }
   try {
-    await deleteRole(role.id)
+    await withStepUp(totp => deleteRole(role.id, totp))
     ElMessage.success(`角色「${role.name}」已删除`)
     loadRoles()
   } catch {
@@ -586,7 +612,7 @@ async function toggleStatus(user, enable) {
     return
   }
   try {
-    await (enable ? enableUser(user.id) : disableUser(user.id))
+    await withStepUp(totp => (enable ? enableUser(user.id, totp) : disableUser(user.id, totp)))
     ElMessage.success(`已${action}该账号`)
     load()
   } catch {
@@ -605,7 +631,7 @@ async function resetPassword(user) {
     return
   }
   try {
-    const res = await resetUserPassword(user.id)
+    const res = await withStepUp(totp => resetUserPassword(user.id, totp))
     tempDialog.title = '密码已重置·新临时密码'
     tempDialog.password = res.tempPassword
     tempDialog.visible = true

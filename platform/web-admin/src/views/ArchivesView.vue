@@ -5,7 +5,7 @@
         <h2 class="page-title">凭证归档</h2>
         <p class="page-sub">已结算任务的合同、业务、资金、发票凭证，全量哈希固化、区块链存证</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div v-loading="loading" class="archive-list">
@@ -95,7 +95,7 @@
       </div>
     </div>
 
-    <div class="pager" v-if="total > 0">
+    <div v-if="total > 0" class="pager">
       <el-pagination
         v-model:current-page="page"
         v-model:page-size="pageSize"

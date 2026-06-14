@@ -36,15 +36,16 @@ export const lockWorker = (id, lock) => client.post(`/admin/workers/${id}/lock`,
 // —— 运营用户与角色 ——
 export const getRoles = () => client.get('/admin/roles')
 export const getPermissions = () => client.get('/admin/permissions')
-export const createRole = data => client.post('/admin/roles', data)
-export const updateRole = (id, data) => client.patch(`/admin/roles/${id}`, data)
-export const deleteRole = id => client.delete(`/admin/roles/${id}`)
+// 角色/账号管理为高敏操作：已绑定 2FA 的账号须 step-up 二次验证（X-TOTP-Code），故透传 totp 并走 silent
+export const createRole = (data, totp) => client.post('/admin/roles', data, stepUpConfig(totp))
+export const updateRole = (id, data, totp) => client.patch(`/admin/roles/${id}`, data, stepUpConfig(totp))
+export const deleteRole = (id, totp) => client.delete(`/admin/roles/${id}`, stepUpConfig(totp))
 export const getAdminUsers = params => client.get('/admin/users', { params })
-export const createAdminUser = data => client.post('/admin/users', data)
-export const updateUserRole = (id, roleId) => client.patch(`/admin/users/${id}/role`, { roleId })
-export const disableUser = id => client.post(`/admin/users/${id}/disable`)
-export const enableUser = id => client.post(`/admin/users/${id}/enable`)
-export const resetUserPassword = id => client.post(`/admin/users/${id}/reset-password`)
+export const createAdminUser = (data, totp) => client.post('/admin/users', data, stepUpConfig(totp))
+export const updateUserRole = (id, roleId, totp) => client.patch(`/admin/users/${id}/role`, { roleId }, stepUpConfig(totp))
+export const disableUser = (id, totp) => client.post(`/admin/users/${id}/disable`, {}, stepUpConfig(totp))
+export const enableUser = (id, totp) => client.post(`/admin/users/${id}/enable`, {}, stepUpConfig(totp))
+export const resetUserPassword = (id, totp) => client.post(`/admin/users/${id}/reset-password`, {}, stepUpConfig(totp))
 
 // —— 业务参数配置 ——
 export const getConfigs = () => client.get('/admin/configs')
@@ -52,7 +53,8 @@ export const updateConfig = (key, value) => client.patch(`/admin/configs/${encod
 
 // —— 协议与文书 ——
 export const getLegalDocs = () => client.get('/admin/legal')
-export const updateLegalDoc = (type, content) => client.patch(`/admin/legal/${type}`, { content })
+export const updateLegalDoc = (type, content, totp) =>
+  client.patch(`/admin/legal/${type}`, { content }, stepUpConfig(totp))
 
 // —— 抽查回访 ——
 export const sampleCallbacks = () => client.post('/admin/callbacks/sample')
@@ -65,7 +67,10 @@ export const processClaim = (id, data) => client.post(`/admin/claims/${id}/proce
 
 // —— 发票管理 ——
 export const getInvoices = params => client.get('/admin/invoices', { params })
-export const voidInvoice = (id, reason) => client.post(`/admin/invoices/${id}/void`, { reason })
+// 红冲为不可撤销高敏操作，须 step-up 二次验证（X-TOTP-Code）
+export const voidInvoice = (id, reason, totp) => client.post(`/admin/invoices/${id}/void`, { reason }, stepUpConfig(totp))
+// 红冲后重开（关联原发票留痕）：补齐红冲→重开闭环，避免红冲后只能走线下重申
+export const reissueInvoice = (id, totp) => client.post(`/admin/invoices/${id}/reissue`, null, stepUpConfig(totp))
 
 // —— 防员转零:企业历史发薪名单 ——
 export const getCompanyPayroll = id => client.get(`/admin/companies/${id}/payroll`)
@@ -76,6 +81,7 @@ export const getIpGraph = () => client.get('/admin/risk/ip-graph')
 
 // —— 审计日志 ——
 export const getAuditLogs = params => client.get('/admin/audit-logs', { params })
+export const getAuditActions = () => client.get('/admin/audit-logs/actions')
 
 // —— 风控预警 ——
 export const getRiskAlerts = (status = 'all') =>
@@ -85,8 +91,8 @@ export const resolveRiskAlert = (id, data) =>
 
 // —— 税务工作台 ——
 export const getTaxOverview = () => client.get('/admin/tax/overview')
-export const declareTax = period => client.post('/admin/tax/declare', { period })
-export const quarterReport = period => client.post('/admin/tax/quarter-report', { period })
+export const declareTax = (period, totp) => client.post('/admin/tax/declare', { period }, stepUpConfig(totp))
+export const quarterReport = (period, totp) => client.post('/admin/tax/quarter-report', { period }, stepUpConfig(totp))
 // 季度涉税信息按所得类型分类汇总（连续性劳务报酬/其他劳务报酬/经营所得）
 export const getQuarterSummary = quarter =>
   client.get('/admin/tax/quarter-summary', { params: { quarter: quarter || undefined } })
@@ -203,11 +209,13 @@ export const exemptPayrollName = (companyId, data) =>
   client.post(`/admin/companies/${companyId}/payroll/exempt`, data)
 
 // —— 税务申报辅助 ——
-export const fillDeclarationReceipt = (id, receiptNo) =>
-  client.post(`/admin/tax/declarations/${id}/receipt`, { receiptNo })
+export const fillDeclarationReceipt = (id, receiptNo, totp) =>
+  client.post(`/admin/tax/declarations/${id}/receipt`, { receiptNo }, stepUpConfig(totp))
 
 // —— 开放 API 凭据 ——
 export const getApiCredentials = () => client.get('/admin/api-credentials')
 export const createApiCredential = (data, totp) =>
   client.post('/admin/api-credentials', data, stepUpConfig(totp))
 export const disableApiCredential = id => client.post(`/admin/api-credentials/${id}/disable`)
+// 重新启用（误停用/暂停后恢复，授权类操作需 step-up）：补齐 active↔disabled 双向
+export const enableApiCredential = (id, totp) => client.post(`/admin/api-credentials/${id}/enable`, null, stepUpConfig(totp))

@@ -42,33 +42,39 @@ page { padding: 24rpx; }
 .st-verified { background: #ECFDF5; color: #059669; }
 .st-rejected { background: #FEF2F2; color: #DC2626; }
 
-@media (prefers-color-scheme: dark) {
-  .sec-title,
-  .skill-name {
-    color: #E5E7EB;
-  }
+.t-dark .sec-title,
+.t-dark .skill-name {
+  color: #E5E7EB;
+}
 
-  .sec-sub,
-  .skill-note {
-    color: #94A3B8;
-  }
+.t-dark .sec-sub,
+.t-dark .skill-note {
+  color: #94A3B8;
+}
 
-  .picker-box {
-    background: #0F172A;
-    color: #F8FAFC;
-  }
+.t-dark .picker-box {
+  background: #0F172A;
+  color: #F8FAFC;
+}
 
-  .cert-btn {
-    background: #121C2B;
-    border-color: #134E4A;
-    color: #5EEAD4;
-  }
+.t-dark .cert-btn {
+  background: #121C2B;
+  border-color: #134E4A;
+  color: #5EEAD4;
+}
 
-  .skill-item {
-    border-bottom-color: #233149;
-  }
+.t-dark .skill-item {
+  border-bottom-color: #233149;
+}
 
-  .st-pending { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
-  .st-verified { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; }
-  .st-rejected { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
+.t-dark .st-pending {
+  background: rgba(249, 115, 22, 0.16); color: #FDBA74;
+}
+
+.t-dark .st-verified {
+  background: rgba(16, 185, 129, 0.16); color: #6EE7B7;
+}
+
+.t-dark .st-rejected {
+  background: rgba(220, 38, 38, 0.18); color: #FCA5A5;
 }

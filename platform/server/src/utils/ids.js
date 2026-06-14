@@ -33,3 +33,12 @@ export function currentQuarter() {
   const d = new Date()
   return `${d.getFullYear()}Q${Math.ceil((d.getMonth() + 1) / 3)}`
 }
+
+// 滚动12个月（含本月）窗口的起始 period（YYYY-MM，本地时区按自然月回溯）。
+// 强制市场主体登记阈值的统一窗口口径：风控即时校验(risk.js)与每日兜底(jobs/housekeeping.js)共用，
+// 杜绝两站点一处用日历月、一处用365天导致的触发时点漂移。
+export function rolling12mStartPeriod() {
+  const d = new Date()
+  d.setMonth(d.getMonth() - 11)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}

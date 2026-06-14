@@ -1,6 +1,14 @@
 <template>
-  <div class="stat-card" :class="{ clickable }" @click="onClick">
-    <div class="stat-icon" v-if="icon">
+  <div
+    class="stat-card"
+    :class="{ clickable }"
+    :tabindex="clickable ? 0 : undefined"
+    :role="clickable ? 'button' : undefined"
+    @click="onClick"
+    @keydown.enter="onClick"
+    @keydown.space.prevent="onClick"
+  >
+    <div v-if="icon" class="stat-icon">
       <el-icon :size="22"><component :is="icon" /></el-icon>
     </div>
     <div class="stat-body">

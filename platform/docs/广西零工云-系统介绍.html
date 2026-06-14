@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>广西零工云 · 系统详解（完整参考）</title>
+<meta name="description" content="广西零工云灵活用工平台完整参考：角色与权限、类目工种、全流程与分支、状态机字典、风控规则、后台任务、三方集成与全部配置项。" />
+<script>document.documentElement.classList.add('js');</script>
+<style>
+  :root{
+    --primary:#2563eb;--primary-dark:#1e3a8a;--primary-deep:#172554;
+    --teal:#0d9488;--teal-light:#14b8a6;
+    --ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+    --bg:#f8fafc;--bg-soft:#f1f5f9;--card:#ffffff;
+    --amber:#b45309;--green:#15803d;--red:#b91c1c;
+    --radius:16px;--shadow:0 10px 30px -14px rgba(15,23,42,.2);--shadow-sm:0 3px 12px -8px rgba(15,23,42,.18);
+    --maxw:1180px;
+    --font:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB","Source Han Sans CN",sans-serif;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth;scroll-padding-top:74px;-webkit-text-size-adjust:100%}
+  body{font-family:var(--font);color:var(--ink);background:var(--bg);line-height:1.65;font-size:15.5px;-webkit-font-smoothing:antialiased}
+  a{color:var(--primary);text-decoration:none}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 22px}
+  h2,h3,h4{letter-spacing:.3px}
+
+  /* Nav */
+  nav{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.9);backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line)}
+  .nav-in{max-width:var(--maxw);margin:0 auto;padding:12px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:800;font-size:18px;color:var(--ink)}
+  .brand .logo{width:30px;height:30px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--teal));display:grid;place-items:center}
+  .brand .logo svg{width:18px;height:18px;stroke:#fff;stroke-width:2;fill:none}
+  .nav-links{display:flex;gap:2px;flex-wrap:wrap}
+  .nav-links a{padding:7px 11px;border-radius:8px;color:var(--muted);font-size:14px;font-weight:600}
+  .nav-links a:hover{color:var(--primary);background:var(--bg-soft)}
+  .nav-toggle{display:none;border:1px solid var(--line);background:#fff;border-radius:9px;padding:7px;cursor:pointer;color:var(--ink)}
+  .nav-toggle svg{width:22px;height:22px;stroke:currentColor;stroke-width:1.8;fill:none}
+
+  /* Hero */
+  .hero{position:relative;overflow:hidden;color:#fff;background:radial-gradient(1100px 460px at 80% -10%,#1d4ed8 0,transparent 60%),radial-gradient(800px 460px at 0 110%,#0e7490 0,transparent 55%),linear-gradient(160deg,var(--primary-deep),var(--primary-dark) 62%,#1e40af)}
+  .hero::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.06) 1px,transparent 1px);background-size:22px 22px;opacity:.5}
+  .hero-in{position:relative;z-index:1;max-width:var(--maxw);margin:0 auto;padding:62px 22px 56px}
+  .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600;letter-spacing:1px;color:#bfdbfe;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);padding:6px 13px;border-radius:999px;margin-bottom:18px}
+  .eyebrow .dot{width:7px;height:7px;border-radius:50%;background:var(--teal-light);box-shadow:0 0 0 4px rgba(20,184,166,.25)}
+  .hero h1{font-size:clamp(32px,5.2vw,52px);line-height:1.1;font-weight:850;letter-spacing:1px}
+  .hero .tagline{font-size:clamp(16px,2.3vw,21px);font-weight:600;color:#dbeafe;margin:8px 0 18px}
+  .hero p.lead{max-width:760px;font-size:clamp(15px,1.6vw,17px);color:#c7d2fe}
+  .hero p.lead b{color:#fff}
+  .hstats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:30px}
+  .hstat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:14px 12px;text-align:center}
+  .hstat .n{font-size:24px;font-weight:850;color:#fff;line-height:1.1}
+  .hstat .l{font-size:12.5px;color:#bfdbfe;margin-top:5px;font-weight:500}
+
+  /* Sections */
+  section{padding:52px 0;border-top:1px solid var(--line)}
+  section:nth-of-type(even){background:var(--bg-soft)}
+  .sec-tag{font-size:12.5px;font-weight:700;letter-spacing:2px;color:var(--primary);text-transform:uppercase}
+  .sec-head{margin-bottom:26px}
+  .sec-head h2{font-size:clamp(23px,3.2vw,32px);font-weight:800;margin:8px 0 8px}
+  .sec-head p{color:var(--muted);font-size:15.5px;max-width:820px}
+  h3.blk{font-size:19px;font-weight:750;margin:30px 0 12px;display:flex;align-items:center;gap:9px}
+  h3.blk .bar{width:4px;height:18px;border-radius:3px;background:linear-gradient(var(--primary),var(--teal))}
+  h4.sub{font-size:16px;font-weight:700;margin:18px 0 9px;color:#334155}
+  .lead-sm{color:var(--muted);font-size:14.5px;margin-bottom:14px;max-width:820px}
+
+  /* Cards */
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-sm)}
+  .card h4{font-size:16px;font-weight:750;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .card p{color:var(--muted);font-size:14px}
+  .card .role{display:inline-block;font-size:12px;font-weight:600;color:var(--teal);background:#ecfdf5;border:1px solid #ccfbef;padding:2px 9px;border-radius:999px;margin-bottom:8px}
+  .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;margin-bottom:12px;background:linear-gradient(135deg,#eff6ff,#e0e7ff);color:var(--primary)}
+  .ic.teal{background:linear-gradient(135deg,#ecfdf5,#d1fae5);color:var(--teal)}
+  .ic svg{width:22px;height:22px;stroke-width:1.9;fill:none;stroke:currentColor}
+
+  /* Tables */
+  .tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;background:#fff;box-shadow:var(--shadow-sm)}
+  table{border-collapse:collapse;width:100%;font-size:13.8px;min-width:480px}
+  thead th{background:#eef2f7;color:#334155;text-align:left;font-weight:700;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap;position:sticky;top:0}
+  tbody td{padding:9px 12px;border-bottom:1px solid #eef1f5;vertical-align:top}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#fafbfc}
+  td code,.code{font-family:var(--mono);font-size:12.5px;background:#eef2ff;color:#1e40af;padding:1.5px 6px;border-radius:5px;white-space:nowrap}
+  td.c{text-align:center}
+  .ok{color:var(--green);font-weight:800}
+  .dim{color:#cbd5e1}
+  .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:7px;margin:6px 0}
+  .vchip{display:inline-flex;align-items:center;gap:6px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:4px 9px;font-size:13px;color:#334155;box-shadow:var(--shadow-sm)}
+  .vchip code{font-family:var(--mono);font-size:11.5px;background:#eef2ff;color:#1e40af;padding:1px 5px;border-radius:4px}
+  .tag{display:inline-block;font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;background:#eef2f7;color:#475569}
+  .tag.b{background:#dbeafe;color:#1d4ed8}.tag.g{background:#dcfce7;color:#166534}.tag.w{background:#fef3c7;color:#92400e}.tag.r{background:#fee2e2;color:#991b1b}.tag.i{background:#e2e8f0;color:#475569}
+
+  /* Enum rows */
+  .enum{background:#fff;border:1px solid var(--line);border-radius:11px;padding:12px 15px;margin-bottom:10px;box-shadow:var(--shadow-sm)}
+  .enum .et{font-family:var(--mono);font-size:13px;color:#0f172a;font-weight:700;margin-bottom:7px}
+  .enum .et span{color:var(--muted);font-family:var(--font);font-weight:500;font-size:12.5px;margin-left:6px}
+
+  /* Flow */
+  .flow{display:flex;flex-wrap:wrap;align-items:stretch;gap:8px;margin:8px 0}
+  .step{flex:1 1 150px;max-width:185px;background:#fff;border:1px solid var(--line);border-radius:13px;padding:14px 14px;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;gap:6px}
+  .step .num{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-weight:800;display:grid;place-items:center;font-size:14px}
+  .step h4{font-size:15px;font-weight:750}
+  .step p{font-size:12.8px;color:var(--muted);line-height:1.5}
+  .stp{align-self:flex-start;font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:6px}
+  .stp.info{background:#e2e8f0;color:#475569}.stp.primary{background:#dbeafe;color:#1d4ed8}.stp.warn{background:#fef3c7;color:#b45309}.stp.success{background:#dcfce7;color:#15803d}.stp.red{background:#fee2e2;color:#b91c1c}
+  .arrow{display:grid;place-items:center;color:#94a3b8;align-self:center}
+  .arrow svg{width:22px;height:22px;stroke-width:2;fill:none;stroke:currentColor}
+  .arrow .v{display:none}
+
+  /* Callout / formula */
+  .note{background:#fff;border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:10px;padding:14px 16px;margin:12px 0;font-size:14px;color:#334155}
+  .note.teal{border-left-color:var(--teal)}
+  .note.amber{border-left-color:#d97706}
+  .formula{background:#0f172a;color:#e2e8f0;border-radius:12px;padding:16px 18px;font-family:var(--mono);font-size:13px;line-height:1.9;margin:12px 0;overflow-x:auto;white-space:pre-wrap;word-break:break-word}
+  .formula b{color:#7dd3fc;font-weight:700}
+  .formula .c{color:#86efac}
+  .formula .m{color:#fca5a5}
+
+  ul.clean{list-style:none;display:flex;flex-direction:column;gap:7px;margin:8px 0}
+  ul.clean li{position:relative;padding-left:22px;font-size:14px;color:#334155}
+  ul.clean li::before{content:"";position:absolute;left:0;top:8px;width:8px;height:8px;border-radius:2px;background:var(--teal)}
+
+  .gate{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font-size:13.6px;box-shadow:var(--shadow-sm)}
+  .gate .k{flex:0 0 auto;width:24px;height:24px;border-radius:7px;background:#fee2e2;color:#b91c1c;display:grid;place-items:center;font-weight:800;font-size:13px}
+
+  footer{background:var(--primary-deep);color:#cbd5e1;padding:40px 0 32px;border-top:none}
+  .foot-in{max-width:var(--maxw);margin:0 auto;padding:0 22px;text-align:center}
+  .foot-brand{display:inline-flex;align-items:center;gap:9px;font-weight:800;font-size:19px;color:#fff;margin-bottom:8px}
+  .foot-brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--teal));display:grid;place-items:center}
+  .foot-brand .logo svg{width:16px;height:16px;stroke:#fff;stroke-width:2;fill:none}
+  footer .fine{font-size:12.5px;color:#64748b;margin-top:14px;border-top:1px solid rgba(255,255,255,.08);padding-top:14px}
+
+  .toTop{position:fixed;right:18px;bottom:18px;width:42px;height:42px;border-radius:11px;background:var(--primary-dark);color:#fff;display:none;place-items:center;cursor:pointer;box-shadow:var(--shadow);z-index:40;border:none}
+  .toTop svg{width:22px;height:22px;stroke:#fff;stroke-width:2;fill:none}
+  .toTop.show{display:grid}
+
+  .js .reveal{opacity:0;transform:translateY(14px);transition:opacity .5s ease,transform .5s ease}
+  .js .reveal.in{opacity:1;transform:none}
+  @media (prefers-reduced-motion:reduce){.js .reveal{opacity:1!important;transform:none!important;transition:none}}
+
+  @media(max-width:980px){
+    .nav-links{position:absolute;top:58px;right:14px;left:14px;flex-direction:column;align-items:stretch;background:#fff;border:1px solid var(--line);border-radius:12px;padding:7px;box-shadow:var(--shadow);display:none}
+    .nav-links.open{display:flex}
+    .nav-toggle{display:grid;place-items:center}
+    .hstats{grid-template-columns:repeat(3,1fr)}
+    .g3,.g4{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:640px){
+    section{padding:40px 0}
+    .hstats{grid-template-columns:repeat(2,1fr)}
+    .g2,.g3,.g4{grid-template-columns:1fr}
+    .flow{flex-direction:column}
+    .step{max-width:none}
+    .arrow .h{display:none}.arrow .v{display:block}
+  }
+</style>
+</head>
+<body id="top">
+
+<nav>
+  <div class="nav-in">
+    <a href="#top" class="brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M4 16a4 4 0 0 1 1-7.9A5 5 0 0 1 19 8a3.5 3.5 0 0 1 1 6.9"/><path d="M9 19l3-3 3 3M12 16v5"/></svg></span>广西零工云 · 详解</a>
+    <button class="nav-toggle" id="navToggle" aria-label="菜单" aria-expanded="false"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+    <div class="nav-links" id="navLinks">
+      <a href="#model">模式</a>
+      <a href="#roles">角色权限</a>
+      <a href="#trades">类目工种</a>
+      <a href="#flows">业务流程</a>
+      <a href="#enums">状态机</a>
+      <a href="#risk">风控通知</a>
+      <a href="#ops">后台集成</a>
+      <a href="#config">配置项</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="hero-in">
+    <span class="eyebrow"><span class="dot"></span>广西 · 完整系统参考 · 全部细节</span>
+    <h1>广西零工云 · 系统详解</h1>
+    <div class="tagline">合规优先的灵活用工平台 —— 角色、流程、分支、字典全量拆解</div>
+    <p class="lead">广西零工云是立足广西的灵活用工平台，以<b>「承揽后分包」</b>模式运营：自身是企业与零工之间的<b>承揽方</b>，负责签约、付款、代扣代缴、开票与风控，并保留<b>合同·业务·资金·发票「四流合一」</b>的完整证据链。下文逐一列出全部角色与权限、类目工种、业务流程与分支、状态机、风控规则、后台任务、三方集成与配置项。</p>
+    <div class="hstats">
+      <div class="hstat"><div class="n">3</div><div class="l">用户主体 / 三端</div></div>
+      <div class="hstat"><div class="n">7</div><div class="l">运营角色·25权限点</div></div>
+      <div class="hstat"><div class="n">16·57</div><div class="l">类目 · 工种</div></div>
+      <div class="hstat"><div class="n">4</div><div class="l">争议裁决结果</div></div>
+      <div class="hstat"><div class="n">10·8</div><div class="l">定时任务 · 集成</div></div>
+      <div class="hstat"><div class="n">42</div><div class="l">业务配置项</div></div>
+    </div>
+  </div>
+</header>
+
+<!-- ============ MODEL ============ -->
+<section id="model">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">运营模式</span>
+      <h2>承揽后分包：平台是承揽方，不是中介</h2>
+      <p>企业把任务<b>发包</b>给平台（签《总承揽框架合同》+任务工单），平台再<b>分包</b>给零工（签《分包框架协议》+分包工单）。平台作为交易与责任主体，统一负责资金存管、代扣代缴、开票与合规留痕。</p>
+    </div>
+    <div class="grid g3">
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 21V5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v16"/><path d="M14 9h6a1 1 0 0 1 1 1v11"/><path d="M2 21h20"/><path d="M6.5 8h3M6.5 12h3M6.5 16h3"/></svg></div>
+        <span class="role">企业端 · 网页（B端）</span>
+        <h4>用工企业</h4>
+        <p>发布/批量发任务、录用与验收、查看资金账户与月结单、收取数电发票、合同档案、争议与工单、成员管理。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic teal"><svg viewBox="0 0 24 24"><circle cx="12" cy="7.5" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></div>
+        <span class="role">零工端 · 微信小程序（C端）</span>
+        <h4>零工 / 个体户</h4>
+        <p>实名认证与绑卡、抢单/接受派单、上传交付、收入提现、合同与保险、技能认证、升级个体户。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2.2" fill="#fff"/><circle cx="15" cy="12" r="2.2" fill="#fff"/><circle cx="8" cy="18" r="2.2" fill="#fff"/></svg></div>
+        <span class="role">运营端 · 网页（Admin）</span>
+        <h4>平台运营 / 风控 / 财税 / 客服</h4>
+        <p>企业与零工审核、风控合规、争议仲裁、财税申报、资金对账、客服工单、系统配置与 RBAC 权限。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ROLES ============ -->
+<section id="roles">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">角色与权限</span>
+      <h2>有哪些角色？权限如何划分</h2>
+      <p>三类用户主体；企业端 3 种成员角色；运营端 7 个 RBAC 预置角色、25 个权限点；零工 2 种纳税主体与 2 种锁定原因。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 用户三大主体</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>主体</th><th>取值</th><th>入口</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td>零工</td><td><code>worker</code></td><td>微信小程序</td><td>承接任务的自然人 / 个体工商户</td></tr>
+          <tr><td>企业</td><td><code>company</code></td><td>web-company 网页</td><td>发布任务的用工企业（B端）</td></tr>
+          <tr><td>运营</td><td><code>admin</code></td><td>web-admin 网页</td><td>平台内部人员，受 RBAC 权限约束</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 企业端成员角色（3 种）</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>角色</th><th>取值</th><th>职责范围</th></tr></thead>
+        <tbody>
+          <tr><td>企业主</td><td><code>owner</code></td><td>全部权限：成员管理、发布任务、验收、资金/提现申请、企业资料</td></tr>
+          <tr><td>运营成员</td><td><code>operator</code></td><td>发布任务、筛选候选人、验收交付（不含资金/成员管理）</td></tr>
+          <tr><td>财务成员</td><td><code>finance</code></td><td>资金查看、结算确认、提现处理（不含发布任务/批量发单）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>③ 运营端 RBAC 预置角色（7 个）</h3>
+    <p class="lead-sm reveal">每个角色持有一组权限点；超级管理员持通配 <code>*</code>。客服为一线仅可见争议、走工单；裁决/执行（动用冻结资金）已收敛至风控专员；合规专员独立持有 PII 查看与导出审批以实现职责分离（SoD）。</p>
+    <div class="grid g2">
+      <div class="card reveal"><h4>超级管理员</h4><p style="margin-bottom:8px">全系统权限</p><div class="chips"><span class="vchip"><code>*</code> 全部权限</span></div></div>
+      <div class="card reveal"><h4>审核专员</h4><p style="margin-bottom:8px">企业准入审核</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>company:read</code></span><span class="vchip"><code>company:review</code></span><span class="vchip"><code>audit:read</code></span></div></div>
+      <div class="card reveal"><h4>风控专员</h4><p style="margin-bottom:8px">风险处置·争议裁决·零工管理·技能审核</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>risk:read</code></span><span class="vchip"><code>risk:resolve</code></span><span class="vchip"><code>worker:read</code></span><span class="vchip"><code>worker:manage</code></span><span class="vchip"><code>dispute:read</code></span><span class="vchip"><code>dispute:rule</code></span><span class="vchip"><code>skill:review</code></span><span class="vchip"><code>audit:read</code></span></div></div>
+      <div class="card reveal"><h4>财务税务</h4><p style="margin-bottom:8px">税务申报·资金处理·财务报表</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>tax:read</code></span><span class="vchip"><code>tax:declare</code></span><span class="vchip"><code>flow:read</code></span><span class="vchip"><code>flow:write</code></span><span class="vchip"><code>archive:read</code></span><span class="vchip"><code>integration:read</code></span><span class="vchip"><code>finance:read</code></span></div></div>
+      <div class="card reveal"><h4>只读审计</h4><p style="margin-bottom:8px">全域只读，不可写</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>company:read</code></span><span class="vchip"><code>worker:read</code></span><span class="vchip"><code>risk:read</code></span><span class="vchip"><code>tax:read</code></span><span class="vchip"><code>flow:read</code></span><span class="vchip"><code>archive:read</code></span><span class="vchip"><code>integration:read</code></span><span class="vchip"><code>config:read</code></span><span class="vchip"><code>audit:read</code></span><span class="vchip"><code>user:read</code></span></div></div>
+      <div class="card reveal"><h4>客服</h4><p style="margin-bottom:8px">工单处理·帮助中心</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>ticket:read</code></span><span class="vchip"><code>ticket:manage</code></span><span class="vchip"><code>dispute:read</code></span><span class="vchip"><code>worker:read</code></span><span class="vchip"><code>company:read</code></span><span class="vchip"><code>help:manage</code></span></div></div>
+      <div class="card reveal"><h4>合规专员</h4><p style="margin-bottom:8px">PIPL 数据保护：PII 查看 + 导出审批</p><div class="chips"><span class="vchip"><code>dashboard:read</code></span><span class="vchip"><code>worker:read</code></span><span class="vchip"><code>user:read_pii</code></span><span class="vchip"><code>export:approve</code></span><span class="vchip"><code>audit:read</code></span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>④ 权限点矩阵（25 个 × 7 角色）</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>权限点</th><th>含义</th><th class="c">超管</th><th class="c">审核</th><th class="c">风控</th><th class="c">财务</th><th class="c">审计</th><th class="c">客服</th><th class="c">合规</th></tr></thead>
+        <tbody>
+          <tr><td><code>dashboard:read</code></td><td>仪表盘查看</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td></tr>
+          <tr><td><code>company:read</code></td><td>企业信息查看</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td></tr>
+          <tr><td><code>company:review</code></td><td>企业准入审核</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>worker:read</code></td><td>零工信息查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td></tr>
+          <tr><td><code>worker:manage</code></td><td>零工锁定/解锁管理</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>skill:review</code></td><td>技能认证审核</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>risk:read</code></td><td>风险预警查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>risk:resolve</code></td><td>风险处置/抽查回访</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>dispute:read</code></td><td>争议查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td></tr>
+          <tr><td><code>dispute:rule</code></td><td>争议裁决与执行</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>tax:read</code></td><td>税务数据查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>tax:declare</code></td><td>税务申报/发票操作</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>flow:read</code></td><td>资金流查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>flow:write</code></td><td>资金流处理/差异核销</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>finance:read</code></td><td>财务报表</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>archive:read</code></td><td>归档/证据包查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>integration:read</code></td><td>三方集成/事件查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>ticket:read</code></td><td>客服工单查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td></tr>
+          <tr><td><code>ticket:manage</code></td><td>客服工单处理</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td></tr>
+          <tr><td><code>help:manage</code></td><td>帮助中心管理</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td></tr>
+          <tr><td><code>user:read</code></td><td>用户与角色查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+          <tr><td><code>user:read_pii</code></td><td>完整 PII 查看（身份证号等）</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td></tr>
+          <tr><td><code>export:approve</code></td><td>数据导出审批</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td></tr>
+          <tr><td><code>audit:read</code></td><td>审计日志查看</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c ok">✓</td></tr>
+          <tr><td><code>config:read</code></td><td>系统配置查看</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td><td class="c dim">·</td><td class="c ok">✓</td><td class="c dim">·</td><td class="c dim">·</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note reveal">另有 <code>config:write</code>（配置修改）、<code>user:manage</code>（用户与角色管理）、<code>message:manage</code>（消息模板管理）等敏感写权限：预置角色中仅<b>超级管理员</b>（通配 <code>*</code>）持有，亦可按需授予自定义角色。敏感操作（重置密码/改角色/动资金）在 <code>adminStepUpRequired=1</code> 时还需 TOTP 二次验证。</div>
+
+    <h3 class="blk reveal"><span class="bar"></span>⑤ 零工纳税主体与锁定状态</h3>
+    <div class="grid g2">
+      <div class="tbl-wrap reveal">
+        <table>
+          <thead><tr><th>纳税主体 <code>subject_type</code></th><th>含义与税务路由</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag b">person</span> 自然人（A线）</td><td>劳务报酬所得：平台为法定扣缴义务人，个税「累计预扣法」+ 增值税免征额监控</td></tr>
+            <tr><td><span class="tag g">soletrader</span> 个体工商户（B线）</td><td>经营所得：平台不代扣，结算前须由其上传进项发票、自行申报</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tbl-wrap reveal">
+        <table>
+          <thead><tr><th>锁定原因 <code>lock_reason</code></th><th>触发与解除</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tag w">threshold</span> 阈值锁</td><td>滚动12个月累计收入达强制登记线 → 自动锁单；<b>可由零工自助登记个体户解除</b></td></tr>
+            <tr><td><span class="tag r">risk</span> 风控锁</td><td>风控人工锁定，<b>仅运营可解除</b></td></tr>
+            <tr><td><span class="tag i">verified 0/1</span></td><td>实名认证状态：未认证 / 已认证</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ TRADES ============ -->
+<section id="trades">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">类目与工种</span>
+      <h2>有哪些工种？发单字典全集</h2>
+      <p>发单按「类目 → 工种」二级级联：16 个类目、57 个工种（含直播电商、跨境边贸、文旅、农业等广西特色类目）。另含广西城市、计酬方式、连续性劳务类目、线下作业类目、技能认证、互评标签、违禁词与行业黑名单等运营端可在线编辑的字典。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 类目 → 工种 级联（16 类目 · 57 工种）</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>类目</th><th>标记</th><th>工种（细分）</th></tr></thead>
+        <tbody>
+          <tr><td><b>设计</b></td><td><span class="tag g">连续性劳务</span></td><td>UI设计 · 平面设计 · 电商美工 · 空间设计</td></tr>
+          <tr><td><b>技术</b></td><td><span class="tag g">连续性劳务</span></td><td>前端开发 · 后端开发 · 小程序开发 · 测试运维</td></tr>
+          <tr><td><b>翻译</b></td><td><span class="tag g">连续性劳务</span></td><td>中英翻译 · 越南语翻译 · 小语种翻译 · 同声传译</td></tr>
+          <tr><td><b>文案</b></td><td><span class="tag g">连续性劳务</span></td><td>文案策划 · 新媒体运营 · 稿件撰写</td></tr>
+          <tr><td><b>视频</b></td><td><span class="tag g">连续性劳务</span></td><td>短视频剪辑 · 配音 · 动画制作 · 直播运营</td></tr>
+          <tr><td><b>直播电商</b> <span class="tag r">广西特色</span></td><td><span class="tag g">连续性劳务</span></td><td>带货主播 · 直播助播 · 选品场控 · 直播投流</td></tr>
+          <tr><td><b>跨境边贸</b> <span class="tag r">广西特色</span></td><td><span class="tag g">连续性劳务</span></td><td>跨境电商客服 · 报关报检 · 海外仓运营 · 选品采购</td></tr>
+          <tr><td><b>文旅</b> <span class="tag r">广西特色</span></td><td><span class="tag g">连续性劳务</span></td><td>导游讲解 · 景区服务 · 民宿管家 · 活动执行</td></tr>
+          <tr><td><b>配送</b></td><td><span class="tag w">线下·高保额</span></td><td>同城配送 · 快递分拣 · 仓储理货</td></tr>
+          <tr><td><b>物流仓储</b> <span class="tag r">广西特色</span></td><td><span class="tag w">线下·高保额</span></td><td>货运司机 · 装卸搬运 · 仓储分拣 · 调度跟单</td></tr>
+          <tr><td><b>安装</b></td><td><span class="tag w">线下·高保额</span> <span class="tag g">连续性劳务</span></td><td>家具安装 · 家电安装 · 弱电安装</td></tr>
+          <tr><td><b>施工</b></td><td><span class="tag w">线下·高保额</span></td><td>水电施工 · 泥瓦工 · 木工 · 油漆工</td></tr>
+          <tr><td><b>制造生产</b> <span class="tag r">广西特色</span></td><td><span class="tag w">线下·高保额</span></td><td>普工 · 质检员 · 装配工 · 食品加工</td></tr>
+          <tr><td><b>农业</b> <span class="tag r">广西特色</span></td><td><span class="tag w">线下·高保额</span></td><td>果蔬采摘 · 分拣包装 · 茶叶采制 · 农技服务</td></tr>
+          <tr><td><b>家政服务</b> <span class="tag r">广西特色</span></td><td><span class="tag w">线下·高保额</span></td><td>家庭保洁 · 月嫂育儿 · 养老护理 · 收纳整理</td></tr>
+          <tr><td><b>其他</b></td><td><span class="tag i">无细分</span></td><td>（无工种，前端置灰）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="note teal reveal">说明：发单工种字典是「结构性分类法」，与零工的<b>技能认证目录</b>（可在线增删的徽章）相互独立、口径不同。运营端新增类目而工种表未登记时，该类目工种为空、不报错。</div>
+
+    <div class="grid g2">
+      <div class="reveal">
+        <h4 class="sub">② 任务地点 / 城市（广西14市 · 16）</h4>
+        <div class="chips"><span class="vchip">远程</span><span class="vchip">南宁</span><span class="vchip">柳州</span><span class="vchip">桂林</span><span class="vchip">梧州</span><span class="vchip">北海</span><span class="vchip">防城港</span><span class="vchip">钦州</span><span class="vchip">贵港</span><span class="vchip">玉林</span><span class="vchip">百色</span><span class="vchip">贺州</span><span class="vchip">河池</span><span class="vchip">来宾</span><span class="vchip">崇左</span><span class="vchip">其他</span></div>
+        <div class="note teal" style="margin:8px 0 0;padding:9px 13px;font-size:13px">覆盖广西 14 个地级市 +「远程」（线上任务）+「其他」（兜底）；为运营端可在线增删的配置字典。</div>
+        <h4 class="sub">③ 计酬方式白名单（3 · 承揽特征）</h4>
+        <div class="chips"><span class="vchip">按成果</span><span class="vchip">按件</span><span class="vchip">按单</span></div>
+        <h4 class="sub">④ 线下作业类目（7 · 强制高保额）</h4>
+        <div class="chips"><span class="vchip">配送</span><span class="vchip">安装</span><span class="vchip">施工</span><span class="vchip">物流仓储</span><span class="vchip">制造生产</span><span class="vchip">农业</span><span class="vchip">家政服务</span></div>
+        <h4 class="sub">⑤ 技能认证目录（16 · 独立于工种）</h4>
+        <div class="chips"><span class="vchip">UI设计</span><span class="vchip">平面设计</span><span class="vchip">前端开发</span><span class="vchip">后端开发</span><span class="vchip">中英翻译</span><span class="vchip">越南语翻译</span><span class="vchip">文案策划</span><span class="vchip">短视频剪辑</span><span class="vchip">配音</span><span class="vchip">带货主播</span><span class="vchip">跨境电商运营</span><span class="vchip">电工</span><span class="vchip">焊工</span><span class="vchip">育婴师</span><span class="vchip">茶艺师</span><span class="vchip">导游</span></div>
+        <h4 class="sub">⑥ 互评标签（6）</h4>
+        <div class="chips"><span class="vchip">按时交付</span><span class="vchip">质量过硬</span><span class="vchip">沟通顺畅</span><span class="vchip">响应及时</span><span class="vchip">需求清晰</span><span class="vchip">验收爽快</span></div>
+      </div>
+      <div class="reveal">
+        <h4 class="sub">⑦ 连续性劳务类目白名单（25 · 16号公告累计预扣）</h4>
+        <div class="chips"><span class="vchip">设计</span><span class="vchip">装潢</span><span class="vchip">安装</span><span class="vchip">制图</span><span class="vchip">化验测试</span><span class="vchip">医疗</span><span class="vchip">法律</span><span class="vchip">会计</span><span class="vchip">咨询</span><span class="vchip">讲学</span><span class="vchip">新闻广播</span><span class="vchip">翻译</span><span class="vchip">审稿</span><span class="vchip">书画雕刻</span><span class="vchip">影视录音录像</span><span class="vchip">演出表演</span><span class="vchip">广告展览</span><span class="vchip">技术服务</span><span class="vchip">介绍经纪代办服务</span><span class="vchip">技术</span><span class="vchip">文案</span><span class="vchip">视频</span><span class="vchip">直播电商</span><span class="vchip">跨境边贸</span><span class="vchip">文旅</span></div>
+        <h4 class="sub">⑧ 伪劳务违禁词（6 · 发布拦截）</h4>
+        <div class="chips"><span class="vchip" style="border-color:#fecaca">打卡</span><span class="vchip" style="border-color:#fecaca">月薪</span><span class="vchip" style="border-color:#fecaca">固定工资</span><span class="vchip" style="border-color:#fecaca">底薪</span><span class="vchip" style="border-color:#fecaca">考勤</span><span class="vchip" style="border-color:#fecaca">坐班</span></div>
+        <h4 class="sub">⑨ 行业负面清单（5 · 高风险）</h4>
+        <div class="chips"><span class="vchip" style="border-color:#fecaca">建筑劳务</span><span class="vchip" style="border-color:#fecaca">医美</span><span class="vchip" style="border-color:#fecaca">直播打赏</span><span class="vchip" style="border-color:#fecaca">贸易走账</span><span class="vchip" style="border-color:#fecaca">金融放贷</span></div>
+        <div class="note amber reveal" style="margin-top:18px">命中违禁词或非法计酬方式 → <b>阻断发布</b>并告警；命中负面清单行业 → 建议拒绝或加强人工审核。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ FLOWS ============ -->
+<section id="flows">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">业务流程与分支</span>
+      <h2>一共有哪些流程？每条分支怎么走</h2>
+      <p>核心四流程：任务生命周期、结算引擎、税务引擎、争议处理；外加实名/绑卡/个体户登记/提现/充值/派单/投保/开票/申报等 9 条子流程。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 任务全生命周期</h3>
+    <div class="flow reveal">
+      <div class="step"><span class="num">1</span><h4>发布</h4><span class="stp info">recruiting 招募中</span><p>企业发布，过发布风控（计酬方式+违禁词）</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">2</span><h4>报名 / 派单</h4><p>零工抢单(<code>apply</code>) 或 企业定向派单(<code>dispatch</code>)</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">3</span><h4>录用</h4><span class="stp primary">working 进行中</span><p>签分包工单 + 按单投保 + 冻结承揽价；防员转零校验</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">4</span><h4>交付</h4><span class="stp warn">delivered 待验收</span><p>零工上传交付物</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">5</span><h4>验收·结算</h4><span class="stp success">settled 已结算</span><p>四流校验→算税→存管分账→开票</p></div>
+    </div>
+    <h4 class="sub reveal">分支与出口</h4>
+    <div class="grid g4">
+      <div class="card reveal"><h4><span class="stp red">取消</span></h4><p><code>cancelled</code>：招募中任务可取消；解冻退回企业，通知报名者。</p></div>
+      <div class="card reveal"><h4><span class="stp warn">超期自动验收</span></h4><p>交付后超 <code>autoAcceptDays=14</code> 天未验收 → 系统自动验收结算（保护零工）。</p></div>
+      <div class="card reveal"><h4><span class="stp info">争议冻结</span></h4><p>任务被设 <code>dispute_id</code> → 结算冻结，既不打款也不解冻，直至裁决执行。</p></div>
+      <div class="card reveal"><h4><span class="stp primary">限期重交付</span></h4><p>争议裁 <code>redeliver</code> → 退回 <code>working</code>、清空交付物、冻结保留。</p></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 结算引擎（两阶段 + 四流硬校验）</h3>
+    <p class="lead-sm reveal">阶段一：校验 + 建结算单（幂等屏障）。阶段二：四条「腿」依次执行，每条带幂等键；任一失败则整单保持 <code>pending</code>，由定时任务重试（≤8 次，超限转 <code>failed</code> 并告警）。</p>
+    <h4 class="sub reveal">四流硬校验（任一不满足即阻断结算）</h4>
+    <div class="grid g3">
+      <div class="gate reveal"><span class="k">!</span><div>未开启全局结算暂停（<code>settlementPaused=0</code>）</div></div>
+      <div class="gate reveal"><span class="k">!</span><div>任务无争议锁（<code>dispute_id</code> 为空）</div></div>
+      <div class="gate reveal"><span class="k">!</span><div><b>合同流：</b>已签分包工单 <code>sub_order_no</code></div></div>
+      <div class="gate reveal"><span class="k">!</span><div><b>业务流：</b>有交付物 <code>deliverable</code> 且状态=已交付</div></div>
+      <div class="gate reveal"><span class="k">!</span><div><b>发票流（B线）：</b>个体户须有未被拒绝的进项发票</div></div>
+      <div class="gate reveal"><span class="k">!</span><div>无重复结算单（task_id 唯一，幂等）</div></div>
+    </div>
+    <h4 class="sub reveal">四条腿（幂等键 = 确认单号:腿名）</h4>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>顺序</th><th>腿</th><th>资金流向 / 动作</th><th>金额</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td><code>net</code></td><td>存管转账：企业 → 零工</td><td>零工实得 = 分包价 − 个税 − 增值税</td></tr>
+          <tr><td>2</td><td><code>tax</code></td><td>存管转账：企业 → 平台税款户（税+vat&gt;0 时）</td><td>代扣个税 + 代办增值税</td></tr>
+          <tr><td>3</td><td><code>margin</code></td><td>存管转账：企业 → 平台营收户（margin&gt;0 时）</td><td>平台毛利 = 承揽价 − 分包价</td></tr>
+          <tr><td>4</td><td><code>invoice</code></td><td>开数电票给企业（项目「*现代服务*灵活用工服务费」）</td><td>承揽价全额（销项税率 6%）</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="formula reveal"><b>资金分流（守恒）</b>
+承揽价(price，企业冻结并实付) = 分包价(gross) + 平台毛利(margin)
+零工实得(net) = 分包价(gross) − 代扣个税(tax) − 代办增值税(vat)
+平台税款户 ← tax + vat      平台营收户 ← margin
+校验：net + tax + vat + margin = price  <span class="c">✓ 恒等</span>
+<span class="m">部分结算（争议）</span>：按裁决金额结算，平台毛利按比例缩减，差额解冻退回企业</div>
+
+    <h3 class="blk reveal"><span class="bar"></span>③ 税务引擎（A线累计预扣 / B线经营所得）</h3>
+    <div class="grid g2">
+      <div class="reveal">
+        <h4 class="sub">综合所得七级累进预扣率表（年度·元）</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>级</th><th>累计应纳税所得额</th><th>预扣率</th><th>速算扣除数</th></tr></thead>
+            <tbody>
+              <tr><td>1</td><td class="num">≤ 36,000</td><td>3%</td><td class="num">0</td></tr>
+              <tr><td>2</td><td class="num">36,000 – 144,000</td><td>10%</td><td class="num">2,520</td></tr>
+              <tr><td>3</td><td class="num">144,000 – 300,000</td><td>20%</td><td class="num">16,920</td></tr>
+              <tr><td>4</td><td class="num">300,000 – 420,000</td><td>25%</td><td class="num">31,920</td></tr>
+              <tr><td>5</td><td class="num">420,000 – 660,000</td><td>30%</td><td class="num">52,920</td></tr>
+              <tr><td>6</td><td class="num">660,000 – 960,000</td><td>35%</td><td class="num">85,920</td></tr>
+              <tr><td>7</td><td class="num">&gt; 960,000</td><td>45%</td><td class="num">181,920</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="reveal">
+        <h4 class="sub">累计预扣公式（A线自然人）</h4>
+        <div class="formula" style="margin-top:0"><span class="c">A线自然人 · 累计预扣</span>
+本次应预扣 = max(0, <b>累计应纳税额</b> − 本连续段已预扣)
+累计应纳税所得额
+   = 累计分包收入 × (1 − <b>20%</b>) − 连续月数 × <b>5000</b>元
+累计应纳税额 = 七级累进速算(累计应纳税所得额)
+
+<span class="c">连续段</span>：同年内逐月回溯，遇无劳务报酬月份
+   即断，断后重新起算（2025年第16号公告）
+<span class="c">增值税</span>：月销售额 ≤ <b>10万</b>元 免征；
+   超出部分按 <b>1%</b> 减按征收率代办</div>
+      </div>
+    </div>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>所得项目 <code>income_type</code></th><th>计税方式 <code>method</code></th><th>适用</th></tr></thead>
+        <tbody>
+          <tr><td><code>labor_continuous</code> 连续性劳务报酬</td><td><code>cumulative</code> 累计预扣</td><td>A线 · 命中连续性劳务类目</td></tr>
+          <tr><td><code>labor_other</code> 其他劳务报酬</td><td><code>cumulative</code> 累计预扣</td><td>A线 · 未命中连续性类目</td></tr>
+          <tr><td><code>business</code> 经营所得</td><td><code>business_income</code></td><td>B线个体户 · 平台不代扣（tax=0、vat=0）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>④ 争议处理流程</h3>
+    <div class="flow reveal">
+      <div class="step"><span class="num">1</span><h4>协商</h4><span class="stp info">negotiating</span><p>48h 内双方举证和解；可撤回(<code>withdrawn</code>)</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">2</span><h4>仲裁</h4><span class="stp primary">arbitrating</span><p>到期未和解自动转入；72h 举证期</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">3</span><h4>裁决</h4><span class="stp warn">ruled</span><p>公示 24h</p></div>
+      <div class="arrow"><svg class="h" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><svg class="v" viewBox="0 0 24 24"><path d="M12 5v14M6 13l6 6 6-6"/></svg></div>
+      <div class="step"><span class="num">4</span><h4>执行</h4><span class="stp success">executed</span><p>按裁决处置资金；24h 后自动关闭(<code>closed</code>)</p></div>
+    </div>
+    <div class="grid g2">
+      <div class="reveal">
+        <h4 class="sub">争议类型与发起方</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>类型</th><th>可发起方</th></tr></thead>
+            <tbody>
+              <tr><td><code>acceptance</code> 验收争议</td><td>零工</td></tr>
+              <tr><td><code>payment_overdue</code> 超期未验收</td><td>零工（交付超 <code>acceptOverdueDays=7</code> 天）</td></tr>
+              <tr><td><code>worker_missing</code> 零工失联</td><td>企业</td></tr>
+              <tr><td><code>quality_after</code> 结算后质量纠纷</td><td>企业</td></tr>
+              <tr><td><code>other</code> 其他</td><td>零工 / 企业 / 平台</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="reveal">
+        <h4 class="sub">4 种裁决结果与资金处置</h4>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>裁决 <code>ruling_type</code></th><th>对资金与任务的处置</th></tr></thead>
+            <tbody>
+              <tr><td><span class="tag g">full_pay</span> 全额结算</td><td>按分包价全额结算给零工</td></tr>
+              <tr><td><span class="tag b">partial_pay</span> 部分结算</td><td>按裁决金额结算，毛利按比例缩减，差额解冻退企业</td></tr>
+              <tr><td><span class="tag r">no_pay</span> 不予结算</td><td>全额解冻退企业、任务取消；零工信用分 −50</td></tr>
+              <tr><td><span class="tag w">redeliver</span> 限期重交付</td><td>退回进行中、清空交付物、冻结保留</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="note reveal">裁决后任一方可<b>线下升级</b>（<code>escalated</code>）至仲裁委/法院：仅标记并触发「证据包一键导出」，不影响已执行的资金处置。</div>
+
+    <h3 class="blk reveal"><span class="bar"></span>⑤ 其他子流程（9 条）</h3>
+    <div class="grid g3">
+      <div class="card reveal"><h4>实名认证</h4><ul class="clean"><li>身份证实名核验</li><li>（可选）人脸核身 <code>faceVerifyRequired</code></li><li>签《分包框架协议》电子签</li><li>开立银行存管子账户</li></ul></div>
+      <div class="card reveal"><h4>银行绑卡</h4><ul class="clean"><li>银行卡四要素核验</li><li>绑卡获 token、回写脱敏卡号</li><li>状态 <code>card_bound</code></li></ul></div>
+      <div class="card reveal"><h4>个体户登记</h4><ul class="clean"><li>提交统一社会信用代码</li><li>主体转 B线 <code>soletrader</code></li><li>自助解除 <code>threshold</code> 阈值锁</li></ul></div>
+      <div class="card reveal"><h4>提现（T+1）</h4><ul class="clean"><li>申请→冻结余额(<code>applied</code>)</li><li>定时任务出金(<code>processing</code>)</li><li>到账(<code>done</code>)/失败解冻(<code>failed</code>)</li><li>可配强制短信验证</li></ul></div>
+      <div class="card reveal"><h4>充值入金</h4><ul class="clean"><li>建充值单(<code>created</code>)、对公转账</li><li>银行回调入账(<code>paid</code>)</li><li>超 <code>120</code> 分钟未付自动过期</li></ul></div>
+      <div class="card reveal"><h4>定向派单</h4><ul class="clean"><li>企业向<b>历史合作零工</b>派单</li><li>零工接受(<code>accepted</code>)即录用</li><li>候选池受限，防手机号枚举</li></ul></div>
+      <div class="card reveal"><h4>按单投保 / 理赔</h4><ul class="clean"><li>录用即按单出保单(基础/高保额)</li><li>出险报案(<code>reported</code>)</li><li>处理(<code>processing</code>)→办结(<code>closed</code>)</li></ul></div>
+      <div class="card reveal"><h4>开票 / 红冲</h4><ul class="clean"><li>结算后开数电票给企业</li><li>开票中→已开具(<code>issued</code>)</li><li>错误可红冲(<code>voided</code>)重开</li></ul></div>
+      <div class="card reveal"><h4>税务申报</h4><ul class="clean"><li>月度代扣代缴申报(<code>monthly_declare</code>)</li><li>季度汇总报送(<code>quarter_report</code>)</li><li>幂等：每期一次</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ ENUMS ============ -->
+<section id="enums">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">状态机字典</span>
+      <h2>全部状态枚举（取值 → 含义）</h2>
+      <p>下列为系统中所有受约束的状态/类型枚举（来源于数据库 CHECK 约束与路由常量），按业务域分组。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>账户与用户</h3>
+    <div class="reveal">
+      <div class="enum"><div class="et">users.role <span>用户角色</span></div><div class="chips"><span class="vchip"><code>worker</code> 零工</span><span class="vchip"><code>company</code> 企业</span><span class="vchip"><code>admin</code> 运营</span></div></div>
+      <div class="enum"><div class="et">users.status <span>账号状态</span></div><div class="chips"><span class="vchip"><code>active</code> 活跃</span><span class="vchip"><code>disabled</code> 禁用</span></div></div>
+      <div class="enum"><div class="et">companies.status <span>企业准入</span></div><div class="chips"><span class="vchip"><code>pending</code> 待审核</span><span class="vchip"><code>approved</code> 已通过</span><span class="vchip"><code>rejected</code> 已拒绝</span></div></div>
+      <div class="enum"><div class="et">company_members.member_role <span>企业成员角色</span></div><div class="chips"><span class="vchip"><code>owner</code> 企业主</span><span class="vchip"><code>operator</code> 运营成员</span><span class="vchip"><code>finance</code> 财务成员</span></div></div>
+      <div class="enum"><div class="et">worker_profiles.subject_type <span>纳税主体</span></div><div class="chips"><span class="vchip"><code>person</code> 自然人</span><span class="vchip"><code>soletrader</code> 个体工商户</span></div></div>
+      <div class="enum"><div class="et">accounts.owner_type <span>账户归属</span></div><div class="chips"><span class="vchip"><code>company</code> 企业</span><span class="vchip"><code>worker</code> 零工</span><span class="vchip"><code>platform_tax</code> 平台税款户</span><span class="vchip"><code>platform_revenue</code> 平台营收户</span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>任务 · 报名 · 派单 · 合同</h3>
+    <div class="reveal">
+      <div class="enum"><div class="et">tasks.status <span>任务状态</span></div><div class="chips"><span class="vchip"><code>recruiting</code> 招募中</span><span class="vchip"><code>working</code> 进行中</span><span class="vchip"><code>delivered</code> 已交付</span><span class="vchip"><code>settled</code> 已结算</span><span class="vchip"><code>cancelled</code> 已取消</span></div></div>
+      <div class="enum"><div class="et">applications.status <span>报名状态</span></div><div class="chips"><span class="vchip"><code>applied</code> 已报名</span><span class="vchip"><code>hired</code> 已录用</span><span class="vchip"><code>rejected</code> 已拒绝</span><span class="vchip"><code>withdrawn</code> 已撤回</span></div></div>
+      <div class="enum"><div class="et">applications.source <span>报名来源</span></div><div class="chips"><span class="vchip"><code>apply</code> 主动报名</span><span class="vchip"><code>dispatch</code> 派单</span></div></div>
+      <div class="enum"><div class="et">dispatches.status <span>派单状态</span></div><div class="chips"><span class="vchip"><code>invited</code> 待接受</span><span class="vchip"><code>accepted</code> 已接受</span><span class="vchip"><code>rejected</code> 已拒绝</span><span class="vchip"><code>cancelled</code> 已取消</span></div></div>
+      <div class="enum"><div class="et">contracts.type <span>合同类型</span></div><div class="chips"><span class="vchip"><code>master</code> 总承揽框架合同</span><span class="vchip"><code>frame_sub</code> 分包框架协议</span><span class="vchip"><code>work_order</code> 任务工单</span><span class="vchip"><code>sub_order</code> 分包工单</span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>结算 · 资金 · 税务 · 发票</h3>
+    <div class="reveal">
+      <div class="enum"><div class="et">settlements.status <span>结算状态</span></div><div class="chips"><span class="vchip"><code>pending</code> 待结算</span><span class="vchip"><code>done</code> 已完成</span><span class="vchip"><code>failed</code> 失败</span></div></div>
+      <div class="enum"><div class="et">fund_flows.type <span>资金流水类型</span></div><div class="chips"><span class="vchip"><code>recharge</code> 充值</span><span class="vchip"><code>freeze</code> 冻结</span><span class="vchip"><code>unfreeze</code> 解冻</span><span class="vchip"><code>settle_out</code> 结算出账</span><span class="vchip"><code>settle_in</code> 结算入账</span><span class="vchip"><code>withdraw</code> 提现出金</span><span class="vchip"><code>tax_in</code> 税款入账</span><span class="vchip"><code>revenue_in</code> 营收入账</span></div></div>
+      <div class="enum"><div class="et">tax_records.method <span>计税方式</span></div><div class="chips"><span class="vchip"><code>cumulative</code> 累计预扣法</span><span class="vchip"><code>business_income</code> 经营所得</span></div></div>
+      <div class="enum"><div class="et">income_type <span>所得项目（结算/税单）</span></div><div class="chips"><span class="vchip"><code>labor_continuous</code> 连续性劳务报酬</span><span class="vchip"><code>labor_other</code> 其他劳务报酬</span><span class="vchip"><code>business</code> 经营所得</span></div></div>
+      <div class="enum"><div class="et">withdrawals.status <span>提现状态</span></div><div class="chips"><span class="vchip"><code>applied</code> 待处理</span><span class="vchip"><code>processing</code> 处理中</span><span class="vchip"><code>done</code> 已完成</span><span class="vchip"><code>failed</code> 失败</span></div></div>
+      <div class="enum"><div class="et">recharge_orders.status <span>充值单状态</span></div><div class="chips"><span class="vchip"><code>created</code> 已生成</span><span class="vchip"><code>paid</code> 已入账</span><span class="vchip"><code>expired</code> 已过期</span></div></div>
+      <div class="enum"><div class="et">invoices.status <span>销项发票状态</span></div><div class="chips"><span class="vchip"><code>issuing</code> 开票中</span><span class="vchip"><code>issued</code> 已开具</span><span class="vchip"><code>voided</code> 已红冲</span></div></div>
+      <div class="enum"><div class="et">input_invoices.status <span>进项发票状态（B线）</span></div><div class="chips"><span class="vchip"><code>uploaded</code> 已上传</span><span class="vchip"><code>verified</code> 已验证</span><span class="vchip"><code>rejected</code> 已拒绝</span><span class="vchip"><code>deducted</code> 已抵扣</span></div></div>
+      <div class="enum"><div class="et">invoice_type <span>发票种类</span></div><div class="chips"><span class="vchip"><code>normal</code> 普通发票</span><span class="vchip"><code>special</code> 专用发票</span></div></div>
+      <div class="enum"><div class="et">tax_declarations.type <span>申报类型</span></div><div class="chips"><span class="vchip"><code>monthly_declare</code> 月度申报</span><span class="vchip"><code>quarter_report</code> 季度报告</span></div></div>
+      <div class="enum"><div class="et">reconciliation_daily.status / recon_diffs <span>对账</span></div><div class="chips"><span class="vchip"><code>balanced</code> 已平衡</span><span class="vchip"><code>mismatch</code> 不符</span><span class="vchip"><code>bank_only</code> 仅银行有</span><span class="vchip"><code>platform_only</code> 仅平台有</span><span class="vchip"><code>open</code>/<code>resolved</code> 差异待处理/已解决</span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>争议 · 保险 · 回访</h3>
+    <div class="reveal">
+      <div class="enum"><div class="et">disputes.status <span>争议状态</span></div><div class="chips"><span class="vchip"><code>negotiating</code> 协商中</span><span class="vchip"><code>arbitrating</code> 仲裁中</span><span class="vchip"><code>ruled</code> 已裁决</span><span class="vchip"><code>executed</code> 已执行</span><span class="vchip"><code>closed</code> 已结案</span><span class="vchip"><code>withdrawn</code> 已撤回</span><span class="vchip"><code>escalated</code> 已升级</span></div></div>
+      <div class="enum"><div class="et">disputes.type <span>争议类型</span></div><div class="chips"><span class="vchip"><code>acceptance</code> 验收争议</span><span class="vchip"><code>payment_overdue</code> 超期未验收</span><span class="vchip"><code>worker_missing</code> 零工失联</span><span class="vchip"><code>quality_after</code> 结算后质量</span><span class="vchip"><code>other</code> 其他</span></div></div>
+      <div class="enum"><div class="et">disputes.ruling_type <span>裁决结果</span></div><div class="chips"><span class="vchip"><code>full_pay</code> 全额结算</span><span class="vchip"><code>partial_pay</code> 部分结算</span><span class="vchip"><code>no_pay</code> 不予结算</span><span class="vchip"><code>redeliver</code> 限期重交付</span></div></div>
+      <div class="enum"><div class="et">disputes.initiator_role <span>发起方</span></div><div class="chips"><span class="vchip"><code>worker</code> 零工</span><span class="vchip"><code>company</code> 企业</span><span class="vchip"><code>admin</code> 平台</span></div></div>
+      <div class="enum"><div class="et">insurance_policies.status / claims.status <span>保险与理赔</span></div><div class="chips"><span class="vchip"><code>active</code> 生效</span><span class="vchip"><code>reported</code> 已报案</span><span class="vchip"><code>processing</code> 处理中</span><span class="vchip"><code>closed</code> 已办结</span></div></div>
+      <div class="enum"><div class="et">callbacks.status <span>真实性回访</span></div><div class="chips"><span class="vchip"><code>pending</code> 待核验</span><span class="vchip"><code>confirmed</code> 已确认</span><span class="vchip"><code>abnormal</code> 异常</span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>工单 · 技能 · 帮助 · 凭证 · 集成</h3>
+    <div class="reveal">
+      <div class="enum"><div class="et">tickets.status <span>工单状态</span></div><div class="chips"><span class="vchip"><code>open</code> 待回复</span><span class="vchip"><code>pending_user</code> 等待用户</span><span class="vchip"><code>pending_agent</code> 等待客服</span><span class="vchip"><code>resolved</code> 已解决</span><span class="vchip"><code>closed</code> 已关闭</span></div></div>
+      <div class="enum"><div class="et">tickets.priority <span>工单优先级（SLA）</span></div><div class="chips"><span class="vchip"><code>urgent</code> 紧急·2h</span><span class="vchip"><code>high</code> 高·24h</span><span class="vchip"><code>normal</code> 普通·24h</span></div></div>
+      <div class="enum"><div class="et">worker_skills.status <span>技能认证</span></div><div class="chips"><span class="vchip"><code>pending</code> 待审核</span><span class="vchip"><code>verified</code> 已验证</span><span class="vchip"><code>rejected</code> 已拒绝</span></div></div>
+      <div class="enum"><div class="et">export_requests.status <span>数据导出申请</span></div><div class="chips"><span class="vchip"><code>pending</code> 待审批</span><span class="vchip"><code>approved</code> 已批准</span><span class="vchip"><code>rejected</code> 已拒绝</span><span class="vchip"><code>downloaded</code> 已下载</span><span class="vchip"><code>expired</code> 已过期</span></div></div>
+      <div class="enum"><div class="et">webhook_events.status <span>回调事件</span></div><div class="chips"><span class="vchip"><code>received</code> 已接收</span><span class="vchip"><code>processed</code> 已处理</span><span class="vchip"><code>failed</code> 失败</span><span class="vchip"><code>ignored</code> 已忽略(死信)</span></div></div>
+      <div class="enum"><div class="et">escrow_members.status / integration_calls / api_credentials / help_articles <span>其它</span></div><div class="chips"><span class="vchip"><code>opened</code>/<code>card_bound</code>/<code>closed</code> 存管开户</span><span class="vchip"><code>ok</code>/<code>fail</code> 集成调用</span><span class="vchip"><code>active</code>/<code>disabled</code> API凭据</span><span class="vchip"><code>published</code>/<code>draft</code> 帮助文章</span><span class="vchip"><code>worker</code>/<code>company</code>/<code>all</code> 文章受众</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ RISK ============ -->
+<section id="risk">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">风控与通知</span>
+      <h2>风控规则、信用分、告警与通知</h2>
+      <p>全部风控规则及其精确阈值（均为运营端可在线调整的配置项）、信用分模型、21 类风险告警、16 类站内通知、9 类工单。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 风控规则与阈值</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>规则</th><th>触发时机</th><th>阈值（配置键）</th><th>处置</th></tr></thead>
+        <tbody>
+          <tr><td>伪劳务·计酬方式</td><td>企业发布任务</td><td>非白名单 <code>payMethods</code></td><td><span class="tag r">阻断</span>+告警</td></tr>
+          <tr><td>伪劳务·违禁词</td><td>企业发布任务</td><td>命中 <code>forbiddenWords</code>（6词）</td><td><span class="tag r">阻断</span>+告警</td></tr>
+          <tr><td>行业准入</td><td>企业准入审核</td><td>命中 <code>industryBlacklist</code>（5行业）</td><td><span class="tag w">高风险</span>建议拒绝</td></tr>
+          <tr><td>反洗钱·单笔大额</td><td>结算/提现后</td><td><code>amlSingleMax</code> = 5万元</td><td><span class="tag w">告警(中)</span></td></tr>
+          <tr><td>反洗钱·单日高频</td><td>结算/提现后</td><td><code>amlDailyCount</code> = 10 笔/日</td><td><span class="tag w">告警(中)</span></td></tr>
+          <tr><td>反洗钱·夜间交易</td><td>结算/提现后</td><td>00:00–05:00</td><td><span class="tag i">告警(低)</span></td></tr>
+          <tr><td>集中度（防实为雇佣）</td><td>结算后</td><td><code>concentrationThreshold</code> 80% 且月收入 ≥ <code>concentrationMinMonthGross</code> 2万</td><td><span class="tag r">告警(高)</span></td></tr>
+          <tr><td>个体户引导</td><td>结算后</td><td>月收入 &gt; <code>soletraderGuideMonthGross</code> 10万</td><td><span class="tag i">引导通知</span></td></tr>
+          <tr><td>强制市场主体登记</td><td>结算后 / 每日兜底</td><td>滚动12月 ≥ <code>forceRegisterRolling12m</code> 480万</td><td><span class="tag r">锁单(threshold)</span></td></tr>
+          <tr><td>防员转零</td><td>录用零工时</td><td>命中企业历史薪资名单</td><td><span class="tag r">阻断录用</span>+告警(高)</td></tr>
+          <tr><td>税负安全线</td><td>发单试算</td><td>净毛利率 &lt; <code>safeMarginRate</code> 2%</td><td><span class="tag w">告警(中)</span></td></tr>
+          <tr><td>信用分接单限制</td><td>接单前</td><td>信用分 &lt; <code>creditMinForMultiOrder</code> 450</td><td>仅允许同时接 1 单</td></tr>
+          <tr><td>业务真实性抽查</td><td>结算后抽样</td><td>比例 <code>callbackSampleRatio</code> 20%</td><td>电话回访核验</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 信用分模型（350–950）</h3>
+    <div class="grid g2">
+      <div class="card reveal"><h4>计分（每次结算后重算）</h4><ul class="clean"><li>基准 600 分</li><li>完单加分：每单 +3，封顶 +120</li><li>评价加分：按企业平均评分偏移 ±</li><li>争议扣分：no_pay −50 / partial −20</li><li>区间裁剪：[350, 950]</li></ul></div>
+      <div class="card reveal"><h4>等级</h4><div class="chips"><span class="vchip"><code>≥750</code> 优选</span><span class="vchip"><code>≥600</code> 良好</span><span class="vchip"><code>≥450</code> 一般</span><span class="vchip"><code>&lt;450</code> 受限（限接1单）</span></div></div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>③ 风险告警类型（21 类）</h3>
+    <div class="chips reveal">
+      <span class="vchip">伪劳务特征</span><span class="vchip">反洗钱-大额交易</span><span class="vchip">反洗钱-高频交易</span><span class="vchip">反洗钱-夜间交易</span><span class="vchip">集中度超标</span><span class="vchip">个体户引导</span><span class="vchip">强制市场主体登记</span><span class="vchip">强制登记阈值</span><span class="vchip">防员转零</span><span class="vchip">税负安全线</span><span class="vchip">结算异常</span><span class="vchip">自动验收受阻</span><span class="vchip">对账差异</span><span class="vchip">充值金额不符</span><span class="vchip">充值迟到入账</span><span class="vchip">提现异常</span><span class="vchip">争议线下升级</span><span class="vchip">导出越权风险</span><span class="vchip">资金应急开关</span><span class="vchip">回调验签失败</span><span class="vchip">回调事件死信</span>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>④ 站内通知类型（16 类）</h3>
+    <div class="chips reveal">
+      <span class="vchip"><code>hired</code> 已录用</span><span class="vchip"><code>dispatch</code> 派单邀约</span><span class="vchip"><code>deliver</code> 交付提醒</span><span class="vchip"><code>rejected</code> 交付被驳回</span><span class="vchip"><code>settle</code> 结算到账</span><span class="vchip"><code>review</code> 互评通知</span><span class="vchip"><code>dispute</code> 争议进展</span><span class="vchip"><code>cancelled</code> 取消通知</span><span class="vchip"><code>risk</code> 风控通知</span><span class="vchip"><code>guide</code> 个体户引导</span><span class="vchip"><code>member</code> 成员/权属变更</span><span class="vchip"><code>recharge</code> 充值入账</span><span class="vchip"><code>invoice</code> 发票状态</span><span class="vchip"><code>skill</code> 技能认证</span><span class="vchip"><code>ticket</code> 工单通知</span><span class="vchip"><code>export</code> 导出申请</span>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>⑤ 工单类别（9 类，自动定优先级）</h3>
+    <div class="chips reveal">
+      <span class="vchip"><code>account</code> 账户问题</span><span class="vchip"><code>realname</code> 实名认证</span><span class="vchip"><code>settlement</code> 结算问题 <span class="tag r">紧急</span></span><span class="vchip"><code>withdraw</code> 提现问题 <span class="tag r">紧急</span></span><span class="vchip"><code>invoice</code> 发票问题</span><span class="vchip"><code>tax</code> 税务问题</span><span class="vchip"><code>insurance</code> 保险问题</span><span class="vchip"><code>complaint</code> 投诉举报 <span class="tag w">高</span></span><span class="vchip"><code>other</code> 其他</span>
+    </div>
+  </div>
+</section>
+
+<!-- ============ OPS ============ -->
+<section id="ops">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">后台任务与三方集成</span>
+      <h2>定时任务、外部集成与安全合规</h2>
+      <p>10 个 node-cron 定时任务（结果均落 job_runs 供「哑死」监控）、8 个外部集成适配器、以及贯穿全栈的安全合规机制。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 定时任务（10）</h3>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>任务</th><th>频率</th><th>职责</th></tr></thead>
+        <tbody>
+          <tr><td><code>settlementRetry</code></td><td>每 5 分钟</td><td>推进 pending/failed 结算单（≤8 次重试）</td></tr>
+          <tr><td><code>withdrawals</code></td><td>每 2 分钟</td><td>处理 applied/processing 提现出金（生产可改 T+1）</td></tr>
+          <tr><td><code>autoAccept</code></td><td>每小时</td><td>交付超 14 天未验收 → 自动验收结算</td></tr>
+          <tr><td><code>timeoutReminders</code></td><td>每日 09:00</td><td>交付/进行中/招募超期提醒</td></tr>
+          <tr><td><code>dailyRecon</code></td><td>每日 01:00</td><td>T+1 逐笔对账与差异核销</td></tr>
+          <tr><td><code>housekeeping</code></td><td>每日 03:30</td><td>数据治理、归档、强制登记阈值锁兜底</td></tr>
+          <tr><td><code>disputeTimeouts</code></td><td>每 10 分钟</td><td>争议协商/仲裁/裁决超时自动流转</td></tr>
+          <tr><td><code>ticketSla</code></td><td>每 15 分钟</td><td>工单首响 SLA 升级</td></tr>
+          <tr><td><code>webhookRetry</code></td><td>每 5 分钟</td><td>入站回调补单重放</td></tr>
+          <tr><td><code>rechargeExpire</code></td><td>每 30 分钟</td><td>充值单 / 导出申请过期处理</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 外部集成适配器（8）</h3>
+    <p class="lead-sm reveal">适配层统一签名，生产环境替换实现即可；所有调用记入 integration_calls 并纳入健康检查。</p>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>适配器</th><th>职责</th><th>关键方法</th></tr></thead>
+        <tbody>
+          <tr><td><code>realname</code> 公安实名核验</td><td>身份证实名、人脸核身、银行卡四要素</td><td>verify / faceStart / faceResult / bankcardVerify</td></tr>
+          <tr><td><code>escrow</code> 银行存管分账</td><td>开户、绑卡、收银台充值、分账转账（幂等）</td><td>openAccount / bindCard / cashier / transfer</td></tr>
+          <tr><td><code>einvoice</code> 数电票开具</td><td>全额开票、红冲</td><td>issue / redFlush</td></tr>
+          <tr><td><code>esign</code> 电子签存证</td><td>合同/工单签署、授权静默签</td><td>sign / authorize</td></tr>
+          <tr><td><code>taxbureau</code> 税务申报报送</td><td>月度代扣申报、季度汇总报送</td><td>declare / report</td></tr>
+          <tr><td><code>insurance</code> 按单投保</td><td>按任务出保单（基础 / 高保额）</td><td>insure</td></tr>
+          <tr><td><code>sms</code> 短信通道</td><td>验证码 / 通知短信（主备）</td><td>send</td></tr>
+          <tr><td><code>wxsubscribe</code> 微信订阅消息</td><td>小程序订阅消息推送</td><td>send</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>③ 安全与合规机制</h3>
+    <div class="grid g3">
+      <div class="card reveal"><h4>个人信息保护</h4><p>身份证号 AES-256-GCM 信封加密；手机号默认脱敏，完整 PII 需 <code>user:read_pii</code> 并审计；批量导出超 <code>50</code> 行需审批。</p></div>
+      <div class="card reveal"><h4>四流证据链</h4><p>合同·业务·资金·发票全程留痕；争议可「四流归档一键导出」证据包。</p></div>
+      <div class="card reveal"><h4>资金存管不沾手</h4><p>全程银行存管，充值由银行入账回调驱动；存管转账带幂等键，本地余额镜像银行子户。</p></div>
+      <div class="card reveal"><h4>权限纵深</h4><p>RBAC 7 角色 + 25 权限点；敏感操作 TOTP step-up；登录失败锁定。</p></div>
+      <div class="card reveal"><h4>回调与上传安全</h4><p>Webhook 按<b>原始字节</b>验签（验签失败告警）；上传校验文件头 magic number，非图片/PDF 强制附件下载。</p></div>
+      <div class="card reveal"><h4>资金应急开关</h4><p><code>settlementPaused</code> / <code>withdrawalPaused</code> 可一键暂停结算/提现（应急止血并告警）。</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ CONFIG ============ -->
+<section id="config">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">配置项字典</span>
+      <h2>全部业务配置项（42 项，运营端可在线调整）</h2>
+      <p>税率、阈值、时限、白名单与应急开关均存于 system_configs、运行时读取，无需改代码重发。下表为默认值。</p>
+    </div>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>分组</th><th>配置键</th><th>默认值</th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td rowspan="7"><span class="tag b">tax 税务</span></td><td><code>platformMarginRate</code></td><td class="num">0.08</td><td>平台毛利率（承揽价与分包价之差比例）</td></tr>
+          <tr><td><code>laborExpenseRate</code></td><td class="num">0.2</td><td>劳务报酬费用减除比例</td></tr>
+          <tr><td><code>monthlyDeduction</code></td><td class="num">5000</td><td>每月减除费用（元）</td></tr>
+          <tr><td><code>vatFreeMonthlySales</code></td><td class="num">100000</td><td>增值税月免征额（元）</td></tr>
+          <tr><td><code>vatRate</code></td><td class="num">0.01</td><td>超额部分减按征收率</td></tr>
+          <tr><td><code>outputVatRate</code></td><td class="num">'6%'</td><td>销项税率（对B端全额开票）</td></tr>
+          <tr><td><code>safeMarginRate</code></td><td class="num">0.02</td><td>按单税负测算安全线（净毛利率低于此值预警）</td></tr>
+
+          <tr><td rowspan="9"><span class="tag r">risk 风控</span></td><td><code>concentrationThreshold</code></td><td class="num">0.8</td><td>单零工对单企业月收入集中度预警阈值</td></tr>
+          <tr><td><code>concentrationMinMonthGross</code></td><td class="num">20000</td><td>集中度预警的月收入下限（元）</td></tr>
+          <tr><td><code>soletraderGuideMonthGross</code></td><td class="num">100000</td><td>个体户注册引导阈值：月收入（元）</td></tr>
+          <tr><td><code>forceRegisterRolling12m</code></td><td class="num">4800000</td><td>强制市场主体登记：滚动12个月累计收入（元）</td></tr>
+          <tr><td><code>amlSingleMax</code></td><td class="num">50000</td><td>反洗钱：单笔大额阈值（元）</td></tr>
+          <tr><td><code>amlDailyCount</code></td><td class="num">10</td><td>反洗钱：单人单日交易笔数阈值</td></tr>
+          <tr><td><code>callbackSampleRatio</code></td><td class="num">0.2</td><td>业务真实性抽查回访比例</td></tr>
+          <tr><td><code>forbiddenWords</code></td><td>6 词</td><td>伪劳务违禁词（劳动关系隔离风控）</td></tr>
+          <tr><td><code>industryBlacklist</code></td><td>5 项</td><td>行业负面清单（高风险）</td></tr>
+
+          <tr><td rowspan="5"><span class="tag i">task 任务</span></td><td><code>payMethods</code></td><td>3 项</td><td>计酬方式白名单（承揽特征条款）</td></tr>
+          <tr><td><code>categories</code></td><td>16 项</td><td>任务类目（含广西特色类目）</td></tr>
+          <tr><td><code>cities</code></td><td>16 项</td><td>任务地点字典（广西14市 + 远程 + 其他）</td></tr>
+          <tr><td><code>deliverRemindDays</code></td><td class="num">7</td><td>交付后未验收提醒天数</td></tr>
+          <tr><td><code>autoAcceptDays</code></td><td class="num">14</td><td>交付后超期自动验收天数（资金保护兜底）</td></tr>
+
+          <tr><td rowspan="1"><span class="tag b">tax</span></td><td><code>continuousLaborCategories</code></td><td>25 项</td><td>连续性劳务类目白名单（16号公告累计预扣）</td></tr>
+
+          <tr><td rowspan="3"><span class="tag g">insurance 保险</span></td><td><code>offlineCategories</code></td><td>7 项</td><td>线下作业类目（强制高保额方案）</td></tr>
+          <tr><td><code>insurancePremiumBase</code></td><td class="num">3</td><td>基础保费（元/单）</td></tr>
+          <tr><td><code>insurancePremiumHigh</code></td><td class="num">12</td><td>高保额保费（元/单）</td></tr>
+
+          <tr><td rowspan="3"><span class="tag w">dispute 争议</span></td><td><code>disputeNegotiateHours</code></td><td class="num">48</td><td>协商期时长（小时），到期未和解自动转仲裁</td></tr>
+          <tr><td><code>disputeEvidenceHours</code></td><td class="num">72</td><td>争议举证期时长（小时）</td></tr>
+          <tr><td><code>acceptOverdueDays</code></td><td class="num">7</td><td>交付后企业超期未验收天数（达到后零工可发起争议）</td></tr>
+
+          <tr><td rowspan="2"><span class="tag i">ticket 工单</span></td><td><code>ticketUrgentHours</code></td><td class="num">2</td><td>紧急工单首响 SLA（小时）</td></tr>
+          <tr><td><code>ticketNormalHours</code></td><td class="num">24</td><td>普通工单首响 SLA（小时）</td></tr>
+
+          <tr><td rowspan="4"><span class="tag b">fund 资金</span></td><td><code>settlementPaused</code></td><td class="num">0</td><td>全局结算应急开关（1=暂停所有结算）</td></tr>
+          <tr><td><code>withdrawalPaused</code></td><td class="num">0</td><td>全局提现应急开关（1=暂停所有提现）</td></tr>
+          <tr><td><code>withdrawSmsRequired</code></td><td class="num">0</td><td>提现强制短信验证码（生产建议=1）</td></tr>
+          <tr><td><code>rechargeOrderExpireMinutes</code></td><td class="num">120</td><td>充值单有效期（分钟）</td></tr>
+
+          <tr><td rowspan="3"><span class="tag g">review 评价</span></td><td><code>reviewWindowDays</code></td><td class="num">7</td><td>结算后互评窗口期（天）</td></tr>
+          <tr><td><code>creditMinForMultiOrder</code></td><td class="num">450</td><td>信用分低于此值限制同时在接任务数为1</td></tr>
+          <tr><td><code>reviewTags</code> / <code>skillCatalog</code></td><td>6 / 16 项</td><td>互评标签字典 / 技能认证目录</td></tr>
+
+          <tr><td rowspan="3"><span class="tag r">security 安全</span></td><td><code>faceVerifyRequired</code></td><td class="num">0</td><td>实名认证强制人脸核身（生产建议=1）</td></tr>
+          <tr><td><code>exportApprovalRows</code></td><td class="num">50</td><td>批量导出个人信息需审批的行数阈值</td></tr>
+          <tr><td><code>adminStepUpRequired</code></td><td class="num">0</td><td>运营敏感操作强制2FA（生产建议=1）</td></tr>
+
+          <tr><td><span class="tag i">notify 通知</span></td><td><code>subscribeTmplIds</code></td><td>[]</td><td>微信订阅消息模板ID白名单（空=仅站内信+短信）</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="foot-in">
+    <div class="foot-brand"><span class="logo"><svg viewBox="0 0 24 24"><path d="M4 16a4 4 0 0 1 1-7.9A5 5 0 0 1 19 8a3.5 3.5 0 0 1 1 6.9"/><path d="M9 19l3-3 3 3M12 16v5"/></svg></span>广西零工云</div>
+    <p style="color:#94a3b8;font-size:14px;max-width:640px;margin:0 auto">合规优先的灵活用工平台 —— 角色、流程、分支、字典全量参考。所列取值与阈值均取自系统当前实现。</p>
+    <p class="fine">本页为系统介绍 / 参考材料，仅作展示之用。</p>
+  </div>
+</footer>
+
+<button class="toTop" id="toTop" aria-label="回到顶部"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+
+<script>
+  (function(){
+    var t=document.getElementById('navToggle'),m=document.getElementById('navLinks');
+    if(t&&m){
+      t.addEventListener('click',function(){var o=m.classList.toggle('open');t.setAttribute('aria-expanded',o?'true':'false');});
+      m.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){m.classList.remove('open');t.setAttribute('aria-expanded','false');});});
+    }
+  })();
+  (function(){
+    var els=document.querySelectorAll('.reveal');
+    if(!('IntersectionObserver' in window)){els.forEach(function(e){e.classList.add('in');});return;}
+    var io=new IntersectionObserver(function(en){en.forEach(function(x){if(x.isIntersecting){x.target.classList.add('in');io.unobserve(x.target);}});},{threshold:0.08,rootMargin:'0px 0px -30px 0px'});
+    els.forEach(function(e){io.observe(e);});
+    setTimeout(function(){els.forEach(function(e){e.classList.add('in');});},1500);
+  })();
+  (function(){
+    var b=document.getElementById('toTop');
+    window.addEventListener('scroll',function(){if(window.scrollY>600)b.classList.add('show');else b.classList.remove('show');},{passive:true});
+    b.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});
+  })();
+</script>
+</body>
+</html>

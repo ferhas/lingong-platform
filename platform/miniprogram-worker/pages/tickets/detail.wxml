@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <block wx:if="{{detail}}">
   <view class="card head-card">
     <view class="card-top">
@@ -21,7 +22,7 @@
 
   <!-- 追加回复 / 关闭 -->
   <view wx:if="{{detail.active}}" class="card">
-    <textarea class="field-textarea" maxlength="2000" placeholder="补充说明或回复客服" value="{{reply}}" bindinput="onReplyInput" />
+    <textarea class="field-textarea" maxlength="2000" cursor-spacing="40" show-confirm-bar="{{true}}" placeholder="补充说明或回复客服" value="{{reply}}" bindinput="onReplyInput" />
     <view class="act-row">
       <button class="btn-close" size="mini" bindtap="onClose">问题已解决，关闭工单</button>
       <button class="btn-send" size="mini" disabled="{{sending}}" bindtap="onSend">发送</button>
@@ -32,8 +33,9 @@
   <view wx:if="{{detail.canRate}}" class="card rate-card">
     <view class="rate-title">请为本次服务评分</view>
     <view class="star-row">
-      <view wx:for="{{[1, 2, 3, 4, 5]}}" wx:key="*this" class="star" data-score="{{item}}" bindtap="onRate">★</view>
+      <view wx:for="{{[1, 2, 3, 4, 5]}}" wx:key="*this" class="star {{rateScore >= item ? 'star-on' : ''}}" data-score="{{item}}" bindtap="onRate">★</view>
     </view>
   </view>
   <view wx:elif="{{detail.satisfaction}}" class="rated-tip">您已评价 {{detail.satisfaction}} 星，感谢反馈</view>
 </block>
+</view>

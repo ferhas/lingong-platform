@@ -8,23 +8,30 @@ export function fmtDateTime(s) {
   return String(s).replace('T', ' ').slice(0, 19)
 }
 
+// 状态色语义：红色仅留给错误/危险；进行中=品牌色(活跃)、待验收=琥珀(需企业处理)、已结算=绿、报名中/已取消=中性灰
 export const TASK_STATUS = {
-  recruiting: { label: '报名中', tag: 'primary' },
-  working: { label: '进行中', tag: 'warning' },
-  delivered: { label: '待验收', tag: 'danger' },
+  recruiting: { label: '报名中', tag: 'info' },
+  working: { label: '进行中', tag: 'primary' },
+  delivered: { label: '待验收', tag: 'warning' },
   settled: { label: '已结算', tag: 'success' },
   cancelled: { label: '已取消', tag: 'info' }
 }
 
+// 覆盖 fund_flows.type 全部 8 个枚举（与后端 db.js CHECK 一致），避免出现原始码
 export const FLOW_TYPE = {
   recharge: { label: '充值', tag: 'success' },
   freeze: { label: '冻结', tag: 'warning' },
   unfreeze: { label: '解冻', tag: 'info' },
-  settle_out: { label: '结算划扣', tag: 'danger' }
+  settle_out: { label: '结算划扣', tag: 'danger' },
+  settle_in: { label: '结算入账', tag: 'success' },
+  withdraw: { label: '提现', tag: 'danger' },
+  tax_in: { label: '税款入账', tag: 'info' },
+  revenue_in: { label: '平台收益', tag: 'success' }
 }
 
 export const CONTRACT_TYPE = {
   master: '总承揽框架合同',
+  frame_sub: '分包框架协议',
   work_order: '任务工单',
   sub_order: '分包工单'
 }
@@ -41,12 +48,13 @@ export const SUBJECT_TYPE = {
 }
 
 export const MEMBER_ROLE = {
-  owner: { label: '企业主', tag: 'danger' },
-  operator: { label: '运营', tag: 'primary' },
+  owner: { label: '企业主', tag: 'primary' },
+  operator: { label: '运营', tag: 'info' },
   finance: { label: '财务', tag: 'success' }
 }
 
 export const INVOICE_STATUS = {
+  issuing: { label: '开具中', tag: 'warning' },
   issued: { label: '已开具', tag: 'success' },
   voided: { label: '已红冲', tag: 'danger' }
 }
@@ -96,6 +104,7 @@ export const TICKET_PRIORITY = {
   normal: { label: '普通', tag: 'info' }
 }
 
+// 全量分类字典：用于展示既有工单（任何分类都要有中文标签）
 export const TICKET_CATEGORY = {
   account: '账号问题',
   realname: '实名认证',
@@ -107,6 +116,9 @@ export const TICKET_CATEGORY = {
   complaint: '投诉举报',
   other: '其他'
 }
+
+// 企业端可发起的工单分类（剔除零工专属的实名/提现/保险理赔，避免误选与错误 SLA 路由）
+export const COMPANY_TICKET_CATEGORIES = ['account', 'settlement', 'invoice', 'tax', 'complaint', 'other']
 
 // 评价可选标签（企业评零工）
 export const REVIEW_TAGS = ['按时交付', '质量过硬', '沟通顺畅', '响应及时', '需求清晰', '验收爽快']
@@ -120,6 +132,8 @@ export const TERM_TIPS = {
   存管户: '存管户 = 开立在合作银行的专用监管账户。企业资金由银行托管、专款专用，平台无法挪用'
 }
 
+// 通知类型字典：覆盖后端 notify()/notifyWithSms() 发出的全部 16 种类型
+// （见 server/src/services/notify.js 各调用方），避免新增类型时出现未映射通知
 export const NOTIFY_TYPE = {
   review: '准入审核',
   hired: '录用',
@@ -129,5 +143,12 @@ export const NOTIFY_TYPE = {
   risk: '风控',
   guide: '指引',
   cancelled: '取消',
-  member: '成员'
+  member: '成员',
+  dispatch: '派单',
+  dispute: '争议',
+  recharge: '充值',
+  invoice: '发票',
+  skill: '技能',
+  ticket: '工单',
+  export: '导出'
 }

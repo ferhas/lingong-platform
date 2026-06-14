@@ -217,7 +217,7 @@ try {
   ok('暂停期提现被拒（409）', r.status === 409 && r.data.error.code === 'WITHDRAWAL_PAUSED')
   await api('POST', '/admin/fund-switches', { token: adminToken, body: { settlementPaused: false, withdrawalPaused: false } })
   r = await api('GET', '/admin/system-health', { token: adminToken })
-  ok('系统健康页：开关已恢复+集成在线', r.data.switches.settlementPaused === false && r.data.integrations.length === 7)
+  ok('系统健康页：开关已恢复+集成在线', r.data.switches.settlementPaused === false && r.data.integrations.length === 8)
 
   console.log('— 客服工单 —')
   r = await api('POST', '/me/tickets', {
@@ -328,11 +328,11 @@ try {
   // 争议超时流转（构造一条协商期已过的争议）
   db.prepare(`UPDATE disputes SET status = 'negotiating', stage_deadline = datetime('now','-1 hour') WHERE id = ?`).run(disputeId)
   db.prepare(`UPDATE tasks SET dispute_id = ? WHERE id = ?`).run(disputeId, taskId)
-  jr = runDisputeTimeouts()
+  jr = await runDisputeTimeouts()
   ok('协商期满自动转仲裁', jr.toArbitrating >= 1)
   db.prepare(`UPDATE disputes SET status = 'executed', closed_at = datetime('now','localtime','-2 day') WHERE id = ?`).run(disputeId)
   db.prepare(`UPDATE tasks SET dispute_id = NULL WHERE id = ?`).run(taskId)
-  jr = runDisputeTimeouts()
+  jr = await runDisputeTimeouts()
   ok('执行满24h自动归档关闭', jr.closed >= 1)
   // 工单 SLA
   db.prepare(`UPDATE tickets SET first_reply_at = NULL, escalated = 0, status = 'open', created_at = datetime('now','localtime','-3 hour') WHERE id = ?`).run(ticketId)

@@ -9,6 +9,10 @@ fs.mkdirSync(dbDir, { recursive: true })
 const db = new Database(config.dbPath)
 db.pragma('journal_mode = WAL')
 db.pragma('foreign_keys = ON')
+// 并发写兜底：多进程（ROLE=api ×N + worker）共享同一库文件时，写锁竞争不立即抛 SQLITE_BUSY，
+// 而是最多等待 5s 重试，配合"重读最新态 + 条件更新"的乐观并发模型，避免高并发下偶发写失败。
+// 注：这是单机多进程的缓解；真正的高并发资金场景应迁移 PostgreSQL（见审计报告 B 轴）。
+db.pragma('busy_timeout = 5000')
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
@@ -799,6 +803,10 @@ if (!hasColumn('worker_profiles', 'credit_score')) {
   db.exec(`ALTER TABLE worker_profiles ADD COLUMN invited_by_company_id INTEGER`)
   db.exec(`ALTER TABLE worker_profiles ADD COLUMN face_verified INTEGER NOT NULL DEFAULT 0`)
 }
+// 接单锁定原因：'threshold'=强制登记阈值锁（登记个体户可自助解除）/ 'risk'=风控人工锁（仅运营可解，零工不能绕过）
+if (!hasColumn('worker_profiles', 'lock_reason')) {
+  db.exec(`ALTER TABLE worker_profiles ADD COLUMN lock_reason TEXT`)
+}
 if (!hasColumn('companies', 'invite_code')) {
   db.exec(`ALTER TABLE companies ADD COLUMN invite_code TEXT`)
   db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_companies_invite ON companies(invite_code) WHERE invite_code IS NOT NULL`)
@@ -814,6 +822,11 @@ if (!hasColumn('payroll_names', 'exempt')) {
 }
 if (!hasColumn('contracts', 'file_url')) {
   db.exec(`ALTER TABLE contracts ADD COLUMN file_url TEXT`)
+}
+
+// —— 回调事件死信计数：连续失败达上限转 ignored（毒丸事件熔断，避免补单 Job 无限重放）——
+if (!hasColumn('webhook_events', 'attempts')) {
+  db.exec(`ALTER TABLE webhook_events ADD COLUMN attempts INTEGER NOT NULL DEFAULT 0`)
 }
 
 // —— v6 派单（定向派单）列迁移 ——
@@ -901,6 +914,7 @@ CREATE TABLE applications (
   task_id INTEGER NOT NULL REFERENCES tasks(id),
   worker_id INTEGER NOT NULL REFERENCES users(id),
   status TEXT NOT NULL DEFAULT 'applied' CHECK (status IN ('applied','hired','rejected','withdrawn')),
+  source TEXT NOT NULL DEFAULT 'apply',
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime')),
   UNIQUE (task_id, worker_id)
 )`)
@@ -918,10 +932,13 @@ db.prepare(`INSERT OR IGNORE INTO accounts (owner_type, owner_id) VALUES ('platf
 const ROLE_SEEDS = [
   ['超级管理员', ['*']],
   ['审核专员', ['dashboard:read', 'company:read', 'company:review', 'audit:read']],
-  ['风控专员', ['dashboard:read', 'risk:read', 'risk:resolve', 'worker:read', 'worker:manage', 'audit:read', 'dispute:read', 'skill:review']],
+  ['风控专员', ['dashboard:read', 'risk:read', 'risk:resolve', 'worker:read', 'worker:manage', 'audit:read', 'dispute:read', 'dispute:rule', 'skill:review']],
   ['财务税务', ['dashboard:read', 'tax:read', 'tax:declare', 'flow:read', 'flow:write', 'archive:read', 'integration:read', 'finance:read']],
   ['只读审计', ['dashboard:read', 'company:read', 'worker:read', 'risk:read', 'tax:read', 'flow:read', 'archive:read', 'integration:read', 'config:read', 'audit:read', 'user:read']],
-  ['客服', ['dashboard:read', 'ticket:read', 'ticket:manage', 'dispute:read', 'dispute:rule', 'worker:read', 'company:read', 'help:manage']]
+  // 客服为一线，仅 dispute:read（可见争议、走工单）；裁决/执行（动用冻结资金）属仲裁职责，已移交风控专员（最小权限）
+  ['客服', ['dashboard:read', 'ticket:read', 'ticket:manage', 'dispute:read', 'worker:read', 'company:read', 'help:manage']],
+  // 合规专员（PIPL/数据保护）：个人信息导出审批 + 完整 PII 查看，独立于导出申请方实现职责分离(SoD)
+  ['合规专员', ['dashboard:read', 'worker:read', 'user:read_pii', 'export:approve', 'audit:read']]
 ]
 const insertRole = db.prepare(`INSERT OR IGNORE INTO admin_roles (name, permissions) VALUES (?, ?)`)
 for (const [name, perms] of ROLE_SEEDS) insertRole.run(name, JSON.stringify(perms))
@@ -949,14 +966,14 @@ const CONFIG_SEEDS = [
   ['soletraderGuideMonthGross', 100000, 'risk', '个体户注册引导阈值：月收入（元）'],
   ['forceRegisterRolling12m', 4800000, 'risk', '强制市场主体登记：滚动12个月累计收入（元）'],
   ['payMethods', ['按成果', '按件', '按单'], 'task', '计酬方式白名单（承揽特征条款）'],
-  ['categories', ['设计', '技术', '翻译', '文案', '视频', '配送', '安装', '施工', '其他'], 'task', '任务类目'],
-  ['cities', ['远程', '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '其他'], 'task', '任务地点字典（线上任务为"远程"，线下作业按城市筛选）'],
+  ['categories', ['设计', '技术', '文案', '翻译', '视频', '摄影摄像', '直播电商', '电商运营', '营销推广', '客服', '教育培训', '咨询', '数据标注', '跨境边贸', '文旅', '配送', '物流仓储', '安装', '施工', '制造生产', '农业', '家政服务', '其他'], 'task', '任务类目'],
+  ['cities', ['远程', '南宁', '柳州', '桂林', '梧州', '北海', '防城港', '钦州', '贵港', '玉林', '百色', '贺州', '河池', '来宾', '崇左', '其他'], 'task', '任务地点字典（覆盖广西14个地级市；线上任务为"远程"，线下作业按城市筛选）'],
   // 连续性劳务类目白名单（《个税法实施条例》第六条劳务报酬项目归并，约17类）：
   // 命中该清单且为A线自然人的报酬，按16号公告作为"连续性劳务报酬"分类报送/出具凭证
-  ['continuousLaborCategories', ['设计', '装潢', '安装', '制图', '化验测试', '医疗', '法律', '会计', '咨询', '讲学', '新闻广播', '翻译', '审稿', '书画雕刻', '影视录音录像', '演出表演', '广告展览', '技术服务', '介绍经纪代办服务', '技术', '文案', '视频'], 'tax', '连续性劳务类目白名单（16号公告累计预扣，劳务报酬所得）'],
+  ['continuousLaborCategories', ['设计', '装潢', '安装', '制图', '化验测试', '医疗', '法律', '会计', '咨询', '讲学', '新闻广播', '翻译', '审稿', '书画雕刻', '影视录音录像', '演出表演', '广告展览', '技术服务', '介绍经纪代办服务', '技术', '文案', '视频', '直播电商', '跨境边贸', '文旅'], 'tax', '连续性劳务类目白名单（16号公告累计预扣，劳务报酬所得）'],
   ['forbiddenWords', ['打卡', '月薪', '固定工资', '底薪', '考勤', '坐班'], 'risk', '伪劳务违禁词（劳动关系隔离风控）'],
   ['industryBlacklist', ['建筑劳务', '医美', '直播打赏', '贸易走账', '金融放贷'], 'risk', '行业负面清单（高风险）'],
-  ['offlineCategories', ['配送', '安装', '施工'], 'insurance', '线下作业类目（强制高保额方案）'],
+  ['offlineCategories', ['配送', '安装', '施工', '物流仓储', '制造生产', '农业', '家政服务'], 'insurance', '线下作业类目（强制高保额方案）'],
   ['insurancePremiumBase', 3, 'insurance', '基础保费（元/单）'],
   ['insurancePremiumHigh', 12, 'insurance', '高保额保费（元/单）'],
   ['deliverRemindDays', 7, 'task', '交付后未验收提醒天数'],
@@ -979,8 +996,9 @@ const CONFIG_SEEDS = [
   ['reviewWindowDays', 7, 'review', '结算后互评窗口期（天）'],
   ['creditMinForMultiOrder', 450, 'review', '信用分低于此值限制同时在接任务数为1'],
   ['exportApprovalRows', 50, 'security', '批量导出个人信息需审批的行数阈值'],
+  ['adminStepUpRequired', 0, 'security', '运营敏感操作强制2FA（1=未绑定动态码的运营账号禁止执行重置密码/角色/资金等敏感操作，生产建议开启）'],
   ['reviewTags', ['按时交付', '质量过硬', '沟通顺畅', '响应及时', '需求清晰', '验收爽快'], 'review', '互评标签字典'],
-  ['skillCatalog', ['UI设计', '平面设计', '前端开发', '后端开发', '中英翻译', '文案策划', '短视频剪辑', '配音'], 'review', '技能认证目录'],
+  ['skillCatalog', ['UI设计', '平面设计', '前端开发', '后端开发', '中英翻译', '越南语翻译', '文案策划', '短视频剪辑', '配音', '带货主播', '跨境电商运营', '电工', '焊工', '育婴师', '茶艺师', '导游'], 'review', '技能认证目录'],
   // 微信订阅消息模板ID（按事件场景，需在小程序后台「订阅消息」申请后填入；为空则仅站内信+短信，不发订阅消息）
   ['subscribeTmplIds', [], 'notify', '微信订阅消息模板ID白名单（小程序 requestSubscribeMessage 用）']
 ]

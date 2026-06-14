@@ -10,7 +10,7 @@ export function printHtml(title, bodyHtml) {
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
-<title>${title}</title>
+<title>${esc(title)}</title>
 <style>
   body { font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #1f2937; padding: 32px; }
   h2 { text-align: center; margin: 0 0 24px; font-size: 20px; }

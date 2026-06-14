@@ -36,7 +36,7 @@ button::after {
 
 .empty {
   text-align: center;
-  color: #8A99A8;
+  color: #64748B;
   font-size: calc(28rpx * var(--fs, 1));
   line-height: 1.7;
   padding: 100rpx 0 120rpx;
@@ -145,6 +145,8 @@ button::after {
   justify-content: center;
   padding: 40rpx;
 }
+/* 键盘弹起时易遮挡确认按钮的弹窗，改为贴底展示（确认按钮始终在键盘上方） */
+.modal-mask.modal-bottom { align-items: flex-end; }
 .modal-box {
   width: 100%;
   max-height: 86vh;
@@ -230,96 +232,115 @@ button::after {
   min-height: 160rpx;
 }
 
+/*
+ * 深色模式分两条路径：
+ * 1) .sys-root —— 登录/协议等未接入「我的-深色模式」开关的页面，仍跟随系统（@media）。
+ * 2) .t-dark   —— 已接入开关的页面，由根节点 <view class="theme-root {{themeClass}}"> 强制，
+ *    可被设置切换并覆盖系统。页面底色/文字色另由 <page-meta page-style="{{pageStyle}}"> 注入。
+ * 仅登录页用到的公共类（card/field-input/btn-primary）放进 .sys-root 媒体块即可，无需全量重复。
+ */
 @media (prefers-color-scheme: dark) {
-  page {
-    background: linear-gradient(180deg, #0B1322 0%, #0F172A 360rpx, #0F172A 100%);
-    color: #E5E7EB;
-  }
-
-  .card {
+  .sys-root .card {
     background: #121C2B;
     border-color: #233149;
     box-shadow: none;
   }
 
-  .empty {
-    color: #94A3B8;
-  }
-
-  .empty::before {
-    background: #121C2B;
-    color: #475569;
-    box-shadow: none;
-  }
-
-  .btn-primary {
-    background: linear-gradient(135deg, #14B8A6 0%, #0F766E 48%, #1D4ED8 140%);
-    box-shadow: none;
-  }
-
-  .btn-primary[disabled] {
-    background: #334155;
-    color: #94A3B8;
-  }
-
-  .btn-ghost {
-    background: #121C2B;
-    color: #5EEAD4;
-    border-color: #134E4A;
-  }
-
-  .field-label {
-    color: #CBD5E1;
-  }
-
-  .field-input {
+  .sys-root .field-input {
     background: #0F172A;
     border-color: transparent;
     color: #F8FAFC;
   }
 
-  .section-kicker {
-    color: #5EEAD4;
+  .sys-root .btn-primary {
+    background: linear-gradient(135deg, #14B8A6 0%, #0F766E 48%, #1D4ED8 140%);
+    box-shadow: none;
   }
+}
 
-  .title-mark {
-    background: linear-gradient(180deg, #5EEAD4 0%, #14B8A6 100%);
-  }
+.t-dark .card {
+  background: #121C2B;
+  border-color: #233149;
+  box-shadow: none;
+}
 
-  .modal-box {
-    background: #121C2B;
-  }
+.t-dark .empty {
+  color: #94A3B8;
+}
 
-  .modal-title {
-    color: #E5E7EB;
-  }
+.t-dark .empty::before {
+  background: #121C2B;
+  color: #475569;
+  box-shadow: none;
+}
 
-  .modal-sub {
-    color: #94A3B8;
-  }
+.t-dark .btn-primary {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 48%, #1D4ED8 140%);
+  box-shadow: none;
+}
 
-  .modal-btn-plain {
-    background: #1E293B;
-    color: #CBD5E1;
-  }
+.t-dark .btn-primary[disabled] {
+  background: #334155;
+  color: #94A3B8;
+}
 
-  .modal-btn-primary[disabled] {
-    background: #334155;
-    color: #94A3B8;
-  }
+.t-dark .btn-ghost {
+  background: #121C2B;
+  color: #5EEAD4;
+  border-color: #134E4A;
+}
 
-  .sms-btn {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-  }
+.t-dark .field-label {
+  color: #CBD5E1;
+}
 
-  .sms-btn.sms-disabled {
-    background: #1E293B;
-    color: #64748B;
-  }
+.t-dark .field-input {
+  background: #0F172A;
+  border-color: transparent;
+  color: #F8FAFC;
+}
 
-  .field-textarea {
-    background: #0F172A;
-    color: #F8FAFC;
-  }
+.t-dark .section-kicker {
+  color: #5EEAD4;
+}
+
+.t-dark .title-mark {
+  background: linear-gradient(180deg, #5EEAD4 0%, #14B8A6 100%);
+}
+
+.t-dark .modal-box {
+  background: #121C2B;
+}
+
+.t-dark .modal-title {
+  color: #E5E7EB;
+}
+
+.t-dark .modal-sub {
+  color: #94A3B8;
+}
+
+.t-dark .modal-btn-plain {
+  background: #1E293B;
+  color: #CBD5E1;
+}
+
+.t-dark .modal-btn-primary[disabled] {
+  background: #334155;
+  color: #94A3B8;
+}
+
+.t-dark .sms-btn {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
+}
+
+.t-dark .sms-btn.sms-disabled {
+  background: #1E293B;
+  color: #64748B;
+}
+
+.t-dark .field-textarea {
+  background: #0F172A;
+  color: #F8FAFC;
 }

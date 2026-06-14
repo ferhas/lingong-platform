@@ -5,7 +5,7 @@
         <h2 class="page-title">争议仲裁工作台</h2>
         <p class="page-sub">验收争议协商→仲裁举证→平台裁决→执行划付全流程处置</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -17,6 +17,8 @@
           <el-radio-button value="ruled">已裁决</el-radio-button>
           <el-radio-button value="executed">已执行</el-radio-button>
           <el-radio-button value="closed">已关闭</el-radio-button>
+          <el-radio-button value="withdrawn">已撤回</el-radio-button>
+          <el-radio-button value="escalated">线下升级</el-radio-button>
         </el-radio-group>
         <el-select v-model="type" style="width: 160px" @change="load">
           <el-option label="全部类型" value="all" />
@@ -29,7 +31,7 @@
         </el-select>
       </div>
 
-      <el-table :data="sortedList" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="sortedList" stripe>
         <el-table-column label="争议单号" min-width="150">
           <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
         </el-table-column>
@@ -197,8 +199,9 @@
                     <el-radio value="full_pay">全额支付</el-radio>
                     <el-radio value="partial_pay">部分支付</el-radio>
                     <el-radio value="no_pay">不予支付</el-radio>
-                    <el-radio value="redeliver">退回重做</el-radio>
+                    <el-radio v-if="!isSettledTask" value="redeliver">退回重做</el-radio>
                   </el-radio-group>
+                  <div v-if="isSettledTask" style="margin-top: 6px; font-size: 12px; color: var(--text-3); line-height: 1.6">该任务已结算，为事后质量争议，不支持"退回重做"；裁决为记录性结论，不逆向扣划已结算资金。</div>
                 </el-form-item>
                 <el-form-item v-if="ruleForm.rulingType === 'partial_pay'" label="裁决金额（元，须小于分包价）">
                   <el-input-number
@@ -228,7 +231,9 @@
             <!-- 执行 -->
             <template v-else-if="drawer.data.status === 'ruled'">
               <el-alert type="warning" :closable="false" show-icon style="margin-bottom: 12px">
-                裁决已生效但尚未执行。执行后将按裁决结果完成资金划付，不可撤销。
+                {{ isSettledTask
+                  ? '裁决已生效但尚未执行。该任务已结算，执行为记录性裁决（归档结论、不逆向扣划已结算资金），不可撤销。'
+                  : '裁决已生效但尚未执行。执行后将按裁决结果完成资金划付，不可撤销。' }}
               </el-alert>
               <el-button type="danger" :loading="executing" @click="onExecute">执行裁决</el-button>
             </template>
@@ -271,9 +276,9 @@ const list = ref([])
 
 const TYPE_TEXT = {
   acceptance: '验收争议',
-  payment_overdue: '逾期支付',
+  payment_overdue: '超期未验收',
   worker_missing: '零工失联',
-  quality_after: '事后质量',
+  quality_after: '结算后质量争议',
   other: '其他'
 }
 
@@ -288,21 +293,20 @@ const STATUS_TEXT = {
 }
 
 const RULING_TEXT = {
-  full_pay: '全额支付',
-  partial_pay: '部分支付',
-  no_pay: '不予支付',
-  redeliver: '退回重做'
+  full_pay: '全额结算',
+  partial_pay: '部分结算',
+  no_pay: '不予结算',
+  redeliver: '限期重新交付'
 }
 
+// 键须与后端 dispute_events.action 实际取值一致（services/disputes.js）：create/evidence/accept/rule/execute/withdraw/escalate
 const ACTION_TEXT = {
-  open: '发起争议',
-  negotiate: '协商留言',
+  create: '发起争议',
   evidence: '提交证据',
   accept: '平台受理',
   rule: '平台裁决',
   execute: '执行裁决',
   withdraw: '撤回争议',
-  close: '关闭争议',
   escalate: '线下升级'
 }
 
@@ -389,6 +393,8 @@ async function load() {
 
 // —— 详情抽屉 ——
 const drawer = reactive({ visible: false, loading: false, data: null })
+// 已结算任务（事后质量争议）：后端不支持"退回重做"裁决，且执行为记录性裁决（不逆向扣划已结算资金）
+const isSettledTask = computed(() => drawer.data?.taskStatus === 'settled')
 const accepting = ref(false)
 const ruling = ref(false)
 const executing = ref(false)

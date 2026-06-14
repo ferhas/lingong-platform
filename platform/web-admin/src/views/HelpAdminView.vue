@@ -7,12 +7,12 @@
       </div>
       <div class="page-actions">
         <el-button type="primary" :icon="Plus" @click="openCreate">新建文章</el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="title" label="标题" min-width="220" show-overflow-tooltip />
         <el-table-column prop="category" label="分类" width="110" align="center">
@@ -98,6 +98,7 @@
             v-model="dialog.content"
             type="textarea"
             :rows="10"
+            :maxlength="5000"
             show-word-limit
             placeholder="支持纯文本，按段落换行"
           />

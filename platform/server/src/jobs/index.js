@@ -9,23 +9,31 @@ import { runDailyRecon } from './dailyRecon.js'
 import { runHousekeeping } from './housekeeping.js'
 import { runDisputeTimeouts, runTicketSla, runWebhookRetry, runRechargeExpire } from './housekeeping2.js'
 
-const qRun = db.prepare(`
+// 成功/失败分别落库：last_run_at 与 last_success_at 统一用 SQLite datetime('now','localtime')，
+// 与全库其余时间列同口径。修复原实现 last_success_at 用 new Date().toISOString()（UTC）写、
+// 而 /metrics 按本地解析，导致东八区下 Job 哑死龄期恒偏高约 8h、哑死告警长期失真。
+const qRunOk = db.prepare(`
   INSERT INTO job_runs (job, last_run_at, last_success_at, last_result, last_error)
-  VALUES (?, datetime('now','localtime'), ?, ?, ?)
+  VALUES (?, datetime('now','localtime'), datetime('now','localtime'), ?, NULL)
   ON CONFLICT(job) DO UPDATE SET last_run_at = excluded.last_run_at,
-    last_success_at = COALESCE(excluded.last_success_at, job_runs.last_success_at),
-    last_result = COALESCE(excluded.last_result, job_runs.last_result),
-    last_error = excluded.last_error
+    last_success_at = excluded.last_success_at,
+    last_result = excluded.last_result,
+    last_error = NULL
+`)
+const qRunFail = db.prepare(`
+  INSERT INTO job_runs (job, last_run_at, last_success_at, last_result, last_error)
+  VALUES (?, datetime('now','localtime'), NULL, NULL, ?)
+  ON CONFLICT(job) DO UPDATE SET last_run_at = excluded.last_run_at, last_error = excluded.last_error
 `)
 
 function wrap(name, fn) {
   return async () => {
     try {
       const r = await fn()
-      qRun.run(name, new Date().toISOString().replace('T', ' ').slice(0, 19), JSON.stringify(r ?? {}), null)
+      qRunOk.run(name, JSON.stringify(r ?? {}))
       if (r && Object.values(r).some(v => v > 0)) console.log(`[job:${name}]`, JSON.stringify(r))
     } catch (err) {
-      qRun.run(name, null, null, String(err.message).slice(0, 200))
+      qRunFail.run(name, String(err.message).slice(0, 200))
       console.error(`[job:${name}] 执行失败:`, err.message)
     }
   }

@@ -3,6 +3,7 @@ const api = require('../../utils/api.js')
 const SORTS = [
   { key: 'latest', label: '最新' },
   { key: 'price_desc', label: '报酬↓' },
+  { key: 'price_asc', label: '报酬↑' },
   { key: 'applicants_asc', label: '报名少' }
 ]
 const PRICE_FILTERS = [
@@ -66,8 +67,9 @@ Page({
   async syncBadge() {
     try {
       const n = await api.get('/me/notifications', { pageSize: 1 })
-      if (n.unread > 0) wx.showTabBarRedDot({ index: 2 })
-      else wx.hideTabBarRedDot({ index: 2 })
+      // 自定义 tabBar：红点通过组件方法驱动（原生 showTabBarRedDot 在 custom 模式下不生效）
+      const tb = this.getTabBar && this.getTabBar()
+      if (tb) tb.setDot(2, n.unread > 0)
     } catch (e) {}
   },
 

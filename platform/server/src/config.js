@@ -28,6 +28,14 @@ if (isProd && webhookSecret.includes('dev-webhook')) {
   process.exit(1)
 }
 
+// 生产环境敏感凭据加密密钥(SECRETS_KEY)必须独立配置：缺失则 services/secrets.js 会派生自 JWT_SECRET，
+// 既弱化密钥隔离，又会在日后轮换 JWT_SECRET 时令已存身份证密文不可解（资损/合规风险）。比照上面 fail-closed。
+const secretsKey = process.env.SECRETS_KEY || ''
+if (isProd && secretsKey.length < 16) {
+  console.error('[FATAL] 生产环境必须通过环境变量设置 SECRETS_KEY（≥16 位随机，建议 KMS 托管）')
+  process.exit(1)
+}
+
 const config = {
   isProd,
   port: Number(process.env.PORT || 3000),

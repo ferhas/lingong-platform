@@ -5,7 +5,7 @@
         <h2 class="page-title">风控预警</h2>
         <p class="page-sub">违禁词、负面行业、异常交易等风险事件处置</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <!-- 风控工具入口 -->

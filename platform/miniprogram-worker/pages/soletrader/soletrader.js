@@ -43,8 +43,8 @@ Page({
       confirmText: '提交登记',
       success: async res => {
         if (!res.confirm) return
-        const licenseNo = (res.content || '').trim()
-        if (!licenseNo) return wx.showToast({ title: '请输入统一社会信用代码', icon: 'none' })
+        const licenseNo = (res.content || '').trim().toUpperCase()
+        if (!/^[0-9A-Z]{18}$/.test(licenseNo)) return wx.showToast({ title: '请输入18位统一社会信用代码', icon: 'none' })
         try {
           await api.post('/worker/soletrader', { licenseNo })
           wx.showModal({

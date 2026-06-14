@@ -7,7 +7,7 @@
       </template>
     </PageHeader>
 
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="no" label="工单号" width="180">
         <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
       </el-table-column>
@@ -57,7 +57,7 @@
       <el-form ref="createFormRef" :model="createForm" :rules="createRules" label-width="90px">
         <el-form-item label="问题分类" prop="category">
           <el-select v-model="createForm.category" placeholder="请选择问题分类" style="width: 240px">
-            <el-option v-for="(label, key) in TICKET_CATEGORY" :key="key" :label="label" :value="key" />
+            <el-option v-for="key in COMPANY_TICKET_CATEGORIES" :key="key" :label="TICKET_CATEGORY[key]" :value="key" />
           </el-select>
         </el-form-item>
         <el-form-item label="问题标题" prop="title">
@@ -74,16 +74,29 @@
           />
         </el-form-item>
         <el-form-item label="关联单据">
-          <el-select v-model="createForm.refType" placeholder="单据类型（可选）" clearable style="width: 150px">
+          <el-select v-model="createForm.refType" placeholder="单据类型（可选）" clearable style="width: 150px" @change="onRefTypeChange">
             <el-option v-for="(label, key) in REF_TYPE" :key="key" :label="label" :value="key" />
           </el-select>
+          <!-- 任务：可搜索选择，避免让用户手填数据库数字 ID -->
+          <el-select
+            v-if="createForm.refType === 'task'"
+            v-model="createForm.refId"
+            filterable
+            clearable
+            :loading="refLoading"
+            placeholder="搜索并选择关联任务"
+            style="width: 280px; margin-left: 10px"
+          >
+            <el-option v-for="t in taskOptions" :key="t.id" :label="`#${t.id} ${t.title}`" :value="t.id" />
+          </el-select>
+          <!-- 其他单据类型：填写单据编号中的数字 ID -->
           <el-input-number
+            v-else-if="createForm.refType"
             v-model="createForm.refId"
             :min="1"
             :precision="0"
             :controls="false"
-            :disabled="!createForm.refType"
-            style="width: 130px; margin-left: 10px"
+            style="width: 150px; margin-left: 10px"
             placeholder="单据 ID"
           />
         </el-form-item>
@@ -181,7 +194,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 import { createTicket, getTickets, getTicketDetail, addTicketMessage, closeTicket, rateTicket } from '../api/me'
-import { fmtDateTime, TICKET_CATEGORY, TICKET_STATUS, TICKET_PRIORITY } from '../utils/format'
+import { getTasks } from '../api/company'
+import { fmtDateTime, TICKET_CATEGORY, COMPANY_TICKET_CATEGORIES, TICKET_STATUS, TICKET_PRIORITY } from '../utils/format'
 
 const REF_TYPE = {
   task: '任务',
@@ -198,6 +212,24 @@ const createVisible = ref(false)
 const createFormRef = ref()
 const creating = ref(false)
 const createForm = reactive({ category: '', title: '', content: '', refType: '', refId: undefined })
+
+// 关联任务可搜索选项（避免手填数字 ID）
+const taskOptions = ref([])
+const refLoading = ref(false)
+async function onRefTypeChange(t) {
+  createForm.refId = undefined
+  if (t === 'task') {
+    refLoading.value = true
+    try {
+      const data = await getTasks({ pageSize: 50 })
+      taskOptions.value = data.list || []
+    } catch {
+      // 静默失败，仍可手动切换为其他类型
+    } finally {
+      refLoading.value = false
+    }
+  }
+}
 
 const createRules = {
   category: [{ required: true, message: '请选择问题分类', trigger: 'change' }],
@@ -239,6 +271,7 @@ function openCreate() {
   createForm.content = ''
   createForm.refType = ''
   createForm.refId = undefined
+  taskOptions.value = []
   createVisible.value = true
 }
 

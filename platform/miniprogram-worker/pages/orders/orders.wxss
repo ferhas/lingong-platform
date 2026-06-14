@@ -35,6 +35,49 @@
   font-weight: 700;
 }
 
+/* 状态标签页（横向可滚动） */
+.status-tabs {
+  display: flex;
+  white-space: nowrap;
+  padding: 22rpx 24rpx 2rpx;
+}
+.status-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-shrink: 0;
+  margin-right: 16rpx;
+  background: #FFFFFF;
+  color: #64748B;
+  font-size: calc(27rpx * var(--fs, 1));
+  font-weight: 500;
+  padding: 14rpx 30rpx;
+  border-radius: 999rpx;
+  border: 1rpx solid rgba(15, 118, 110, 0.12);
+}
+.status-tab-on {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  color: #FFFFFF;
+  font-weight: 700;
+  border-color: transparent;
+  box-shadow: 0 8rpx 18rpx rgba(15, 118, 110, 0.22);
+}
+.status-tab-num {
+  font-size: calc(22rpx * var(--fs, 1));
+  background: rgba(15, 118, 110, 0.1);
+  color: #0F766E;
+  border-radius: 999rpx;
+  padding: 2rpx 12rpx;
+  min-width: 28rpx;
+  text-align: center;
+}
+.status-tab-on .status-tab-num {
+  background: rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+}
+
+.loading { text-align: center; color: #94A3B8; font-size: calc(25rpx * var(--fs, 1)); padding: 30rpx 0 10rpx; }
+
 .order-list { padding: 20rpx 24rpx 180rpx; }
 
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
@@ -43,6 +86,7 @@
 .status-working { background: #FFF7ED; color: #EA580C; }
 .status-delivered { background: #FEF2F2; color: #DC2626; }
 .status-settled { background: #ECFDF5; color: #059669; }
+.status-cancelled { background: #F1F5F9; color: #64748B; }
 
 .card-meta { color: #8A99A8; font-size: calc(25rpx * var(--fs, 1)); margin-top: 8rpx; }
 .card-price { color: #D97706; font-size: calc(30rpx * var(--fs, 1)); font-weight: 700; margin-top: 12rpx; }
@@ -78,11 +122,14 @@
   color: #FFFFFF;
   border-radius: 999rpx;
   font-size: calc(27rpx * var(--fs, 1));
+  font-weight: 600;
   margin-left: 16rpx;
-  min-height: 64rpx;
+  min-height: 72rpx;
+  line-height: 72rpx;
+  padding: 0 36rpx;
   box-shadow: 0 8rpx 18rpx rgba(15, 118, 110, 0.22);
 }
-.btn-ghost { background: #FFFFFF; color: #0F766E; border: 1rpx solid #B6DAD4; border-radius: 999rpx; font-size: calc(27rpx * var(--fs, 1)); min-height: 64rpx; }
+.btn-ghost { background: #FFFFFF; color: #0F766E; border: 1rpx solid #B6DAD4; border-radius: 999rpx; font-size: calc(27rpx * var(--fs, 1)); min-height: 72rpx; line-height: 72rpx; padding: 0 36rpx; }
 .waiting { color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); }
 .done-tip { color: #059669; font-size: calc(26rpx * var(--fs, 1)); font-weight: 600; margin-right: auto; }
 .card-actions { flex-wrap: wrap; row-gap: 14rpx; }
@@ -111,7 +158,12 @@
 .dispute-link {
   color: #DC2626;
   font-size: calc(26rpx * var(--fs, 1));
+  font-weight: 600;
   margin-right: auto;
+  min-height: 64rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 8rpx;
 }
 
 /* 派单邀约 */
@@ -165,109 +217,138 @@
 .modal-box .field { margin-bottom: 24rpx; }
 .modal-box .field:last-of-type { margin-bottom: 4rpx; }
 
-@media (prefers-color-scheme: dark) {
-  .orders-hero {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .orders-hero {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .status-working {
-    background: rgba(249, 115, 22, 0.16);
-    color: #FDBA74;
-  }
+.t-dark .status-working {
+  background: rgba(249, 115, 22, 0.16);
+  color: #FDBA74;
+}
 
-  .status-delivered {
-    background: rgba(239, 68, 68, 0.18);
-    color: #FCA5A5;
-  }
+.t-dark .status-delivered {
+  background: rgba(239, 68, 68, 0.18);
+  color: #FCA5A5;
+}
 
-  .status-settled {
-    background: rgba(16, 185, 129, 0.16);
-    color: #6EE7B7;
-  }
+.t-dark .status-settled {
+  background: rgba(16, 185, 129, 0.16);
+  color: #6EE7B7;
+}
 
-  .card-meta,
-  .waiting {
-    color: #94A3B8;
-  }
+.t-dark .card-meta,
+.t-dark .waiting {
+  color: #94A3B8;
+}
 
-  .card-title {
-    color: #E5E7EB;
-  }
+.t-dark .card-title {
+  color: #E5E7EB;
+}
 
-  .card-row {
-    color: #CBD5E1;
-  }
+.t-dark .card-row {
+  color: #CBD5E1;
+}
 
-  .row-icon {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-  }
+.t-dark .row-icon {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
+}
 
-  .row-icon.claim {
-    background: rgba(249, 115, 22, 0.16);
-    color: #FDBA74;
-  }
+.t-dark .row-icon.claim {
+  background: rgba(249, 115, 22, 0.16);
+  color: #FDBA74;
+}
 
-  .card-row.deliver {
-    background: #0F172A;
-  }
+.t-dark .card-row.deliver {
+  background: #0F172A;
+}
 
-  .card-actions {
-    border-top-color: #233149;
-  }
+.t-dark .card-actions {
+  border-top-color: #233149;
+}
 
-  .btn-primary-mini {
-    background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
-    box-shadow: none;
-  }
+.t-dark .btn-primary-mini {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  box-shadow: none;
+}
 
-  .btn-ghost {
-    background: #121C2B;
-    color: #5EEAD4;
-    border-color: #134E4A;
-  }
+.t-dark .btn-ghost {
+  background: #121C2B;
+  color: #5EEAD4;
+  border-color: #134E4A;
+}
 
-  .done-tip {
-    color: #6EE7B7;
-  }
+.t-dark .done-tip {
+  color: #6EE7B7;
+}
 
-  .file-chip {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-  }
+.t-dark .file-chip {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
+}
 
-  .invoice-tip {
-    background: rgba(180, 83, 9, 0.18);
-    color: #FCD34D;
-    border-color: rgba(251, 191, 36, 0.26);
-  }
+.t-dark .invoice-tip {
+  background: rgba(180, 83, 9, 0.18);
+  color: #FCD34D;
+  border-color: rgba(251, 191, 36, 0.26);
+}
 
-  .dispute-link {
-    color: #FCA5A5;
-  }
+.t-dark .dispute-link {
+  color: #FCA5A5;
+}
 
-  .type-chip {
-    background: #0F172A;
-    color: #CBD5E1;
-  }
+.t-dark .type-chip {
+  background: #0F172A;
+  color: #CBD5E1;
+}
 
-  .type-chip-on {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-    border-color: #134E4A;
-  }
+.t-dark .type-chip-on {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
+  border-color: #134E4A;
+}
 
-  .star {
-    color: #334155;
-  }
+.t-dark .star {
+  color: #334155;
+}
 
-  .star-on {
-    color: #F59E0B;
-  }
+.t-dark .star-on {
+  color: #F59E0B;
+}
 
-  .picker-box {
-    background: #0F172A;
-    color: #F8FAFC;
-  }
+.t-dark .picker-box {
+  background: #0F172A;
+  color: #F8FAFC;
+}
+
+.t-dark .status-tab {
+  background: #121C2B;
+  color: #94A3B8;
+  border-color: #233149;
+}
+
+.t-dark .status-tab-on {
+  background: linear-gradient(135deg, #14B8A6 0%, #0F766E 100%);
+  color: #FFFFFF;
+  box-shadow: none;
+}
+
+.t-dark .status-tab-num {
+  background: rgba(94, 234, 212, 0.16);
+  color: #5EEAD4;
+}
+
+.t-dark .status-tab-on .status-tab-num {
+  background: rgba(255, 255, 255, 0.22);
+  color: #FFFFFF;
+}
+
+.t-dark .status-cancelled {
+  background: #1E293B;
+  color: #94A3B8;
+}
+
+.t-dark .loading {
+  color: #64748B;
 }

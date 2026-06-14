@@ -1,7 +1,7 @@
 <template>
   <div>
     <!-- 余额卡 -->
-    <div class="balance-card" v-loading="profileStore.loading">
+    <div v-loading="profileStore.loading" class="balance-card">
       <div class="balance-main">
         <div class="balance-label">可用余额（元）</div>
         <div class="balance-value money">¥{{ fmtMoney(account?.available) }}</div>
@@ -18,10 +18,13 @@
         </div>
       </div>
       <div class="balance-actions">
-        <el-button size="large" class="recharge-btn" @click="openCashier">
+        <el-button v-if="auth.canRecharge" size="large" class="recharge-btn" @click="openCashier">
           <el-icon style="margin-right: 6px"><Wallet /></el-icon>充值
         </el-button>
-        <div class="balance-note">资金由<TermTip term="存管户" text="银行存管虚拟户" />托管，发布任务冻结、验收后划扣</div>
+        <div class="balance-note">
+          资金由<TermTip term="存管户" text="银行存管虚拟户" />托管，发布任务冻结、验收后划扣
+          <span v-if="!auth.canRecharge">（充值需企业主或财务角色）</span>
+        </div>
       </div>
     </div>
 
@@ -29,9 +32,9 @@
     <div class="page-card">
       <div class="card-head">
         <h3 class="page-title">充值单</h3>
-        <el-button :icon="Refresh" circle size="small" @click="fetchOrders" />
+        <el-button :icon="Refresh" circle size="small" aria-label="刷新充值单" @click="fetchOrders" />
       </div>
-      <el-table :data="orders" v-loading="ordersLoading" stripe>
+      <el-table v-loading="ordersLoading" :data="orders" stripe>
         <el-table-column prop="no" label="充值单号" width="200">
           <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
         </el-table-column>
@@ -59,7 +62,7 @@
         <el-table-column label="到账时间" width="170">
           <template #default="{ row }">{{ fmtDateTime(row.paidAt) }}</template>
         </el-table-column>
-        <el-table-column v-if="isDev" label="操作" width="110" fixed="right" align="center">
+        <el-table-column v-if="isDev && auth.canRecharge" label="操作" width="110" fixed="right" align="center">
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'created'"
@@ -83,7 +86,7 @@
     <!-- 流水 -->
     <div class="page-card">
       <h3 class="page-title">资金流水</h3>
-      <el-table :data="flows" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="flows" stripe>
         <el-table-column prop="id" label="流水号" width="90" />
         <el-table-column label="类型" width="110" align="center">
           <template #default="{ row }">
@@ -208,11 +211,13 @@ import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { createRechargeOrder, getRechargeOrders, mockPayRechargeOrder, getFlows } from '../api/company'
 import { useProfileStore } from '../stores/profile'
+import { useAuthStore } from '../stores/auth'
 import { fmtMoney, fmtDateTime, FLOW_TYPE, RECHARGE_ORDER_STATUS } from '../utils/format'
 import TermTip from '../components/TermTip.vue'
 
 const isDev = import.meta.env.DEV
 
+const auth = useAuthStore()
 const profileStore = useProfileStore()
 const account = computed(() => profileStore.profile?.account)
 
@@ -237,7 +242,7 @@ const mockPayingNo = ref(null)
 
 const flowMeta = t => FLOW_TYPE[t] || { label: t, tag: 'info' }
 
-const OUT_TYPES = ['freeze', 'settle_out']
+const OUT_TYPES = ['freeze', 'settle_out', 'withdraw']
 function amountText(row) {
   const sign = OUT_TYPES.includes(row.type) ? '-' : '+'
   return `${sign}¥${fmtMoney(Math.abs(row.amount))}`

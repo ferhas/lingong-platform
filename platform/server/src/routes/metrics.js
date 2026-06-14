@@ -10,6 +10,9 @@ router.get('/', (req, res) => {
   if (config.metricsToken) {
     const token = req.query.token || String(req.headers.authorization || '').replace('Bearer ', '')
     if (token !== config.metricsToken) return res.status(401).send('# unauthorized\n')
+  } else if (config.isProd) {
+    // 生产环境未配置 METRICS_TOKEN 时一律拒绝（失败关闭）：避免经营指标在公网匿名泄露
+    return res.status(401).send('# metrics disabled: set METRICS_TOKEN to enable scraping in production\n')
   }
   const lines = []
   const gauge = (name, help, value, labels = '') => {

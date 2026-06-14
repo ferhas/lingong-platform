@@ -24,26 +24,24 @@
   padding: 8rpx 0 50rpx;
 }
 
-@media (prefers-color-scheme: dark) {
-  .doc {
-    background: #121C2B;
-    border-color: #233149;
-    box-shadow: none;
-  }
+.t-dark .doc {
+  background: #121C2B;
+  border-color: #233149;
+  box-shadow: none;
+}
 
-  .doc-title {
-    color: #E5E7EB;
-  }
+.t-dark .doc-title {
+  color: #E5E7EB;
+}
 
-  .doc-meta {
-    color: #94A3B8;
-  }
+.t-dark .doc-meta {
+  color: #94A3B8;
+}
 
-  .doc-content {
-    color: #CBD5E1;
-  }
+.t-dark .doc-content {
+  color: #CBD5E1;
+}
 
-  .contact-tip {
-    color: #5EEAD4;
-  }
+.t-dark .contact-tip {
+  color: #5EEAD4;
 }

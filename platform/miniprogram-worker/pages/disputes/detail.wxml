@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <block wx:if="{{detail}}">
   <view class="card head-card">
     <view class="card-top">
@@ -46,7 +47,7 @@
   <!-- 举证留言输入 -->
   <view wx:if="{{detail.canAct}}" class="card">
     <view class="tl-title"><text class="title-mark"></text>举证留言</view>
-    <textarea class="field-textarea" maxlength="1000" placeholder="补充说明或提交证据描述（交付记录/沟通截图说明等）" value="{{msg}}" bindinput="onMsgInput" />
+    <textarea class="field-textarea" maxlength="1000" cursor-spacing="40" show-confirm-bar="{{true}}" placeholder="补充说明或提交证据描述（交付记录/沟通截图说明等）" value="{{msg}}" bindinput="onMsgInput" />
     <view class="act-row">
       <button wx:if="{{detail.canWithdraw}}" class="btn-withdraw" size="mini" bindtap="onWithdraw">撤回争议</button>
       <button class="btn-send" size="mini" disabled="{{sending}}" bindtap="onSendMsg">提交留言</button>
@@ -55,3 +56,4 @@
 
   <view wx:if="{{!detail.canAct && !detail.rulingType}}" class="closed-tip">该争议已结束，如有新问题可在订单上重新发起或联系客服</view>
 </block>
+</view>

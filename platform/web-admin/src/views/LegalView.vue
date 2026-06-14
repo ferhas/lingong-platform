@@ -1,5 +1,5 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div v-loading="loading" class="page">
     <div class="page-header">
       <div>
         <h2 class="page-title">协议/合同模板</h2>
@@ -8,7 +8,7 @@
           <el-tag v-if="!canWrite" size="small" type="info" effect="plain" style="margin-left: 8px">只读</el-tag>
         </p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -91,6 +91,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { getLegalDocs, updateLegalDoc } from '../api/admin'
+import { withStepUp } from '../utils/stepup'
 import { fmtTime } from '../utils/format'
 import { useAuthStore } from '../stores/auth'
 
@@ -200,14 +201,42 @@ async function load() {
   }
 }
 
+// 提取正文中的 {{token}} 占位符，用于发布前拼写校验
+function extractPlaceholders(text) {
+  const set = new Set()
+  const re = /\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g
+  let m
+  while ((m = re.exec(text))) set.add(m[1])
+  return [...set]
+}
+
 async function save(doc) {
   if (doc.draft.trim().length < 20) {
     ElMessage.warning('正文过短(至少 20 字),请完善后保存')
     return
   }
+  // 占位符校验：草稿中出现的占位符必须在允许列表内，避免 {{amout}} 之类拼写错误静默上线
+  const allowed = new Set(doc.placeholders.map(p => p.key))
+  const unknown = extractPlaceholders(doc.draft).filter(k => !allowed.has(k))
+  if (unknown.length) {
+    try {
+      await ElMessageBox.confirm(
+        `检测到未知占位符 ${unknown.map(k => phToken(k)).join('、')}，签署时不会被替换、将原样出现在合同中，可能是拼写有误。仍要发布吗？`,
+        '占位符可能拼写有误',
+        { type: 'warning', confirmButtonText: '仍要发布', cancelButtonText: '返回修改' }
+      )
+    } catch {
+      return
+    }
+  }
+  // 变更摘要：字数变化 + 大幅缩短提醒（对法律文本尤为重要）
+  const oldLen = doc.content.length
+  const newLen = doc.draft.length
+  const delta = newLen === oldLen ? '字数未变' : `${oldLen} 字 → ${newLen} 字（${newLen > oldLen ? '+' : ''}${newLen - oldLen}）`
+  const shrink = newLen < oldLen * 0.5 ? '正文大幅缩短，请确认不是误删。' : ''
   try {
     await ElMessageBox.confirm(
-      `保存后将生成 v${doc.version + 1} 版本,新签合同将使用新模板,已签合同不受影响。确定发布吗?`,
+      `保存后将生成 v${doc.version + 1} 版本（新签合同用新模板，已签合同不受影响）。本次变更：${delta}。${shrink}`,
       `发布「${doc.title}」新版本`,
       { type: 'warning', confirmButtonText: '确认发布', cancelButtonText: '再检查一下' }
     )
@@ -216,13 +245,13 @@ async function save(doc) {
   }
   doc.saving = true
   try {
-    const res = await updateLegalDoc(doc.type, doc.draft)
+    const res = await withStepUp(totp => updateLegalDoc(doc.type, doc.draft, totp))
     doc.version = res.version
     doc.content = doc.draft
     doc.updatedAt = new Date().toISOString()
     ElMessage.success(`「${doc.title}」已发布 v${res.version} 版本`)
   } catch {
-    /* 错误已统一提示 */
+    /* withStepUp 已提示错误；用户取消二次验证则静默 */
   } finally {
     doc.saving = false
   }

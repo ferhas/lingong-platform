@@ -5,7 +5,7 @@
         <h2 class="page-title">结算/提现单据</h2>
         <p class="page-sub">提现申请单（T+1 出金）与结算单（两阶段分账）全程监控</p>
       </div>
-      <el-button :icon="Refresh" circle @click="reload" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
     </div>
 
     <!-- 应急开关(config:write + step-up + 二次确认) -->
@@ -13,15 +13,16 @@
       <div class="switch-info">
         <div class="switch-title">
           资金应急开关
-          <el-tag v-if="switches.settlementPaused || switches.withdrawalPaused" type="danger" size="small" effect="dark">
+          <el-tag v-if="switchesKnown && (switches.settlementPaused || switches.withdrawalPaused)" type="danger" size="small" effect="dark">
             已熔断
           </el-tag>
+          <el-tag v-else-if="!switchesKnown" type="info" size="small">状态未知</el-tag>
         </div>
         <div class="switch-desc">
           发现资金异常（如对账不平、负余额）时一键止血：暂停后新的结算分账/提现出金将排队等待，恢复后自动继续。
         </div>
       </div>
-      <div class="switch-controls">
+      <div v-if="switchesKnown" class="switch-controls">
         <div class="switch-item">
           <span class="switch-label">结算暂停</span>
           <el-switch
@@ -38,6 +39,13 @@
             @change="v => onSwitch('withdrawalPaused', v)"
           />
         </div>
+      </div>
+      <div
+        v-else
+        class="switch-unknown"
+        style="font-size: 12px; color: var(--el-color-warning); line-height: 1.7; max-width: 560px"
+      >
+        实时开关状态需「查看外部服务状态(integration:read)」权限，当前账号无法读取，故暂不展示开关以免误导。如需查看或操作应急开关，请使用具备该权限的账号。
       </div>
     </div>
 
@@ -60,7 +68,7 @@
           </el-radio-group>
         </div>
 
-        <el-table :data="wList" v-loading="wLoading" stripe>
+        <el-table v-loading="wLoading" :data="wList" stripe>
           <el-table-column prop="id" label="单号" width="80" align="center" />
           <el-table-column label="零工" min-width="130">
             <template #default="{ row }">
@@ -124,7 +132,7 @@
           </el-radio-group>
         </div>
 
-        <el-table :data="sList" v-loading="sLoading" stripe>
+        <el-table v-loading="sLoading" :data="sList" stripe>
           <el-table-column label="任务" min-width="170" show-overflow-tooltip>
             <template #default="{ row }">
               {{ row.taskTitle }}
@@ -215,7 +223,7 @@
           </el-radio-group>
         </div>
 
-        <el-table :data="dList" v-loading="dLoading" stripe>
+        <el-table v-loading="dLoading" :data="dList" stripe>
           <el-table-column prop="day" label="对账日" width="110" align="center" />
           <el-table-column label="差异方向" width="120" align="center">
             <template #default="{ row }">
@@ -348,6 +356,8 @@ const diffDialog = reactive({ visible: false, row: null, note: '', submitting: f
 // —— 应急开关(状态来源:/admin/system-health) ——
 const switches = reactive({ settlementPaused: false, withdrawalPaused: false })
 const switchLoading = reactive({ settlement: false, withdrawal: false })
+// 开关实时状态是否已成功读取（需 integration:read）：未知时不展示可能误导的 OFF 开关
+const switchesKnown = ref(false)
 
 const WITHDRAW_TEXT = { applied: '已申请', processing: '出金中', done: '已到账', failed: '已失败' }
 const SETTLE_TEXT = { pending: '处理中', done: '已完成', failed: '已失败' }
@@ -454,12 +464,13 @@ async function onRetry(row) {
 
 // —— 应急开关(config:write + 二次确认 + step-up) ——
 async function loadSwitches() {
-  // 开关状态来自 /admin/system-health(需 dashboard:read),无权限时跳过静默
-  if (!auth.can('dashboard:read')) return
+  // 开关状态来自 /admin/system-health(需 integration:read),无权限时置"未知"(不展示误导性 OFF)
+  if (!auth.can('integration:read')) { switchesKnown.value = false; return }
   try {
     const health = await getSystemHealth()
     switches.settlementPaused = health.switches.settlementPaused
     switches.withdrawalPaused = health.switches.withdrawalPaused
+    switchesKnown.value = true
   } catch {
     /* 错误已统一提示 */
   }
@@ -488,6 +499,7 @@ async function onSwitch(key, value) {
     const res = await withStepUp(totp => setFundSwitches({ [key]: value }, totp))
     switches.settlementPaused = res.settlementPaused
     switches.withdrawalPaused = res.withdrawalPaused
+    switchesKnown.value = true // 操作返回权威状态，状态即已知
     ElMessage.success(`${label}${value ? '已暂停' : '已恢复'}`)
   } catch {
     /* 错误已统一提示/用户取消 */

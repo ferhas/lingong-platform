@@ -129,9 +129,16 @@ export function calcWithholding(workerId, grossCents, period) {
   }
 }
 
-/** 任务详情页收入预估（按当前累计口径试算） */
+const qSubjectType = db.prepare(`SELECT subject_type FROM worker_profiles WHERE user_id = ?`)
+
+/** 任务详情页收入预估（按当前累计口径试算，按主体类型路由） */
 export function estimateForWorker(workerId, subPriceCents) {
+  const subjectType = qSubjectType.get(workerId)?.subject_type ?? 'person'
+  // B线（个体工商户）：经营所得，平台不代扣个税、不代办增值税，结算前由其自行开票、自行申报
+  if (subjectType === 'soletrader') {
+    return { subjectType, gross: subPriceCents, tax: 0, vat: 0, net: subPriceCents }
+  }
   const period = currentPeriod()
   const { tax, vat } = calcWithholding(workerId, subPriceCents, period)
-  return { gross: subPriceCents, tax, vat, net: subPriceCents - tax - vat }
+  return { subjectType, gross: subPriceCents, tax, vat, net: subPriceCents - tax - vat }
 }

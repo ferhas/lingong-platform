@@ -5,7 +5,7 @@
         <h2 class="page-title">企业入驻审核</h2>
         <p class="page-sub">行业负面清单自动评级，通过后自动签署《总承揽框架合同》并允许发布任务</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -16,7 +16,7 @@
         <el-tab-pane label="全部" name="all" />
       </el-tabs>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="companyName" label="企业名称" min-width="200" show-overflow-tooltip />
         <el-table-column prop="licenseNo" label="统一社会信用代码" min-width="190">
           <template #default="{ row }">
@@ -446,9 +446,9 @@ const drawer = reactive({
 })
 
 const TASK_STATUS_TEXT = {
-  recruiting: '招募中',
+  recruiting: '报名中',
   working: '进行中',
-  delivered: '已交付',
+  delivered: '待验收',
   settled: '已结算',
   cancelled: '已取消'
 }

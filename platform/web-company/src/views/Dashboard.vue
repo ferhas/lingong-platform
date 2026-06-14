@@ -36,7 +36,7 @@
         :value="`¥${fmtMoney(profile?.account?.frozen)}`"
         extra="进行中任务的预算冻结"
         clickable
-        @click="router.push('/tasks')"
+        @click="router.push('/funds')"
       />
       <StatCard
         icon="Coin"
@@ -51,24 +51,33 @@
         label="准入状态"
         :extra="profile?.masterContractNo ? `框架合同：${profile.masterContractNo}` : '审核通过后签署框架合同'"
       >
-        <el-tag :type="statusMeta.tag" size="large" effect="dark" class="status-tag">{{ statusMeta.label }}</el-tag>
+        <el-tag :type="statusMeta.tag" size="large" effect="light" class="status-tag">{{ statusMeta.label }}</el-tag>
       </StatCard>
     </div>
 
     <!-- 图表 -->
-    <div class="chart-grid">
+    <el-alert
+      v-if="chartsEmpty && !chartLoading"
+      type="info"
+      :closable="false"
+      show-icon
+      class="status-alert"
+      title="暂无统计数据"
+      description="发布并完成任务结算后，这里将展示近 30 日结算金额趋势与任务状态分布。"
+    />
+    <div v-show="!chartsEmpty || chartLoading" class="chart-grid">
       <div class="page-card chart-card">
         <h3 class="page-title">近 30 日结算金额</h3>
-        <div ref="trendRef" class="chart-box" v-loading="chartLoading"></div>
+        <div ref="trendRef" v-loading="chartLoading" class="chart-box"></div>
       </div>
       <div class="page-card chart-card">
         <h3 class="page-title">任务状态分布</h3>
-        <div ref="distRef" class="chart-box" v-loading="chartLoading"></div>
+        <div ref="distRef" v-loading="chartLoading" class="chart-box"></div>
       </div>
     </div>
 
     <!-- 企业信息 -->
-    <div class="page-card info-card" v-if="profile">
+    <div v-if="profile" class="page-card info-card">
       <h3 class="page-title">企业信息</h3>
       <el-descriptions :column="3" border>
         <el-descriptions-item label="企业名称">{{ profile.companyName }}</el-descriptions-item>
@@ -111,7 +120,6 @@
 <script setup>
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
 import StatCard from '../components/StatCard.vue'
 import TermTip from '../components/TermTip.vue'
 import { useProfileStore } from '../stores/profile'
@@ -132,6 +140,7 @@ const statusMeta = computed(
 const trendRef = ref()
 const distRef = ref()
 const chartLoading = ref(false)
+const chartsEmpty = ref(false)
 let trendChart = null
 let distChart = null
 let statsData = { trend: [], statusDist: [] }
@@ -149,15 +158,24 @@ function chartColors() {
   }
 }
 
+// 饼图配色与 TASK_STATUS 语义对齐，且不使用红色（红留给错误态）
 const STATUS_COLORS = {
-  recruiting: '#6366f1',
-  working: '#f59e0b',
-  delivered: '#ef4444',
+  recruiting: '#0ea5e9',
+  working: '#6366f1',
+  delivered: '#f59e0b',
   settled: '#22c55e',
   cancelled: '#9ca3af'
 }
 
-function renderCharts() {
+// echarts 按需异步加载：先渲染页面骨架，图表库就绪后再绘制，避免首次进入工作台时白屏等待
+let echarts = null
+async function loadECharts() {
+  if (!echarts) echarts = (await import('../utils/echarts')).default
+  return echarts
+}
+
+async function renderCharts() {
+  await loadECharts()
   if (!trendRef.value || !distRef.value) return
   const c = chartColors()
 
@@ -242,8 +260,9 @@ async function fetchStats() {
   chartLoading.value = true
   try {
     statsData = await getStatsTrend(30)
+    chartsEmpty.value = !(statsData.trend?.length) && !(statsData.statusDist?.length)
     await nextTick()
-    renderCharts()
+    await renderCharts()
   } catch {
     // 错误已由拦截器提示
   } finally {

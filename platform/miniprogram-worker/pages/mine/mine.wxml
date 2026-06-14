@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="profile">
   <view class="avatar">{{user.name ? user.name[0] : '我'}}</view>
   <view class="profile-info">
@@ -149,7 +150,7 @@
       bindtap="onPickFont"
     >{{item.label}}</view>
   </view>
-  <view class="fs-tip">字号更大，看任务详情和合同条款更清晰；设置后小程序全程生效。</view>
 </view>
 
 <view class="logout" hover-class="card-hover" hover-stay-time="80" bindtap="onLogout">退出登录</view>
+</view>

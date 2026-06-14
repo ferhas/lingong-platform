@@ -1,5 +1,12 @@
 const api = require('../../utils/api.js')
 
+// 体验账号「模拟登录」固定凭据（仅开发态生效，与 server/src/demoSeed.js 一致）：
+// 复用 /auth/wechat 的开发态确定性 mock（同一 code → 同一 openid → 命中已造好两月数据的体验零工）。
+// 生产环境后端 code2session 走 fail-closed，此入口自然失效；前端也仅在 dev 显示按钮。
+const MOCK_CODE = 'demo-worker-2month-001'
+const MOCK_PHONE = '13900000001'
+const MOCK_PASSWORD = 'Demo@123456'
+
 Page({
   data: {
     mode: 'login', // login | register | bind(微信首登补信息)
@@ -8,7 +15,33 @@ Page({
     name: '',
     inviteCode: '',
     agreed: false,
-    submitting: false
+    submitting: false,
+    showMock: false // 开发态显示「模拟登录」体验入口
+  },
+
+  onLoad() {
+    // 仅开发环境暴露体验入口（app.js globalData.env 上线为 'prod'）
+    this.setData({ showMock: (getApp().globalData.env || 'dev') === 'dev' })
+  },
+
+  // 一键模拟登录：直接进入预置了两个月数据的体验零工账号，免注册/免微信授权
+  onMockLogin() {
+    if (this.data.submitting) return
+    this.setData({ submitting: true })
+    wx.showLoading({ title: '进入体验账号…' })
+    api.post('/auth/wechat', { code: MOCK_CODE })
+      .then(data => this.enter(data))
+      .catch(async () => {
+        // 兜底：若后端已配置真实微信凭据致 mock 失效，则用体验账号手机号+密码登录
+        try {
+          const d = await api.post('/auth/login', { phone: MOCK_PHONE, password: MOCK_PASSWORD })
+          this.enter(d)
+        } catch (e) {}
+      })
+      .finally(() => {
+        wx.hideLoading()
+        this.setData({ submitting: false })
+      })
   },
 
   onToggleAgree() {

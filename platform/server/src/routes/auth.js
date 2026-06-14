@@ -20,8 +20,8 @@ import { verifyTotp } from '../utils/totp.js'
 
 const router = Router()
 
-// —— 刷新令牌：随机串只存哈希，7天有效，可吊销，刷新即轮换 ——
-const REFRESH_DAYS = 7
+// —— 刷新令牌：随机串只存哈希，默认7天有效（生产可经 REFRESH_TOKEN_DAYS 缩短以降低泄露窗口），可吊销，刷新即轮换 ——
+const REFRESH_DAYS = Math.max(1, Number(process.env.REFRESH_TOKEN_DAYS || 7))
 const hashToken = t => crypto.createHash('sha256').update(t).digest('hex')
 
 function issueRefreshToken(userId) {
@@ -33,7 +33,13 @@ function issueRefreshToken(userId) {
 }
 
 function issueSession(user) {
-  return { token: signToken(user), refreshToken: issueRefreshToken(user.id), user }
+  // 企业端成员角色随会话一并下发（登录/2FA/刷新令牌均经此处），
+  // 避免静默刷新令牌后前端 user.memberRole 短暂缺失导致角色门禁失准。
+  const responseUser = { ...user }
+  if (user.role === 'company') {
+    responseUser.memberRole = getMembership(user.id)?.member_role ?? null
+  }
+  return { token: signToken(user), refreshToken: issueRefreshToken(user.id), user: responseUser }
 }
 
 const phoneSchema = z.string().regex(/^1\d{10}$/, '手机号格式不正确')
@@ -307,11 +313,12 @@ router.post('/logout', authenticate, (req, res) => {
 
 // —— 当前用户（含权限与企业成员角色，供前端控制菜单/按钮）——
 router.get('/me', authenticate, (req, res) => {
-  const row = db.prepare(`SELECT id, role, phone, name FROM users WHERE id = ?`).get(req.user.id)
+  const row = db.prepare(`SELECT id, role, phone, name, totp_enabled FROM users WHERE id = ?`).get(req.user.id)
   if (!row) return res.status(401).json({ error: { code: 'UNAUTHORIZED', message: '用户不存在' } })
-  const result = { ...row }
+  const result = { id: row.id, role: row.role, phone: row.phone, name: row.name }
   if (row.role === 'admin') {
     result.permissions = getPermissions(row.id)
+    result.totpEnabled = !!row.totp_enabled
     const roleRow = db.prepare(`
       SELECT r.name FROM users u JOIN admin_roles r ON r.id = u.admin_role_id WHERE u.id = ?
     `).get(row.id)
@@ -340,6 +347,8 @@ router.post('/change-password', authenticate, (req, res, next) => {
     }
     db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`)
       .run(bcrypt.hashSync(newPassword, 10), req.user.id)
+    // 改密即失效本人全部刷新令牌：任何端的旧会话都无法再凭 refreshToken 续期（防止改密后旧会话存活）
+    db.prepare(`UPDATE refresh_tokens SET revoked = 1 WHERE user_id = ?`).run(req.user.id)
     logAction(req.user.id, 'change_password', '')
     res.json({ ok: true })
   } catch (err) {

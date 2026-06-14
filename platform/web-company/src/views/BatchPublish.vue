@@ -7,9 +7,9 @@
         <!-- 粘贴 CSV -->
         <el-tab-pane label="粘贴 CSV" name="csv">
           <el-alert type="info" show-icon :closable="false" class="csv-alert">
-            <template #title>每行一个任务，列顺序：标题,类目,计酬方式,承揽价,截止日期,描述,交付标准（最后一列可省略）</template>
+            <template #title>每行一个任务，列顺序：标题,类目,城市,计酬方式,承揽价,截止日期,描述,交付标准（最后一列可省略）</template>
             <div class="csv-hint">
-              支持英文逗号、中文逗号或 Tab 分隔；首行若为表头将自动跳过；描述与交付标准中请勿包含分隔符。
+              支持英文逗号、中文逗号或 Tab 分隔；首行若为表头将自动跳过；描述与交付标准中请勿包含分隔符。城市留空默认「远程」，线下类目（{{ offlineCategories.join('/') }}）须填具体城市。
             </div>
           </el-alert>
           <el-input
@@ -36,8 +36,21 @@
             </el-table-column>
             <el-table-column label="类目" width="120">
               <template #default="{ row }">
-                <el-select v-model="row.category" placeholder="类目">
+                <el-select v-model="row.category" placeholder="类目" @change="onRowCategoryChange(row)">
                   <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
+                </el-select>
+              </template>
+            </el-table-column>
+            <el-table-column label="工作地点" width="120">
+              <template #default="{ row }">
+                <el-select v-model="row.city" :placeholder="isOfflineRow(row) ? '选具体城市' : '地点'">
+                  <el-option
+                    v-for="c in cities"
+                    :key="c"
+                    :label="c"
+                    :value="c"
+                    :disabled="isOfflineRow(row) && c === '远程'"
+                  />
                 </el-select>
               </template>
             </el-table-column>
@@ -145,10 +158,20 @@ import { fmtMoney } from '../utils/format'
 const router = useRouter()
 const profileStore = useProfileStore()
 
-const DEFAULT_CATEGORIES = ['设计', '技术', '翻译', '文案', '视频', '其他']
+const DEFAULT_CATEGORIES = ['设计', '技术', '翻译', '文案', '视频', '直播电商', '跨境边贸', '文旅', '配送', '物流仓储', '安装', '施工', '制造生产', '农业', '家政服务', '其他']
 const DEFAULT_PAY_METHODS = ['按成果', '按件', '按单']
+const DEFAULT_CITIES = ['远程', '南宁', '柳州', '桂林', '梧州', '北海', '防城港', '钦州', '贵港', '玉林', '百色', '贺州', '河池', '来宾', '崇左', '其他']
+const DEFAULT_OFFLINE = ['配送', '安装', '施工', '物流仓储', '制造生产', '农业', '家政服务']
 const categories = ref(DEFAULT_CATEGORIES)
 const payMethods = ref(DEFAULT_PAY_METHODS)
+const cities = ref(DEFAULT_CITIES)
+const offlineCategories = ref(DEFAULT_OFFLINE)
+
+const isOfflineRow = r => offlineCategories.value.includes(r.category)
+// 行内改类目：线下类目不允许"远程"，命中则清空地点强制重选
+function onRowCategoryChange(r) {
+  if (isOfflineRow(r) && r.city === '远程') r.city = ''
+}
 
 const activeTab = ref('csv')
 const csvText = ref('')
@@ -158,9 +181,9 @@ const result = ref(null)
 const submittedItems = ref([])
 
 const csvPlaceholder = `示例（每行一个任务）：
-电商主图设计（10 张）,设计,按成果,2000,2026-07-01,为新品拍摄图做主图精修与排版,提供源文件 + 可商用授权
-产品介绍页文案,文案,按件,800,2026-06-30,撰写 5 篇产品介绍页文案
-小程序登录模块开发,技术,按成果,5000,2026-07-15,实现微信小程序手机号登录与会话管理,通过验收用例并交付源码`
+电商主图设计（10 张）,设计,远程,按成果,2000,2026-07-01,为新品拍摄图做主图精修与排版,提供源文件 + 可商用授权
+家电上门安装,安装,南宁,按单,1500,2026-07-10,负责用户家电上门安装与调试,按工单完成并经用户签字确认
+小程序登录模块开发,技术,远程,按成果,5000,2026-07-15,实现微信小程序手机号登录与会话管理,通过验收用例并交付源码`
 
 const totalBudget = computed(() => rows.value.reduce((s, r) => s + (Number(r.price) || 0), 0))
 
@@ -168,6 +191,7 @@ function addRow() {
   rows.value.push({
     title: '',
     category: '',
+    city: '远程',
     payMethod: payMethods.value[0],
     price: undefined,
     deadline: '',
@@ -186,11 +210,12 @@ function onParse() {
     parsed.push({
       title: parts[0] || '',
       category: parts[1] || '',
-      payMethod: parts[2] || payMethods.value[0],
-      price: parts[3] !== undefined && parts[3] !== '' && !isNaN(Number(parts[3])) ? Number(parts[3]) : undefined,
-      deadline: (parts[4] || '').replace(/\//g, '-'),
-      description: parts[5] || '',
-      standard: parts[6] || ''
+      city: parts[2] || '远程',
+      payMethod: parts[3] || payMethods.value[0],
+      price: parts[4] !== undefined && parts[4] !== '' && !isNaN(Number(parts[4])) ? Number(parts[4]) : undefined,
+      deadline: (parts[5] || '').replace(/\//g, '-'),
+      description: parts[6] || '',
+      standard: parts[7] || ''
     })
   }
   if (!parsed.length) {
@@ -218,8 +243,12 @@ function validateRows() {
   }
   for (let i = 0; i < rows.value.length; i++) {
     const r = rows.value[i]
-    if (!r.title?.trim() || !r.category || !r.payMethod || !r.price || !r.deadline || !r.description?.trim()) {
-      ElMessage.warning(`第 ${i + 1} 行信息不完整：标题、类目、计酬方式、承揽价、截止日期、描述均为必填`)
+    if (!r.title?.trim() || !r.category || !r.city || !r.payMethod || !r.price || !r.deadline || !r.description?.trim()) {
+      ElMessage.warning(`第 ${i + 1} 行信息不完整：标题、类目、工作地点、计酬方式、承揽价、截止日期、描述均为必填`)
+      return false
+    }
+    if (isOfflineRow(r) && r.city === '远程') {
+      ElMessage.warning(`第 ${i + 1} 行：线下类目（${offlineCategories.value.join('/')}）需选择具体工作城市，不能为「远程」`)
       return false
     }
   }
@@ -240,6 +269,7 @@ async function onSubmit() {
   const items = rows.value.map(r => ({
     title: r.title.trim(),
     category: r.category,
+    city: r.city || '远程',
     payMethod: r.payMethod,
     price: Number(r.price),
     deadline: r.deadline,
@@ -281,6 +311,8 @@ onMounted(async () => {
     const meta = await getCompanyMeta()
     if (Array.isArray(meta?.categories) && meta.categories.length) categories.value = meta.categories
     if (Array.isArray(meta?.payMethods) && meta.payMethods.length) payMethods.value = meta.payMethods
+    if (Array.isArray(meta?.cities) && meta.cities.length) cities.value = meta.cities
+    if (Array.isArray(meta?.offlineCategories)) offlineCategories.value = meta.offlineCategories
   } catch {
     // 静默失败，使用默认值
   }

@@ -11,7 +11,13 @@ export const useAuthStore = defineStore('auth', {
     isLoggedIn: state => !!state.token,
     // 企业成员角色：owner 企业主 / operator 运营 / finance 财务
     memberRole: state => state.user?.memberRole || null,
-    isOwner: state => state.user?.memberRole === 'owner'
+    isOwner: state => state.user?.memberRole === 'owner',
+    isOperator: state => state.user?.memberRole === 'operator',
+    isFinance: state => state.user?.memberRole === 'finance',
+    // 任务发布与管理（录用/验收/驳回/取消/派单/争议/评价）：后端 requireCompanyRole('owner','operator')，财务无权
+    canManageTasks: state => state.user?.memberRole === 'owner' || state.user?.memberRole === 'operator',
+    // 资金充值：后端 requireCompanyRole('owner','finance')，运营无权
+    canRecharge: state => state.user?.memberRole === 'owner' || state.user?.memberRole === 'finance'
   },
   actions: {
     setSession(token, user, refreshToken) {

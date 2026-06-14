@@ -5,7 +5,7 @@
         <h2 class="page-title">进项发票台账</h2>
         <p class="page-sub">个体工商户零工开给平台的发票认证与抵扣管理（影响平台增值税进项）</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -17,7 +17,7 @@
         <el-tab-pane label="全部" name="all" />
       </el-tabs>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="workerName" label="零工" min-width="100" />
         <el-table-column prop="taskTitle" label="任务" min-width="160" show-overflow-tooltip />
         <el-table-column label="发票号" min-width="160">

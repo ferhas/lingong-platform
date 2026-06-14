@@ -127,62 +127,60 @@ page { padding: 24rpx; }
 .face-btn { margin-top: 28rpx; }
 .face-cancel { color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); margin-top: 24rpx; }
 
-@media (prefers-color-scheme: dark) {
-  .verify-hero {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .verify-hero {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .intro {
-    background: #121C2B;
-    border-color: #233149;
-    color: #5EEAD4;
-  }
+.t-dark .intro {
+  background: #121C2B;
+  border-color: #233149;
+  color: #5EEAD4;
+}
 
-  .intro-step {
-    background: rgba(20, 184, 166, 0.16);
-  }
+.t-dark .intro-step {
+  background: rgba(20, 184, 166, 0.16);
+}
 
-  .field-label,
-  .terms-body {
-    color: #CBD5E1;
-  }
+.t-dark .field-label,
+.t-dark .terms-body {
+  color: #CBD5E1;
+}
 
-  .notice {
-    color: #94A3B8;
-  }
+.t-dark .notice {
+  color: #94A3B8;
+}
 
-  .done-card {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .done-card {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .consent-item {
-    background: #0F172A;
-  }
+.t-dark .consent-item {
+  background: #0F172A;
+}
 
-  .consent-box {
-    background: #121C2B;
-    border-color: #134E4A;
-  }
+.t-dark .consent-box {
+  background: #121C2B;
+  border-color: #134E4A;
+}
 
-  .consent-box.consent-on {
-    background: #0F766E;
-    border-color: #0F766E;
-  }
+.t-dark .consent-box.consent-on {
+  background: #0F766E;
+  border-color: #0F766E;
+}
 
-  .consent-name,
-  .face-title {
-    color: #E5E7EB;
-  }
+.t-dark .consent-name,
+.t-dark .face-title {
+  color: #E5E7EB;
+}
 
-  .consent-desc,
-  .face-tip {
-    color: #94A3B8;
-  }
+.t-dark .consent-desc,
+.t-dark .face-tip {
+  color: #94A3B8;
+}
 
-  .face-circle {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-  }
+.t-dark .face-circle {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
 }

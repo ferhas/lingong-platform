@@ -14,10 +14,18 @@ export function handleRechargePaid({ orderNo, escrowTxnNo, amount }) {
   const order = db.prepare(`SELECT * FROM recharge_orders WHERE no = ?`).get(orderNo)
   if (!order) throw new Error(`充值单不存在：${orderNo}`)
   if (order.status === 'paid') return { ok: true, duplicated: true }
-  if (order.status === 'expired') throw new Error(`充值单已过期：${orderNo}`)
+  // 迟到入金：充值单虽因超时被本地置 expired，但银行确已收款——资金真相优先，仍据实入账并复活为 paid，
+  // 杜绝"钱进了银行子户、本地永不入账"的资损与对账长期挂账（原实现直接抛错→事件死循环重放）。
+  const wasExpired = order.status === 'expired'
   if (amount != null && Number(amount) !== order.amount) {
-    raiseAlert('高', '充值金额不符',
-      `充值单 ${orderNo} 申报金额 ¥${centsToYuan(order.amount)} 与银行入金 ¥${centsToYuan(Number(amount))} 不一致，已挂起，请财务人工核实`, 'company', order.company_id)
+    // 去重：补单 Job 每 5 分钟重放该回调，金额不符时仅首次告警，避免高风险预警刷屏
+    const dupAlert = db.prepare(`
+      SELECT 1 FROM risk_alerts WHERE type = '充值金额不符' AND ref_type = 'company' AND ref_id = ? AND status = 'open' AND detail LIKE ?
+    `).get(order.company_id, `%${orderNo}%`)
+    if (!dupAlert) {
+      raiseAlert('高', '充值金额不符',
+        `充值单 ${orderNo} 申报金额 ¥${centsToYuan(order.amount)} 与银行入金 ¥${centsToYuan(Number(amount))} 不一致，已挂起，请财务人工核实`, 'company', order.company_id)
+    }
     throw new Error(`入金金额与充值单不符：${orderNo}`)
   }
   db.transaction(() => {
@@ -31,6 +39,10 @@ export function handleRechargePaid({ orderNo, escrowTxnNo, amount }) {
   })()
   notifyCompany(order.company_id, 'recharge', '充值已到账',
     `充值单 ${orderNo} 入金 ¥${centsToYuan(order.amount)} 已确认到账，可用余额已更新。`)
+  if (wasExpired) {
+    raiseAlert('低', '充值迟到入账',
+      `充值单 ${orderNo} 已超时过期，但银行迟到入金 ¥${centsToYuan(order.amount)} 已据实入账并复活为已支付，请财务知悉。`, 'company', order.company_id)
+  }
   return { ok: true, amount: order.amount }
 }
 

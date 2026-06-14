@@ -142,7 +142,13 @@ export function operatingReport(period) {
            COALESCE(SUM(CASE WHEN status = 'voided' THEN amount ELSE 0 END),0) AS voided
     FROM invoices WHERE substr(issued_at,1,7) = ?
   `).get(period)
-  const taxRecords = db.prepare(`SELECT COALESCE(SUM(gross),0) AS g FROM tax_records WHERE period = ?`).get(period)
+  // 勾稽口径对齐：按"本期完成结算(done_at)"的任务集统计其税记录 gross，而非按 tax_records.period。
+  // 避免结算跨月完成（创建月≠完成月，如银行通道异常重试跨月）时 settlement 与 tax_record 错位误报不平。
+  const taxRecords = db.prepare(`
+    SELECT COALESCE(SUM(r.gross),0) AS g FROM tax_records r
+    JOIN settlements s ON s.task_id = r.task_id
+    WHERE s.status = 'done' AND substr(s.done_at,1,7) = ?
+  `).get(period)
   // 月结卡点：当月有效发票合计 = 当月确认收入合计 = 当月结算 charged 合计
   const revenueInvoiceMatch = s.revenue === inv.issued + inv.voided || s.revenue === inv.issued
   return {

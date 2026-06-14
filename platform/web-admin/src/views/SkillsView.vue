@@ -5,7 +5,7 @@
         <h2 class="page-title">技能认证审核</h2>
         <p class="page-sub">核验零工上传的技能证书，通过后在任务大厅展示认证徽章</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -16,7 +16,7 @@
         <el-tab-pane label="全部" name="all" />
       </el-tabs>
 
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="workerName" label="零工" min-width="110" />
         <el-table-column prop="skill" label="技能" min-width="140" />

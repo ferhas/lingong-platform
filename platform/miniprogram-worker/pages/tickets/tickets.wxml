@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="page-hero">
   <view>
     <view class="hero-kicker">在线客服</view>
@@ -30,4 +31,5 @@
     </view>
     <view wx:if="{{item.satisfaction}}" class="rated">已评价 {{item.satisfaction}} 星</view>
   </view>
+</view>
 </view>

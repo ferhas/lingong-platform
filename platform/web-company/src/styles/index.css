@@ -154,3 +154,13 @@ body {
   justify-content: flex-end;
   margin-top: 16px;
 }
+
+/* —— 键盘可达性：自定义控件的可见焦点环（仅键盘 Tab 触发，鼠标点击不出现）—— */
+a:focus-visible,
+.icon-btn:focus-visible,
+.user-chip:focus-visible,
+.stat-card.clickable:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: 8px;
+}

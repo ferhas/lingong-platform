@@ -5,7 +5,7 @@
         <h2 class="page-title">集成事件监控</h2>
         <p class="page-sub">外部服务商回调事件与出站调用日志，失败事件可人工重放</p>
       </div>
-      <el-button :icon="Refresh" circle @click="reload" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
     </div>
 
     <div class="panel">
@@ -26,7 +26,7 @@
           </el-radio-group>
         </div>
 
-        <el-table :data="whList" v-loading="whLoading" stripe>
+        <el-table v-loading="whLoading" :data="whList" stripe>
           <el-table-column type="expand">
             <template #default="{ row }">
               <div class="payload-box">
@@ -110,11 +110,11 @@
           <el-radio-group v-model="callStatus" @change="loadCalls">
             <el-radio-button value="all">全部</el-radio-button>
             <el-radio-button value="ok">成功</el-radio-button>
-            <el-radio-button value="failed">失败</el-radio-button>
+            <el-radio-button value="fail">失败</el-radio-button>
           </el-radio-group>
         </div>
 
-        <el-table :data="callList" v-loading="callLoading" stripe>
+        <el-table v-loading="callLoading" :data="callList" stripe>
           <el-table-column label="服务商" width="110">
             <template #default="{ row }">
               <el-tag size="small" effect="plain">{{ providerText(row.provider) }}</el-tag>
@@ -170,21 +170,23 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { getWebhookEvents, replayWebhookEvent, getIntegrationCalls } from '../api/admin'
 import { fmtTime } from '../utils/format'
 
 const activeTab = ref('webhooks')
 
+// 键须与后端实际 provider 一致：出站 integration_calls 用 track(key) 的 8 个 key；回调 webhook 用 escrow/einvoice/esign/insurance
 const PROVIDER_TEXT = {
-  police: '公安实名',
-  bank: '银行存管',
+  realname: '公安实名',
+  escrow: '银行存管',
   einvoice: '数电票',
   esign: '电子签',
-  taxbureau: '税务申报',
   insurance: '保险',
-  sms: '短信'
+  taxbureau: '税务申报',
+  sms: '短信',
+  wxsubscribe: '微信订阅消息'
 }
 
 function providerText(p) {
@@ -241,6 +243,16 @@ function onWhSizeChange() {
 }
 
 async function onReplay(row) {
+  // 重放会再次触发该回调的业务处理（可能涉及资金/发票动作），需二次确认
+  try {
+    await ElMessageBox.confirm(
+      `将重新处理该回调事件（${row.provider || '外部回调'}${row.eventType ? ' · ' + row.eventType : ''}）。重放会再次触发其业务处理，请确认。`,
+      '确认重放事件',
+      { type: 'warning', confirmButtonText: '确认重放', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
   replayingId.value = row.id
   try {
     const r = await replayWebhookEvent(row.id)

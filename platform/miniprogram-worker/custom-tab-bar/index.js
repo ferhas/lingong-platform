@@ -31,6 +31,12 @@ Component({
     switchTab(e) {
       const { path } = e.currentTarget.dataset
       wx.switchTab({ url: path })
+    },
+
+    // 自定义 tabBar 下原生 wx.showTabBarRedDot 不生效，红点改由组件自身数据驱动
+    setDot(index, show) {
+      if (index < 0 || index >= this.data.list.length) return
+      this.setData({ [`list[${index}].dot`]: !!show })
     }
   }
 })

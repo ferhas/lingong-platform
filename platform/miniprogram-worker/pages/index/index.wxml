@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="header">
   <view class="hero-top">
     <view>
@@ -10,7 +11,6 @@
       <text class="count-label">招募中</text>
     </view>
   </view>
-  <view class="sub">筛选合规承揽任务，报名后自动生成工单并按单投保</view>
   <view class="search">
     <view class="search-icon">搜</view>
     <input
@@ -88,4 +88,5 @@
 
   <view wx:if="{{loading}}" class="loading">加载中…</view>
   <view wx:if="{{finished && tasks.length}}" class="loading">没有更多了</view>
+</view>
 </view>

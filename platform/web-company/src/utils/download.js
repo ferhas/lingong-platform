@@ -10,11 +10,15 @@ export async function downloadFile(url, name) {
   const path = url.replace(/^\/api\/v1/, '')
   const blob = await client.get(path, { responseType: 'blob' })
   const objectUrl = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = objectUrl
-  a.download = name || 'download'
-  document.body.appendChild(a)
-  a.click()
-  a.remove()
-  URL.revokeObjectURL(objectUrl)
+  try {
+    const a = document.createElement('a')
+    a.href = objectUrl
+    a.download = name || 'download'
+    document.body.appendChild(a)
+    a.click()
+    a.remove()
+  } finally {
+    // 即便 DOM 步骤异常也释放对象 URL，避免内存泄漏
+    URL.revokeObjectURL(objectUrl)
+  }
 }

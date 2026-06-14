@@ -4,11 +4,12 @@ import { z } from 'zod'
 import db from '../db.js'
 import { authenticate, requireRole } from '../middleware/auth.js'
 import { requirePermission, hasPermission } from '../middleware/rbac.js'
-import { notFound, conflict, badRequest } from '../utils/errors.js'
+import { stepUp } from '../middleware/stepUp.js'
+import { notFound, conflict, badRequest, forbidden } from '../utils/errors.js'
 import { centsToYuan } from '../utils/money.js'
 import { genNo, sha256, currentPeriod, currentQuarter, currentDate, genTempPassword } from '../utils/ids.js'
 import { pageParams } from '../utils/pagination.js'
-import { getAllConfigs, setConfig } from '../services/configStore.js'
+import { getAllConfigs, setConfig, getConfig } from '../services/configStore.js'
 import { notifyCompany, notify } from '../services/notify.js'
 import { logAction, listAuditLogs } from '../services/audit.js'
 import { esign, taxbureau, healthCheck } from '../integrations/index.js'
@@ -102,7 +103,8 @@ router.post('/companies/:id/review', requirePermission('company:review'), async 
     }).parse(req.body)
     const c = db.prepare(`SELECT * FROM companies WHERE id = ?`).get(req.params.id)
     if (!c) throw notFound('企业不存在')
-    if (c.status !== 'pending') throw conflict('ALREADY_REVIEWED', '该企业已审核')
+    // 已通过准入的企业不可重复审核；被拒企业允许补充材料后重新审核（rejected → approved/再拒），避免一拒即死局
+    if (c.status === 'approved') throw conflict('ALREADY_REVIEWED', '该企业已通过准入')
 
     let masterContractNo = null
     if (pass) {
@@ -157,7 +159,7 @@ router.get('/companies/:id/detail', requirePermission('company:read'), (req, res
       },
       account: acc ? { balance: centsToYuan(acc.balance), frozen: centsToYuan(acc.frozen) } : null,
       taskStats: taskStats.map(t => ({ status: t.status, count: t.n, amount: centsToYuan(t.amount) })),
-      members: members.map(m => ({ userId: m.user_id, name: m.name, phone: m.phone, memberRole: m.member_role, status: m.status })),
+      members: members.map(m => ({ userId: m.user_id, name: m.name, phone: phoneFor(req, m.phone), memberRole: m.member_role, status: m.status })),
       recentFlows: flows.map(f => ({ id: f.id, type: f.type, amount: centsToYuan(f.amount), remark: f.remark, createdAt: f.created_at })),
       alerts: alerts.map(a => ({ id: a.id, level: a.level, type: a.type, detail: a.detail, status: a.status, createdAt: a.created_at }))
     })
@@ -202,13 +204,26 @@ router.get('/companies/:id/evidence-pack', requirePermission('archive:read'), (r
 router.get('/workers', requirePermission('worker:read'), (req, res) => {
   const { page, pageSize, offset } = pageParams(req)
   const year = String(new Date().getFullYear())
-  const total = db.prepare(`SELECT COUNT(*) AS n FROM users WHERE role = 'worker'`).get().n
+  const conds = [`u.role = 'worker'`]
+  const params = []
+  if (req.query.subjectType === 'person' || req.query.subjectType === 'soletrader') {
+    conds.push(`p.subject_type = ?`); params.push(req.query.subjectType)
+  }
+  if (req.query.status === 'active' || req.query.status === 'disabled') {
+    conds.push(`u.status = ?`); params.push(req.query.status)
+  }
+  if (req.query.locked === '1') conds.push(`p.locked = 1`)
+  if (req.query.verified === '1') conds.push(`p.verified = 1`)
+  else if (req.query.verified === '0') conds.push(`p.verified = 0`)
+  if (req.query.keyword) { conds.push(`u.name LIKE ?`); params.push(`%${req.query.keyword}%`) }
+  const where = conds.join(' AND ')
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM users u JOIN worker_profiles p ON p.user_id = u.id WHERE ${where}`).get(...params).n
   const list = db.prepare(`
     SELECT u.id, u.name, u.phone, u.status, u.created_at, p.verified, p.subject_type, p.locked,
       (SELECT COALESCE(SUM(gross),0) FROM tax_records r WHERE r.worker_id = u.id AND r.period LIKE ?) AS year_gross
     FROM users u JOIN worker_profiles p ON p.user_id = u.id
-    WHERE u.role = 'worker' ORDER BY u.id DESC LIMIT ? OFFSET ?
-  `).all(`${year}-%`, pageSize, offset)
+    WHERE ${where} ORDER BY u.id DESC LIMIT ? OFFSET ?
+  `).all(`${year}-%`, ...params, pageSize, offset)
   res.json({
     total,
     list: list.map(w => ({
@@ -259,7 +274,9 @@ router.post('/workers/:id/lock', requirePermission('worker:manage'), (req, res, 
     const { lock } = z.object({ lock: z.boolean() }).parse(req.body)
     const p = db.prepare(`SELECT * FROM worker_profiles WHERE user_id = ?`).get(req.params.id)
     if (!p) throw notFound('零工不存在')
-    db.prepare(`UPDATE worker_profiles SET locked = ? WHERE user_id = ?`).run(lock ? 1 : 0, req.params.id)
+    // 风控人工锁标记 reason='risk'：零工无法通过个体户登记绕过解除（仅运营可解）
+    db.prepare(`UPDATE worker_profiles SET locked = ?, lock_reason = ? WHERE user_id = ?`)
+      .run(lock ? 1 : 0, lock ? 'risk' : null, req.params.id)
     logAction(req.user.id, 'worker_lock', `worker#${req.params.id} lock=${lock}`)
     notify(Number(req.params.id), 'risk', lock ? '接单权限已锁定' : '接单权限已恢复',
       lock ? '平台风控已锁定您的接单权限，如有疑问请联系平台客服。' : '您的接单权限已恢复，可以正常接单。')
@@ -285,6 +302,14 @@ router.get('/workers/export', requirePermission('worker:read'), (_req, res) => {
 })
 
 // —— 运营用户与角色管理 ——
+// 高权限账号保护：非超级管理员不得停用/重置/改动「超级管理员」账号（防止借账号管理通道夺取超管）
+function isSuperAdminUser(userId) {
+  const row = db.prepare(`
+    SELECT r.permissions FROM users u JOIN admin_roles r ON r.id = u.admin_role_id WHERE u.id = ?
+  `).get(userId)
+  return !!row && JSON.parse(row.permissions).includes('*')
+}
+
 router.get('/roles', requirePermission('user:read'), (_req, res) => {
   const list = db.prepare(`SELECT * FROM admin_roles ORDER BY id`).all()
   res.json({ list: list.map(r => ({ id: r.id, name: r.name, permissions: JSON.parse(r.permissions) })) })
@@ -307,7 +332,7 @@ router.get('/users', requirePermission('user:read'), (req, res) => {
   })
 })
 
-router.post('/users', requirePermission('user:manage'), (req, res, next) => {
+router.post('/users', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const body = z.object({
       phone: z.string().regex(/^1\d{10}$/, '手机号格式不正确'),
@@ -316,8 +341,12 @@ router.post('/users', requirePermission('user:manage'), (req, res, next) => {
     }).parse(req.body)
     const exists = db.prepare(`SELECT id FROM users WHERE phone = ?`).get(body.phone)
     if (exists) throw conflict('PHONE_EXISTS', '该手机号已注册')
-    const role = db.prepare(`SELECT id FROM admin_roles WHERE id = ?`).get(body.roleId)
+    const role = db.prepare(`SELECT id, permissions FROM admin_roles WHERE id = ?`).get(body.roleId)
     if (!role) throw badRequest('BAD_ROLE', '角色不存在')
+    // 仅超级管理员可分配「全部权限(*)」角色，防止 user:manage 持有者自我提权为超管
+    if (JSON.parse(role.permissions).includes('*') && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可分配超级管理员角色')
+    }
     const tempPassword = genTempPassword()
     const { lastInsertRowid: userId } = db.prepare(
       `INSERT INTO users (role, phone, password_hash, name, admin_role_id) VALUES ('admin', ?, ?, ?, ?)`
@@ -329,12 +358,21 @@ router.post('/users', requirePermission('user:manage'), (req, res, next) => {
   }
 })
 
-router.patch('/users/:id/role', requirePermission('user:manage'), (req, res, next) => {
+router.patch('/users/:id/role', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const { roleId } = z.object({ roleId: z.number().int().positive() }).parse(req.body)
     const u = db.prepare(`SELECT * FROM users WHERE id = ? AND role = 'admin'`).get(req.params.id)
     if (!u) throw notFound('用户不存在')
     if (u.id === req.user.id) throw badRequest('SELF_FORBIDDEN', '不能修改自己的角色')
+    if (isSuperAdminUser(u.id) && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可调整超级管理员账号的角色')
+    }
+    const role = db.prepare(`SELECT permissions FROM admin_roles WHERE id = ?`).get(roleId)
+    if (!role) throw badRequest('BAD_ROLE', '角色不存在')
+    // 仅超级管理员可授予「全部权限(*)」角色，防止越权将他人提升为超管
+    if (JSON.parse(role.permissions).includes('*') && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可分配超级管理员角色')
+    }
     db.prepare(`UPDATE users SET admin_role_id = ? WHERE id = ?`).run(roleId, u.id)
     logAction(req.user.id, 'admin_user_role', `user#${u.id} role#${roleId}`)
     res.json({ ok: true })
@@ -343,11 +381,18 @@ router.patch('/users/:id/role', requirePermission('user:manage'), (req, res, nex
   }
 })
 
-router.post('/users/:id/disable', requirePermission('user:manage'), (req, res, next) => {
+router.post('/users/:id/disable', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
+    // 账号治理覆盖全部角色（运营可封禁零工/企业账号），但超管账号仅超管可停用
     const u = db.prepare(`SELECT * FROM users WHERE id = ?`).get(req.params.id)
     if (!u) throw notFound('用户不存在')
     if (u.id === req.user.id) throw badRequest('SELF_FORBIDDEN', '不能停用自己的账号')
+    if (isSuperAdminUser(u.id) && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可停用超级管理员账号')
+    }
+    // 企业主账号不可单独停用：否则企业失去唯一 owner 且无自助恢复路径。需先由 owner 转移所有权（/company/members/:id/transfer-owner）
+    const ownerOf = db.prepare(`SELECT 1 FROM company_members WHERE user_id = ? AND member_role = 'owner'`).get(u.id)
+    if (ownerOf) throw conflict('OWNER_PROTECTED', '该账号为企业主账号，请先转移企业所有权后再停用，避免企业失去管理员而瘫痪')
     db.prepare(`UPDATE users SET status = 'disabled' WHERE id = ?`).run(u.id)
     logAction(req.user.id, 'user_disable', `user#${u.id}`)
     res.json({ status: 'disabled' })
@@ -356,10 +401,13 @@ router.post('/users/:id/disable', requirePermission('user:manage'), (req, res, n
   }
 })
 
-router.post('/users/:id/enable', requirePermission('user:manage'), (req, res, next) => {
+router.post('/users/:id/enable', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const u = db.prepare(`SELECT * FROM users WHERE id = ?`).get(req.params.id)
     if (!u) throw notFound('用户不存在')
+    if (isSuperAdminUser(u.id) && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可启用超级管理员账号')
+    }
     db.prepare(`UPDATE users SET status = 'active' WHERE id = ?`).run(u.id)
     logAction(req.user.id, 'user_enable', `user#${u.id}`)
     res.json({ status: 'active' })
@@ -368,10 +416,13 @@ router.post('/users/:id/enable', requirePermission('user:manage'), (req, res, ne
   }
 })
 
-router.post('/users/:id/reset-password', requirePermission('user:manage'), (req, res, next) => {
+router.post('/users/:id/reset-password', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const u = db.prepare(`SELECT * FROM users WHERE id = ?`).get(req.params.id)
     if (!u) throw notFound('用户不存在')
+    if (isSuperAdminUser(u.id) && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可重置超级管理员账号的密码')
+    }
     const tempPassword = genTempPassword()
     db.prepare(`UPDATE users SET password_hash = ? WHERE id = ?`).run(bcrypt.hashSync(tempPassword, 10), u.id)
     logAction(req.user.id, 'user_reset_password', `user#${u.id}`)
@@ -455,7 +506,8 @@ router.get('/tax/overview', requirePermission('tax:read'), (_req, res) => {
     declared: !!db.prepare(`SELECT 1 FROM tax_declarations WHERE type = 'monthly_declare' AND period = ?`).get(period),
     quarterReported: !!db.prepare(`SELECT 1 FROM tax_declarations WHERE type = 'quarter_report' AND period = ?`).get(quarter),
     health: {
-      vatBurdenRate: totalSettled.p ? (totalSettled.m * 0.06 / totalSettled.p * 100).toFixed(2) + '%' : '0%',
+      // 销项税率取自可在线调整的配置 outputVatRate（如 '6%'），避免与实际开票口径脱钩
+      vatBurdenRate: totalSettled.p ? (totalSettled.m * (parseFloat(getConfig('outputVatRate')) / 100 || 0.06) / totalSettled.p * 100).toFixed(2) + '%' : '0%',
       grossMarginRate: totalSettled.p ? (totalSettled.m / totalSettled.p * 100).toFixed(2) + '%' : '0%',
       soletraderRatio: soletrader.total ? (soletrader.bi / soletrader.total * 100).toFixed(2) + '%' : '0%'
     }
@@ -560,6 +612,12 @@ router.get('/audit-logs', requirePermission('audit:read'), (req, res) => {
   })
 })
 
+// 审计动作字典：返回库中实际出现过的动作清单，供前端筛选下拉动态构建（避免与写死清单漂移）
+router.get('/audit-logs/actions', requirePermission('audit:read'), (_req, res) => {
+  const rows = db.prepare(`SELECT DISTINCT action FROM audit_logs ORDER BY action`).all()
+  res.json({ actions: rows.map(r => r.action) })
+})
+
 // —— 外部接口健康 ——
 router.get('/integrations', requirePermission('integration:read'), async (_req, res, next) => {
   try {
@@ -641,13 +699,20 @@ router.get('/settlements', requirePermission('flow:read'), (req, res) => {
 })
 
 // —— 全平台资金流水 ——
+const FLOW_TYPE_KEYS = ['recharge', 'freeze', 'unfreeze', 'settle_out', 'settle_in', 'withdraw', 'tax_in', 'revenue_in']
+const FLOW_OWNER_KEYS = ['company', 'worker', 'platform_tax', 'platform_revenue']
 router.get('/flows', requirePermission('flow:read'), (req, res) => {
   const { page, pageSize, offset } = pageParams(req)
-  const total = db.prepare(`SELECT COUNT(*) AS n FROM fund_flows`).get().n
+  const conds = []
+  const params = []
+  if (FLOW_TYPE_KEYS.includes(req.query.type)) { conds.push(`f.type = ?`); params.push(req.query.type) }
+  if (FLOW_OWNER_KEYS.includes(req.query.ownerType)) { conds.push(`a.owner_type = ?`); params.push(req.query.ownerType) }
+  const where = conds.length ? `WHERE ${conds.join(' AND ')}` : ''
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM fund_flows f JOIN accounts a ON a.id = f.account_id ${where}`).get(...params).n
   const list = db.prepare(`
     SELECT f.*, a.owner_type, a.owner_id FROM fund_flows f JOIN accounts a ON a.id = f.account_id
-    ORDER BY f.id DESC LIMIT ? OFFSET ?
-  `).all(pageSize, offset)
+    ${where} ORDER BY f.id DESC LIMIT ? OFFSET ?
+  `).all(...params, pageSize, offset)
   res.json({
     total,
     list: list.map(f => ({
@@ -685,7 +750,7 @@ const PERMISSION_CATALOG = [
   ['message:manage', '消息模板与外发日志'], ['help:manage', '帮助中心管理'], ['skill:review', '技能认证审核']
 ]
 const KNOWN_PERMS = new Set(PERMISSION_CATALOG.map(p => p[0]))
-const PRESET_ROLES = new Set(['超级管理员', '审核专员', '风控专员', '财务税务', '只读审计'])
+const PRESET_ROLES = new Set(['超级管理员', '审核专员', '风控专员', '财务税务', '只读审计', '客服', '合规专员'])
 
 router.get('/permissions', requirePermission('user:read'), (_req, res) => {
   res.json({ list: PERMISSION_CATALOG.map(([key, label]) => ({ key, label })) })
@@ -702,10 +767,14 @@ function validatePerms(perms) {
   if (bad.length) throw badRequest('BAD_PERMISSION', `未知权限点：${bad.join(',')}`)
 }
 
-router.post('/roles', requirePermission('user:manage'), (req, res, next) => {
+router.post('/roles', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const body = roleSchema.parse(req.body)
     validatePerms(body.permissions)
+    // 仅超级管理员可创建含「全部权限(*)」的角色，防止 user:manage 持有者借自定义角色提权
+    if (body.permissions.includes('*') && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可创建包含全部权限(*)的角色')
+    }
     const exists = db.prepare(`SELECT id FROM admin_roles WHERE name = ?`).get(body.name)
     if (exists) throw conflict('ROLE_EXISTS', '角色名已存在')
     const { lastInsertRowid } = db.prepare(`INSERT INTO admin_roles (name, permissions) VALUES (?, ?)`)
@@ -717,13 +786,17 @@ router.post('/roles', requirePermission('user:manage'), (req, res, next) => {
   }
 })
 
-router.patch('/roles/:id', requirePermission('user:manage'), (req, res, next) => {
+router.patch('/roles/:id', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const body = roleSchema.partial().parse(req.body)
     const role = db.prepare(`SELECT * FROM admin_roles WHERE id = ?`).get(req.params.id)
     if (!role) throw notFound('角色不存在')
     if (role.name === '超级管理员') throw badRequest('PROTECTED_ROLE', '超级管理员角色不可修改')
     if (body.permissions) validatePerms(body.permissions)
+    // 仅超级管理员可把角色权限提升为「全部权限(*)」，防止越权编辑自身角色提权为超管
+    if (body.permissions?.includes('*') && !hasPermission(req.permissions ?? [], '*')) {
+      throw forbidden('仅超级管理员可将角色提升为全部权限(*)')
+    }
     if (body.name && PRESET_ROLES.has(role.name) && body.name !== role.name) {
       throw badRequest('PROTECTED_ROLE', '预置角色不可改名')
     }
@@ -736,7 +809,7 @@ router.patch('/roles/:id', requirePermission('user:manage'), (req, res, next) =>
   }
 })
 
-router.delete('/roles/:id', requirePermission('user:manage'), (req, res, next) => {
+router.delete('/roles/:id', requirePermission('user:manage'), stepUp, (req, res, next) => {
   try {
     const role = db.prepare(`SELECT * FROM admin_roles WHERE id = ?`).get(req.params.id)
     if (!role) throw notFound('角色不存在')
@@ -793,6 +866,8 @@ function getConfigSafe(key, fallback) {
   try { return getAllConfigs().find(c => c.key === key)?.value ?? fallback } catch { return fallback }
 }
 
+// 注意：回访工作台返回零工完整手机号（workerPhone 不脱敏）是登记在案的 PII 例外——
+// 运营需据此电话回访核验业务真实性，集成测试 L654 固化该契约；与默认脱敏 + user:read_pii 专项查看口径区分。
 router.get('/callbacks', requirePermission('risk:read'), (req, res) => {
   const status = req.query.status && req.query.status !== 'all' ? req.query.status : null
   const where = status ? 'WHERE cb.status = ?' : ''
@@ -861,6 +936,7 @@ router.post('/claims/:id/process', requirePermission('risk:resolve'), (req, res,
     }).parse(req.body)
     const cl = db.prepare(`SELECT * FROM claims WHERE id = ?`).get(req.params.id)
     if (!cl) throw notFound('理赔不存在')
+    if (cl.status === 'closed') throw conflict('CLAIM_CLOSED', '理赔已结案，不可重新处理')
     db.prepare(`
       UPDATE claims SET status = ?, result = COALESCE(NULLIF(?, ''), result),
         closed_at = CASE WHEN ? = 'closed' THEN datetime('now','localtime') ELSE closed_at END
@@ -936,7 +1012,7 @@ router.get('/invoices', requirePermission('tax:read'), (req, res) => {
   })
 })
 
-router.post('/invoices/:id/void', requirePermission('tax:declare'), async (req, res, next) => {
+router.post('/invoices/:id/void', requirePermission('tax:declare'), stepUp, async (req, res, next) => {
   try {
     const { reason } = z.object({ reason: readableText('红冲原因', z.string().min(2).max(200)) }).parse(req.body)
     const inv = db.prepare(`SELECT * FROM invoices WHERE id = ?`).get(req.params.id)

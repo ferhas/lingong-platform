@@ -8,10 +8,12 @@ import { getConfig } from '../services/configStore.js'
 
 export async function runWithdrawals() {
   if (getConfig('withdrawalPaused')) return { paused: 1 }
-  const applied = db.prepare(`SELECT * FROM withdrawals WHERE status = 'applied' ORDER BY id`).all()
+  // 兜底恢复：除 applied 外，一并捡起卡在 processing 的单（上一轮置 processing 后进程崩溃、银行回调未达）。
+  // escrow.transfer 带 idemKey=withdrawal:id，重驱动对银行侧幂等；handleWithdrawalResult 对终态幂等，安全。
+  const rows = db.prepare(`SELECT * FROM withdrawals WHERE status IN ('applied','processing') ORDER BY id`).all()
   let done = 0, failed = 0
-  for (const w of applied) {
-    db.prepare(`UPDATE withdrawals SET status = 'processing' WHERE id = ?`).run(w.id)
+  for (const w of rows) {
+    if (w.status === 'applied') db.prepare(`UPDATE withdrawals SET status = 'processing' WHERE id = ?`).run(w.id)
     try {
       const member = w.member_no
         ? db.prepare(`SELECT * FROM escrow_members WHERE member_no = ?`).get(w.member_no)
@@ -29,5 +31,5 @@ export async function runWithdrawals() {
       failed++
     }
   }
-  return { scanned: applied.length, done, failed }
+  return { scanned: rows.length, done, failed }
 }

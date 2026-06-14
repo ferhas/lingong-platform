@@ -21,11 +21,20 @@
   color: #DC2626;
   background: #FEF2F2;
   border-radius: 999rpx;
-  padding: 8rpx 26rpx;
+  padding: 0 28rpx;
+  min-height: 64rpx;
+  display: inline-flex;
+  align-items: center;
 }
 
-@media (prefers-color-scheme: dark) {
-  .page-head { background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%); box-shadow: none; }
-  .fav-foot { border-top-color: #233149; }
-  .fav-remove { color: #FCA5A5; background: rgba(220, 38, 38, 0.16); }
+.t-dark .page-head {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%); box-shadow: none;
+}
+
+.t-dark .fav-foot {
+  border-top-color: #233149;
+}
+
+.t-dark .fav-remove {
+  color: #FCA5A5; background: rgba(220, 38, 38, 0.16);
 }

@@ -13,7 +13,7 @@
           @change="fetchStatement"
         />
         <el-button type="primary" :disabled="!statement" @click="onPrint">
-          <el-icon style="margin-right: 4px"><Printer /></el-icon>打印 / 导出
+          <el-icon style="margin-right: 4px"><Printer /></el-icon>打印归档
         </el-button>
       </template>
     </PageHeader>
@@ -38,7 +38,7 @@
 
         <!-- 结算明细 -->
         <div class="page-card">
-          <h3 class="page-title">结算明细（{{ statement.settlements.length }}）</h3>
+          <h3 class="page-title">结算明细（{{ statement.settlements?.length || 0 }}）</h3>
           <el-table :data="statement.settlements" stripe>
             <el-table-column prop="confirmNo" label="结算确认单号" width="210">
               <template #default="{ row }"><span class="mono">{{ row.confirmNo }}</span></template>
@@ -67,7 +67,7 @@
 
         <!-- 发票明细 -->
         <div class="page-card">
-          <h3 class="page-title">发票明细（{{ statement.invoices.length }}）</h3>
+          <h3 class="page-title">发票明细（{{ statement.invoices?.length || 0 }}）</h3>
           <el-table :data="statement.invoices" stripe>
             <el-table-column prop="no" label="发票号" width="220">
               <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>

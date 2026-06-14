@@ -196,7 +196,7 @@ export const wxsubscribe = {
   })
 }
 
-const ALL = [realname, escrow, einvoice, esign, taxbureau, insurance, sms]
+const ALL = [realname, escrow, einvoice, esign, taxbureau, insurance, sms, wxsubscribe]
 
 export async function healthCheck() {
   // 主动探活：调用各适配器的轻量请求（probe 标记不计入出站日志与业务流水）
@@ -207,7 +207,8 @@ export async function healthCheck() {
     esign.sign({ docType: 'probe', parties: [], contentHash: '-', probe: true }),
     taxbureau.declare({ period: 'probe', taxCents: 0, vatCents: 0, probe: true }),
     insurance.insure({ taskId: 0, workerId: 0, plan: 'probe', premiumCents: 1, probe: true }),
-    sms.send({ phone: '13800000000', content: 'probe', probe: true })
+    sms.send({ phone: '13800000000', content: 'probe', probe: true }),
+    wxsubscribe.send({ openid: 'probe', templateId: 'probe', probe: true })
   ])
   return ALL.map(svc => ({
     key: svc.key,

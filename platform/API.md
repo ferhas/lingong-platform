@@ -123,7 +123,7 @@ Base URL: `http://127.0.0.1:3000/api/v1`
 { "title", "category": "设计|技术|...|配送|安装|施工|其他", "trade": "UI设计(选填)", "city": "远程|北京|...",
   "payMethod": "按成果|按件|按单", "price": 1500, "deadline": "2026-06-30", "description", "standard" }
 ```
-`city` 默认 `远程`;非字典值 → 400 `BAD_CITY`;`trade` 非 `skillCatalog` 值 → 400 `BAD_TRADE`。线下作业类目(配送/安装/施工)录用时自动投保高保额方案。
+`city` 默认 `远程`;非字典值 → 400 `BAD_CITY`;`trade` 非该类目可选工种(`categoryTrades[category]`,见 services/taxonomy.js)→ 400 `BAD_TRADE`。线下作业类目(配送/安装/施工)录用时自动投保高保额方案。
 违禁词(打卡/月薪/固定工资/底薪/考勤)或非法计酬方式 → 400 且产生风控预警。可用余额不足 → 400。
 → `{ "id", "workOrderNo", "frozen": 1500 }`
 
@@ -213,7 +213,7 @@ Base URL: `http://127.0.0.1:3000/api/v1`
 
 ### GET /me/notifications?page=&pageSize=  站内通知
 → `{ "total", "unread", "list": [{ "id", "type", "title", "body", "read": 0|1, "created_at" }] }`
-type 取值:review/hired/deliver/rejected/settle/risk/guide/cancelled/member
+type 取值(共16类,见 services/notify.js 调用方):review/hired/deliver/rejected/settle/risk/guide/cancelled/member/dispatch/dispute/recharge/invoice/skill/ticket/export
 
 ### POST /me/notifications/read  `{ "ids": [1,2] }` 或 `{ "ids": "all" }`
 
@@ -303,6 +303,7 @@ type 取值:review/hired/deliver/rejected/settle/risk/guide/cancelled/member
 ## 企业端
 - `GET /company/meta` → `{ categories, payMethods }`(发布表单动态读取,勿写死)
 - `PATCH /company/members/:userId` `{ memberRole: "operator"|"finance" }`(owner;owner 行不可改)
+- `POST /company/members/:userId/transfer-owner`(owner;转移企业所有权,自身降为 operator,目标须为在职成员)→ `{ ok, newOwnerId }`
 
 ## 零工端
 - `GET /worker/tasks` 新增 `sort=latest|price_desc|price_asc|applicants_asc`、`minPrice=`、`maxPrice=`
@@ -322,7 +323,7 @@ type 取值:review/hired/deliver/rejected/settle/risk/guide/cancelled/member
 
 ## 运营端新增(权限点注明)
 - `GET /admin/permissions`(user:read)→ 17 个权限点 `{key,label}` 供角色编辑勾选
-- 角色管理(user:manage):`POST /admin/roles {name,permissions[]}`、`PATCH /admin/roles/:id`、`DELETE /admin/roles/:id`。预置5角色不可删/超管不可改;使用中角色删除返回 409
+- 角色管理(user:manage):`POST /admin/roles {name,permissions[]}`、`PATCH /admin/roles/:id`、`DELETE /admin/roles/:id`。预置6角色(超级管理员/审核专员/风控专员/财务税务/只读审计/客服)不可删/超管不可改;使用中角色删除返回 409
 - 文书管理:`GET /admin/legal`(config:read)→ 6 份文书(tos/privacy/master/frame_sub/work_order/sub_order,含 content/version);`PATCH /admin/legal/:type {content}`(config:write)版本自增
 - 抽查回访(方案P2):`POST /admin/callbacks/sample`(risk:resolve,按配置比例从近30天已结算任务抽取)→`{sampled,candidates}`;`GET /admin/callbacks?status=pending|confirmed|abnormal`;`POST /admin/callbacks/:id/resolve {confirmed:bool, note}`(异常自动产生"回访异常"高风险预警)
 - 理赔管理:`GET /admin/claims`(risk:read);`POST /admin/claims/:id/process {status:"processing"|"closed", result}`(risk:resolve)
@@ -397,11 +398,11 @@ type 取值:review/hired/deliver/rejected/settle/risk/guide/cancelled/member
 - 发票:红冲现返回 `redInvoiceNo`(红字发票留痕);`POST /admin/invoices/:id/reissue` [step-up](红冲后关联重开)
 - 税务辅助:`GET /admin/tax/declare-file?period=`(扣缴端导入 CSV);`POST /admin/tax/declarations/:id/receipt {receiptNo}`(回执回填)
 - 防员转零豁免:`POST /admin/companies/:id/payroll/exempt {name, exempt, note}`(存量人员合规迁移评估通过后放行)
-- 开放 API 凭据(config:read/config:write):`GET /admin/api-credentials`;`POST /admin/api-credentials {companyId, scopes?}` [step-up](appSecret 仅返回一次);`POST /admin/api-credentials/:id/disable`
+- 开放 API 凭据(config:read/config:write):`GET /admin/api-credentials`;`POST /admin/api-credentials {companyId, scopes?}` [step-up](appSecret 仅返回一次);`POST /admin/api-credentials/:id/disable`(降权/应急吊销,无 step-up);`POST /admin/api-credentials/:id/enable` [step-up](误停用后恢复)
 - 系统健康(dashboard:read):`GET /admin/system-health` → 应急开关/Job 运行表/回调积压/结算计数/负余额/最近对账/集成健康
 
 ## 开放 API /api/open/v1(企业系统直连)
-- 鉴权头:`X-App-Key` / `X-Timestamp`(毫秒,±5分钟) / `X-Signature` = HMAC-SHA256(key=SHA256(appSecret) hex, `${timestamp}.${JSON.stringify(body||{})}`) hex
+- 鉴权头:`X-App-Key` / `X-Timestamp`(毫秒,±5分钟) / `X-Signature` = HMAC-SHA256(key=SHA256(appSecret) hex, `${timestamp}.${原始请求体字节}`) hex（按**原始报文字节**签名,避免 JSON 键序/空白差异致验签不稳定;GET 无体时取 `{}`）
 - `POST /api/open/v1/tasks`(scope task:create,走标准合规链:违禁词/电子签/冻结全部生效)
 - `GET /api/open/v1/tasks/:id`(scope task:read)
 - 不开放零工注册/实名代办(实名必须本人活体)

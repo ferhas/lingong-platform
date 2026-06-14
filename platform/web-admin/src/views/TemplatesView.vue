@@ -3,9 +3,9 @@
     <div class="page-header">
       <div>
         <h2 class="page-title">消息中心</h2>
-        <p class="page-sub">外发消息模板管理与触达日志（短信/站内信）</p>
+        <p class="page-sub">外发消息模板管理与触达日志（短信/站内信/订阅消息）</p>
       </div>
-      <el-button :icon="Refresh" circle @click="reload" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
     </div>
 
     <div class="panel">
@@ -19,7 +19,7 @@
         <el-alert type="info" :closable="false" show-icon style="margin-bottom: 14px">
           模板中的 {{ '{' }}xxx{{ '}' }} 为变量占位符，发送时自动替换。停用后该场景不再外发，请谨慎操作。
         </el-alert>
-        <el-table :data="templates" v-loading="tplLoading" stripe>
+        <el-table v-loading="tplLoading" :data="templates" stripe>
           <el-table-column label="模板编码" min-width="170">
             <template #default="{ row }"><span class="mono">{{ row.code }}</span></template>
           </el-table-column>
@@ -94,7 +94,7 @@
           </el-col>
         </el-row>
 
-        <el-table :data="logs" v-loading="logLoading" stripe>
+        <el-table v-loading="logLoading" :data="logs" stripe>
           <el-table-column label="手机号(脱敏)" width="130">
             <template #default="{ row }"><span class="mono">{{ row.phone || '—' }}</span></template>
           </el-table-column>
@@ -148,7 +148,7 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
 import { getMessageTemplates, updateMessageTemplate, getMessageLogs } from '../api/admin'
 import { fmtTime } from '../utils/format'
@@ -156,7 +156,7 @@ import { fmtTime } from '../utils/format'
 const activeTab = ref('templates')
 
 function channelText(c) {
-  return { sms: '短信', inapp: '站内信', notification: '站内信' }[c] || c
+  return { sms: '短信', inapp: '站内信', subscribe: '订阅消息' }[c] || c
 }
 
 // —— 模板管理(行内编辑) ——
@@ -216,6 +216,18 @@ async function saveTemplate(row) {
 }
 
 async function onToggle(row, enabled) {
+  // 停用会静默关停该场景的对外触达（如结算到账/提现结果短信），需二次确认
+  if (!enabled) {
+    try {
+      await ElMessageBox.confirm(
+        `停用模板「${row.code}」后，该场景将不再向用户外发（短信 / 站内信 / 订阅消息）。请确认是否停用？`,
+        '停用消息模板',
+        { confirmButtonText: '确认停用', cancelButtonText: '取消', type: 'warning' }
+      )
+    } catch {
+      return // 取消：el-switch 受 model-value 控制会自动回弹
+    }
+  }
   row.switching = true
   try {
     await updateMessageTemplate(row.code, { enabled })

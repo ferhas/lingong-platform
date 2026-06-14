@@ -1,5 +1,5 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div v-loading="loading" class="page">
     <div class="page-header">
       <div>
         <h2 class="page-title">税务工作台</h2>
@@ -12,7 +12,7 @@
         <el-button type="primary" plain :icon="Download" :loading="exporting" @click="onExport">
           导出当期明细
         </el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
@@ -130,7 +130,7 @@
       </div>
 
       <!-- 季度报送按所得类型分类汇总（16/15号公告口径预览） -->
-      <div class="summary-wrap" v-loading="summaryLoading">
+      <div v-loading="summaryLoading" class="summary-wrap">
         <el-table :data="quarterSummary?.byType || []" size="small" border class="summary-table">
           <el-table-column prop="label" label="所得类型" min-width="180">
             <template #default="{ row }">
@@ -223,7 +223,7 @@
     </div>
 
     <!-- ④ 进项优化看板 -->
-    <div class="panel block" v-loading="inputLoading">
+    <div v-loading="inputLoading" class="panel block">
       <div class="block-head">
         <div class="block-title">
           <el-tooltip
@@ -234,7 +234,7 @@
           </el-tooltip>
           优化看板
         </div>
-        <el-button :icon="Refresh" circle size="small" @click="loadInputOverview" />
+        <el-button :icon="Refresh" circle size="small" aria-label="刷新" @click="loadInputOverview" />
       </div>
       <template v-if="inputOverview">
         <el-row :gutter="16" class="input-stats">
@@ -331,8 +331,9 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh, Download, EditPen } from '@element-plus/icons-vue'
+import { withStepUp } from '../utils/stepup'
 import {
   getTaxOverview,
   declareTax,
@@ -444,6 +445,15 @@ async function loadInputOverview() {
 }
 
 async function onPlatformReport() {
+  try {
+    await ElMessageBox.confirm(
+      '将向税务机关一次性报送平台企业的基本信息（名称、业务模式等）。该报送仅需一次，提交后不可撤销。请确认。',
+      '确认平台基本信息报送',
+      { confirmButtonText: '确认报送', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
   platformReporting.value = true
   try {
     const res = await platformReport()
@@ -465,14 +475,23 @@ async function onPlatformReport() {
 
 async function onDeclare() {
   if (!overview.value) return
+  try {
+    await ElMessageBox.confirm(
+      `将向税务机关批量申报缴款本所属期（${overview.value.period}）的代扣个人所得税与增值税，提交后不可撤销。请确认无误。`,
+      '确认批量申报缴款',
+      { confirmButtonText: '确认申报', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
   declaring.value = true
   try {
-    const res = await declareTax(overview.value.period)
+    const res = await withStepUp(totp => declareTax(overview.value.period, totp))
     declareReceipt.value = res.receiptNo
     ElMessage.success(`申报成功，回执号：${res.receiptNo}`)
     await load()
   } catch {
-    /* 错误已统一提示 */
+    /* withStepUp 已提示错误；用户取消二次验证则静默 */
   } finally {
     declaring.value = false
   }
@@ -480,14 +499,23 @@ async function onDeclare() {
 
 async function onQuarterReport() {
   if (!overview.value) return
+  try {
+    await ElMessageBox.confirm(
+      `将按《互联网平台企业涉税信息报送规定》向税务机关报送本季度（${overview.value.quarter}）平台内从业人员的身份与收入信息，提交后不可撤销。请确认。`,
+      '确认季度涉税信息报送',
+      { confirmButtonText: '确认报送', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
   reporting.value = true
   try {
-    const res = await quarterReport(overview.value.quarter)
+    const res = await withStepUp(totp => quarterReport(overview.value.quarter, totp))
     quarterResult.value = res
     ElMessage.success(`报送成功，文件号：${res.fileNo}`)
     await load()
   } catch {
-    /* 错误已统一提示 */
+    /* withStepUp 已提示错误；用户取消二次验证则静默 */
   } finally {
     reporting.value = false
   }
@@ -529,11 +557,13 @@ function openReceiptFill() {
 async function submitReceiptFill() {
   receiptDialog.submitting = true
   try {
-    await fillDeclarationReceipt(receiptDialog.declarationId, receiptDialog.receiptNo.trim())
+    await withStepUp(totp =>
+      fillDeclarationReceipt(receiptDialog.declarationId, receiptDialog.receiptNo.trim(), totp)
+    )
     receiptDialog.visible = false
     ElMessage.success('回执号已回填，申报记录已标记为已申报')
   } catch {
-    /* 错误已统一提示 */
+    /* withStepUp 已提示错误；用户取消二次验证则静默 */
   } finally {
     receiptDialog.submitting = false
   }

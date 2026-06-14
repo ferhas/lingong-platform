@@ -51,26 +51,43 @@
 .prio-high { background: #FFF7ED; color: #EA580C; }
 .rated { color: #D97706; font-size: calc(25rpx * var(--fs, 1)); margin-top: 12rpx; }
 
-@media (prefers-color-scheme: dark) {
-  .page-hero {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .page-hero {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .card-title {
-    color: #E5E7EB;
-  }
+.t-dark .card-title {
+  color: #E5E7EB;
+}
 
-  .card-meta {
-    color: #94A3B8;
-  }
+.t-dark .card-meta {
+  color: #94A3B8;
+}
 
-  .status-open { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
-  .status-pending_user { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
-  .status-pending_agent { background: rgba(2, 132, 199, 0.18); color: #7DD3FC; }
-  .status-resolved { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; }
-  .status-closed { background: #1E293B; color: #94A3B8; }
+.t-dark .status-open {
+  background: rgba(249, 115, 22, 0.16); color: #FDBA74;
+}
 
-  .prio-urgent { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
-  .prio-high { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
+.t-dark .status-pending_user {
+  background: rgba(220, 38, 38, 0.18); color: #FCA5A5;
+}
+
+.t-dark .status-pending_agent {
+  background: rgba(2, 132, 199, 0.18); color: #7DD3FC;
+}
+
+.t-dark .status-resolved {
+  background: rgba(16, 185, 129, 0.16); color: #6EE7B7;
+}
+
+.t-dark .status-closed {
+  background: #1E293B; color: #94A3B8;
+}
+
+.t-dark .prio-urgent {
+  background: rgba(220, 38, 38, 0.18); color: #FCA5A5;
+}
+
+.t-dark .prio-high {
+  background: rgba(249, 115, 22, 0.16); color: #FDBA74;
 }

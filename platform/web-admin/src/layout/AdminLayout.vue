@@ -14,12 +14,31 @@
         background-color="transparent"
         text-color="#9ca3af"
         active-text-color="#ffffff"
+        unique-opened
         router
       >
-        <el-menu-item v-for="item in visibleMenus" :key="item.path" :index="item.path">
-          <el-icon><component :is="item.icon" /></el-icon>
-          <span>{{ item.label }}</span>
-        </el-menu-item>
+        <template v-for="item in visibleMenus" :key="item.key || item.path">
+          <!-- 一级分组:展开二级菜单 -->
+          <el-sub-menu v-if="item.children" :index="item.key">
+            <template #title>
+              <el-icon><component :is="item.icon" /></el-icon>
+              <span>{{ item.label }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in item.children"
+              :key="child.path"
+              :index="child.path"
+            >
+              <el-icon><component :is="child.icon" /></el-icon>
+              <span>{{ child.label }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <!-- 独立一级菜单项 -->
+          <el-menu-item v-else :index="item.path">
+            <el-icon><component :is="item.icon" /></el-icon>
+            <span>{{ item.label }}</span>
+          </el-menu-item>
+        </template>
       </el-menu>
       <div class="side-footer">合规用工·四流合一</div>
     </el-aside>
@@ -34,7 +53,7 @@
 
           <!-- 日/夜主题切换 -->
           <el-tooltip :content="theme.isDark ? '切换到浅色模式' : '切换到深色模式'" placement="bottom">
-            <el-button circle text class="topbar-icon-btn" @click="theme.toggle()">
+            <el-button circle text class="topbar-icon-btn" :aria-label="theme.isDark ? '切换到浅色模式' : '切换到深色模式'" @click="theme.toggle()">
               <el-icon :size="18"><Moon v-if="!theme.isDark" /><Sunny v-else /></el-icon>
             </el-button>
           </el-tooltip>
@@ -49,7 +68,7 @@
             <template #reference>
               <span class="bell-wrap">
                 <el-badge :value="unread" :hidden="unread === 0" :max="99">
-                  <el-button circle text class="topbar-icon-btn">
+                  <el-button circle text class="topbar-icon-btn" aria-label="通知">
                     <el-icon :size="18"><Bell /></el-icon>
                   </el-button>
                 </el-badge>
@@ -81,7 +100,7 @@
                 @click="onNotifyClick(n)"
               >
                 <div class="notify-item-title">
-                  <span class="notify-dot" v-if="!n.read"></span>
+                  <span v-if="!n.read" class="notify-dot"></span>
                   {{ n.title }}
                 </div>
                 <div class="notify-item-body">{{ n.body }}</div>
@@ -137,7 +156,16 @@ const auth = useAuthStore()
 const theme = useThemeStore()
 
 // —— RBAC:侧边栏按权限过滤 ——
-const visibleMenus = computed(() => menus.filter(m => auth.can(m.perm)))
+// 独立项按自身权限过滤;分组先过滤子项,再丢弃无可见子项的空分组
+const visibleMenus = computed(() =>
+  menus
+    .map(item => {
+      if (!item.children) return auth.can(item.perm) ? item : null
+      const children = item.children.filter(c => auth.can(c.perm))
+      return children.length ? { ...item, children } : null
+    })
+    .filter(Boolean)
+)
 
 const avatarText = computed(() => (auth.user?.name || '管').slice(0, 1))
 
@@ -272,14 +300,16 @@ onBeforeUnmount(() => {
   overflow-y: auto;
 }
 
-.side-menu :deep(.el-menu-item) {
+.side-menu :deep(.el-menu-item),
+.side-menu :deep(.el-sub-menu__title) {
   height: 44px;
   line-height: 44px;
   margin-bottom: 4px;
   border-radius: 8px;
 }
 
-.side-menu :deep(.el-menu-item:hover) {
+.side-menu :deep(.el-menu-item:hover),
+.side-menu :deep(.el-sub-menu__title:hover) {
   background: var(--sidebar-hover);
 }
 
@@ -287,6 +317,15 @@ onBeforeUnmount(() => {
   background: #6366f1;
   color: #fff;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+
+/* 展开后的二级菜单容器保持透明,叶子项自然缩进 */
+.side-menu :deep(.el-sub-menu .el-menu) {
+  background: transparent;
+}
+
+.side-menu :deep(.el-sub-menu .el-menu-item) {
+  min-width: 0;
 }
 
 .side-footer {

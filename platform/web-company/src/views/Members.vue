@@ -2,14 +2,14 @@
   <div>
     <PageHeader title="成员管理" subtitle="企业子账号管理：运营可发布/验收任务，财务可充值">
       <template #actions>
-        <el-button type="primary" @click="addVisible = true">
+        <el-button v-if="auth.isOwner" type="primary" @click="addVisible = true">
           <el-icon style="margin-right: 4px"><Plus /></el-icon>添加成员
         </el-button>
       </template>
     </PageHeader>
 
     <div class="page-card">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="name" label="姓名" min-width="120" />
         <el-table-column prop="phone" label="手机号" width="140" />
         <el-table-column label="角色" width="110" align="center">
@@ -29,7 +29,7 @@
         </el-table-column>
         <el-table-column label="操作" width="160" align="center">
           <template #default="{ row }">
-            <template v-if="row.memberRole !== 'owner'">
+            <template v-if="row.memberRole !== 'owner' && auth.isOwner">
               <el-dropdown trigger="click" @command="r => onChangeRole(row, r)">
                 <el-button type="primary" link :loading="changingId === row.userId">
                   改角色<el-icon style="margin-left: 2px"><ArrowDown /></el-icon>
@@ -52,6 +52,13 @@
                 style="margin-left: 12px"
                 @click="onDisable(row)"
               >停用</el-button>
+              <el-button
+                v-if="row.status === 'active'"
+                type="warning"
+                link
+                style="margin-left: 12px"
+                @click="onTransferOwner(row)"
+              >转为企业主</el-button>
             </template>
             <span v-else>—</span>
           </template>
@@ -108,8 +115,11 @@
 import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import PageHeader from '../components/PageHeader.vue'
-import { getMembers, addMember, changeMemberRole, disableMember } from '../api/company'
+import { getMembers, addMember, changeMemberRole, disableMember, transferOwner } from '../api/company'
 import { fmtDateTime, MEMBER_ROLE } from '../utils/format'
+import { useAuthStore } from '../stores/auth'
+
+const auth = useAuthStore()
 
 const list = ref([])
 const loading = ref(false)
@@ -178,6 +188,15 @@ const changingId = ref(null)
 
 async function onChangeRole(row, memberRole) {
   if (memberRole === row.memberRole) return
+  try {
+    await ElMessageBox.confirm(
+      `确认将成员「${row.name}」的角色调整为「${roleMeta(memberRole).label}」？这会改变其可执行的权限（运营可发布/验收任务，财务可充值/对账）。`,
+      '调整成员角色',
+      { confirmButtonText: '确认调整', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
   changingId.value = row.userId
   try {
     await changeMemberRole(row.userId, memberRole)
@@ -204,6 +223,25 @@ async function onDisable(row) {
     await disableMember(row.userId)
     ElMessage.success('成员已停用')
     await fetchList()
+  } catch {
+    // 错误已由拦截器提示
+  }
+}
+
+async function onTransferOwner(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确认将企业主（owner）转移给「${row.name}」？转移后该成员获得全部权限，您将降为「运营」成员；此操作不可自助撤销（需新企业主再转回）。`,
+      '转移企业所有权',
+      { confirmButtonText: '确认转移', cancelButtonText: '取消', type: 'warning' }
+    )
+  } catch {
+    return
+  }
+  try {
+    await transferOwner(row.userId)
+    ElMessage.success(`企业所有权已转移给「${row.name}」，页面将刷新以更新您的权限`)
+    setTimeout(() => window.location.reload(), 1200)
   } catch {
     // 错误已由拦截器提示
   }

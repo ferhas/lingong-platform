@@ -6,7 +6,7 @@
       </template>
     </PageHeader>
 
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="no" label="争议单号" width="190">
         <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
       </el-table-column>

@@ -2,17 +2,17 @@
   <div class="page">
     <div class="page-header">
       <div>
-        <h2 class="page-title">导出审批</h2>
-        <p class="page-sub">含个人信息的批量导出须双人审批（PIPL），批准后 48 小时内限申请人下载</p>
+        <h2 class="page-title">个人信息导出</h2>
+        <p class="page-sub">含个人信息的导出须遵循 PIPL：大批量须双人审批，小批量（行数低于审批阈值）自动批准；批准后 48 小时内限申请人下载</p>
       </div>
       <div class="page-actions">
         <el-button type="primary" :icon="Plus" @click="openApply">发起导出申请</el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="申请号" width="80" align="center" />
         <el-table-column prop="applicantName" label="申请人" width="110" />
         <el-table-column prop="scope" label="导出范围" min-width="160" show-overflow-tooltip />
@@ -88,6 +88,7 @@
         </el-form-item>
         <el-form-item label="预计行数（可选）">
           <el-input-number v-model="applyDialog.rowEstimate" :min="1" :precision="0" controls-position="right" style="width: 180px" />
+          <div style="margin-top: 6px; font-size: 12px; color: var(--text-3); line-height: 1.6">填写预计行数后，小批量导出（低于审批阈值）将自动批准、可直接下载；不填或超过阈值则进入双人审批。</div>
         </el-form-item>
       </el-form>
       <template #footer>
@@ -178,8 +179,12 @@ function statusTagType(s) {
   }[s] || 'info'
 }
 
-/** 是否本人的申请(服务端禁止自审,下载也仅限申请人) */
+/** 是否本人的申请(服务端禁止自审,下载也仅限申请人)。
+ * 优先用 applicantId 精确比对(避免同名管理员误判)；服务端未返回 id 时回退姓名比对。 */
 function isMine(row) {
+  if (row.applicantId != null && auth.user?.id != null) {
+    return row.applicantId === auth.user.id
+  }
   return row.applicantName === auth.user?.name
 }
 
@@ -224,9 +229,11 @@ async function submitApply() {
   try {
     const payload = { scope: applyDialog.scope.trim(), reason: applyDialog.reason.trim() }
     if (applyDialog.rowEstimate) payload.rowEstimate = applyDialog.rowEstimate
-    await applyExport(payload)
+    const res = await applyExport(payload)
     applyDialog.visible = false
-    ElMessage.success('申请已提交，等待其他管理员审批')
+    ElMessage.success(res?.status === 'approved'
+      ? '小批量导出已自动批准，可在列表中直接下载（48 小时内有效）'
+      : '申请已提交，等待其他管理员审批')
     load()
   } catch {
     /* 错误已统一提示 */

@@ -1,5 +1,5 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div v-loading="loading" class="page">
     <div class="page-header">
       <div>
         <h2 class="page-title">系统健康</h2>

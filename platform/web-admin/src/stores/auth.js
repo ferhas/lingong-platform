@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { REFRESH_KEY, TOKEN_KEY, USER_KEY } from '../api/client'
 import * as api from '../api/admin'
-import { menus } from '../layout/menus'
+import { flatMenus } from '../layout/menus'
 
 function readUser() {
   try {
@@ -28,7 +28,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   /** 当前用户第一个有权限的菜单路径(无任何权限返回空) */
-  const firstAllowedPath = computed(() => menus.find(m => can(m.perm))?.path || '')
+  const firstAllowedPath = computed(() => flatMenus.find(m => can(m.perm))?.path || '')
 
   function persistUser() {
     localStorage.setItem(USER_KEY, JSON.stringify(user.value))

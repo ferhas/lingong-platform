@@ -72,35 +72,50 @@
 .deadline { color: #8A99A8; font-size: calc(24rpx * var(--fs, 1)); margin-left: auto; }
 .ruling-flag { color: #0F766E; font-size: calc(26rpx * var(--fs, 1)); font-weight: 600; margin-left: auto; }
 
-@media (prefers-color-scheme: dark) {
-  .page-hero {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .page-hero {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .card-title {
-    color: #E5E7EB;
-  }
+.t-dark .card-title {
+  color: #E5E7EB;
+}
 
-  .card-meta,
-  .deadline {
-    color: #94A3B8;
-  }
+.t-dark .card-meta,
+.t-dark .deadline {
+  color: #94A3B8;
+}
 
-  .claim-text {
-    background: #0F172A;
-    color: #CBD5E1;
-  }
+.t-dark .claim-text {
+  background: #0F172A;
+  color: #CBD5E1;
+}
 
-  .status-negotiating { background: rgba(249, 115, 22, 0.16); color: #FDBA74; }
-  .status-arbitrating { background: rgba(124, 58, 237, 0.18); color: #C4B5FD; }
-  .status-ruled { background: rgba(2, 132, 199, 0.18); color: #7DD3FC; }
-  .status-executed { background: rgba(16, 185, 129, 0.16); color: #6EE7B7; }
-  .status-closed,
-  .status-withdrawn { background: #1E293B; color: #94A3B8; }
-  .status-escalated { background: rgba(220, 38, 38, 0.18); color: #FCA5A5; }
+.t-dark .status-negotiating {
+  background: rgba(249, 115, 22, 0.16); color: #FDBA74;
+}
 
-  .ruling-flag {
-    color: #5EEAD4;
-  }
+.t-dark .status-arbitrating {
+  background: rgba(124, 58, 237, 0.18); color: #C4B5FD;
+}
+
+.t-dark .status-ruled {
+  background: rgba(2, 132, 199, 0.18); color: #7DD3FC;
+}
+
+.t-dark .status-executed {
+  background: rgba(16, 185, 129, 0.16); color: #6EE7B7;
+}
+
+.t-dark .status-closed,
+.t-dark .status-withdrawn {
+  background: #1E293B; color: #94A3B8;
+}
+
+.t-dark .status-escalated {
+  background: rgba(220, 38, 38, 0.18); color: #FCA5A5;
+}
+
+.t-dark .ruling-flag {
+  color: #5EEAD4;
 }

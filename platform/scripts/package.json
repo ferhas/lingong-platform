@@ -1,0 +1,8 @@
+{
+  "name": "lingong-scripts",
+  "private": true,
+  "description": "运维/审查脚本的本地依赖（截图自动化等）。业务无关，与 server 解耦。",
+  "dependencies": {
+    "miniprogram-automator": "^0.12.1"
+  }
+}

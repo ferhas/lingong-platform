@@ -4,7 +4,7 @@
     <p class="page-desc desc">
       全部合同均通过电子签平台签署并留存哈希存证：《<TermTip term="承揽价" text="总承揽框架合同" tip="企业与平台签署的总合同：企业把任务整体发包给平台承揽（承揽价 = 企业支付的任务总价）" />》于准入审核通过时签署，任务工单随任务发布生成，<TermTip term="分包价" text="分包工单" tip="平台与零工签署的工单：平台把任务再分包给零工（分包价 = 零工实际获得的税前报酬）" />于录用零工时签署。
     </p>
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="no" label="合同编号" width="220" />
       <el-table-column label="合同类型" width="170">
         <template #default="{ row }">
@@ -30,6 +30,15 @@
         </el-empty>
       </template>
     </el-table>
+    <el-pagination
+      v-if="total > pageSize"
+      class="pager"
+      layout="prev, pager, next, total"
+      :total="total"
+      :current-page="page"
+      :page-size="pageSize"
+      @current-change="onPage"
+    />
 
     <!-- 合同正文 -->
     <el-dialog v-model="detailVisible" title="合同正文" width="760px" top="5vh">
@@ -82,13 +91,17 @@ import { printHtml, esc } from '../utils/print'
 import TermTip from '../components/TermTip.vue'
 
 const list = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
 const loading = ref(false)
 
 const detailVisible = ref(false)
 const detailLoading = ref(false)
 const current = ref(null)
 
-const typeTag = t => ({ master: 'danger', work_order: 'primary', sub_order: 'success' }[t] || 'info')
+// 合同类型仅作分类区分，红色留给危险/错误：总承揽=琥珀、任务工单=品牌、分包工单=绿、分包框架协议=中性
+const typeTag = t => ({ master: 'warning', frame_sub: 'info', work_order: 'primary', sub_order: 'success' }[t] || 'info')
 
 async function openDetail(row) {
   detailVisible.value = true
@@ -125,15 +138,21 @@ function onPrint() {
   `)
 }
 
-onMounted(async () => {
+async function load() {
   loading.value = true
   try {
-    const data = await getContracts()
-    list.value = data.list
+    const data = await getContracts(page.value, pageSize.value)
+    list.value = data.list || []
+    total.value = data.total || 0
   } finally {
     loading.value = false
   }
-})
+}
+function onPage(p) {
+  page.value = p
+  load()
+}
+onMounted(load)
 </script>
 
 <style scoped>
@@ -146,6 +165,11 @@ onMounted(async () => {
   font-size: 12px;
   line-height: 1.8;
   color: var(--text-3);
+}
+
+.pager {
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 
 .detail-body {

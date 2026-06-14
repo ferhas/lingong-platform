@@ -332,7 +332,7 @@ try {
 
   console.log('— 运营端 RBAC —')
   r = await api('GET', '/admin/roles', { token: adminToken })
-  ok('预置6个角色（含客服）', r.data.list.length === 6 && r.data.list.some(x => x.name === '客服'))
+  ok('预置7个角色（含客服、合规专员）', r.data.list.length === 7 && r.data.list.some(x => x.name === '客服') && r.data.list.some(x => x.name === '合规专员'))
   const reviewerRole = r.data.list.find(x => x.name === '审核专员')
   r = await api('POST', '/admin/users', { token: adminToken, body: { phone: '13800000002', name: '审核小王', roleId: reviewerRole.id } })
   ok('创建审核专员账号', r.status === 201)
@@ -426,7 +426,7 @@ try {
   ok('季度涉税信息报送', r.status === 200 && r.data.workers === 2)
 
   r = await api('GET', '/admin/integrations', { token: adminToken })
-  ok('外部接口7项全部在线（含短信）', r.data.length === 7 && r.data.every(s => s.status === 'up'))
+  ok('外部接口8项全部在线（含短信/微信订阅）', r.data.length === 8 && r.data.every(s => s.status === 'up'))
 
   console.log('— 结算悬挂治理（两阶段+重试） —')
   r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '通道异常演练单', category: '设计', payMethod: '按成果', price: 6000, deadline: '2099-09-30', description: '验证银行通道异常时的两阶段结算与自动重试' } })

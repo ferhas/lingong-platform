@@ -3,9 +3,20 @@ const api = require('../../utils/api.js')
 const STATUS_TEXT = {
   working: '进行中',
   delivered: '待验收',
-  settled: '已结算'
+  settled: '已结算',
+  cancelled: '已取消'
 }
 
+// 接单状态标签页（'' = 全部）；数量多时按状态过滤 + 分页加载
+const STATUS_TABS = [
+  { key: '', label: '全部' },
+  { key: 'working', label: '进行中' },
+  { key: 'delivered', label: '待验收' },
+  { key: 'settled', label: '已结算' },
+  { key: 'cancelled', label: '已取消' }
+]
+
+// 兜底评价标签；实际优先取 /worker/meta 的 reviewTags（运营可在线调整，与企业端口径一致）
 const REVIEW_TAGS = ['按时交付', '质量过硬', '沟通顺畅', '响应及时', '需求清晰', '验收爽快']
 
 // 零工可发起的争议类型（按工单状态过滤）
@@ -26,12 +37,19 @@ Page({
     dispatches: [],
     subjectType: 'person',
     loading: false,
+    // 状态标签页 + 分页
+    statusTabs: STATUS_TABS.map(t => ({ ...t, count: 0 })),
+    activeStatus: '',
+    total: 0,
+    page: 1,
+    pageSize: 10,
+    finished: false,
     // 申请平台介入弹窗
-    dispute: { show: false, orderId: 0, types: [], typeKey: '', claim: '', claimAmount: '' },
+    dispute: { show: false, orderId: 0, types: [], typeKey: '', claim: '', claimAmount: '', submitting: false },
     // 评价弹窗
-    review: { show: false, orderId: 0, score: 0, tags: [], comment: '' },
+    review: { show: false, orderId: 0, score: 0, tags: [], comment: '', submitting: false },
     // B线发票上传弹窗
-    invoice: { show: false, orderId: 0, uploadId: '', fileName: '', invoiceNo: '', amount: '', taxAmount: '', typeIndex: 0 },
+    invoice: { show: false, orderId: 0, uploadId: '', fileName: '', invoiceNo: '', amount: '', taxAmount: '', typeIndex: 0, submitting: false },
     invoiceTypes: INVOICE_TYPES
   },
 
@@ -39,29 +57,66 @@ Page({
     this.fetch()
   },
 
-  async fetch() {
+  // 全量刷新：重置分页 + 重新拉取列表与侧栏数据（派单邀约 / 主体类型）
+  fetch() {
+    this.setData({ page: 1, orders: [], finished: false })
+    this.fetchOrders()
+    this.fetchSide()
+  },
+
+  // 按当前状态分页拉取接单列表；page>1 时追加。解决「数量很多」一次性加载的问题
+  async fetchOrders() {
+    if (this.data.loading || this.data.finished) return
     this.setData({ loading: true })
     try {
-      const [data, profile, dispatches] = await Promise.all([
-        api.get('/worker/orders'),
-        api.get('/worker/profile'),
-        api.get('/worker/dispatches')
-      ])
+      const d = this.data
+      const data = await api.get('/worker/orders', { status: d.activeStatus, page: d.page, pageSize: d.pageSize })
+      const mapped = data.list.map(o => ({
+        ...o,
+        statusText: STATUS_TEXT[o.status] || o.status,
+        hasInvoice: (o.attachments || []).some(a => a.kind === 'invoice')
+      }))
+      const orders = d.page === 1 ? mapped : d.orders.concat(mapped)
+      const counts = data.counts || {}
       this.setData({
-        subjectType: profile.subjectType,
-        orders: data.list.map(o => ({
-          ...o,
-          statusText: STATUS_TEXT[o.status] || o.status,
-          hasInvoice: (o.attachments || []).some(a => a.kind === 'invoice')
-        })),
-        // 仅展示待接受、且任务仍在招募的邀约
-        dispatches: dispatches.list.filter(d => d.status === 'invited' && d.taskStatus === 'recruiting' && !d.expired)
+        orders,
+        total: data.total,
+        page: d.page + 1,
+        finished: orders.length >= data.total,
+        statusTabs: STATUS_TABS.map(t => ({ ...t, count: t.key === '' ? (counts.all || 0) : (counts[t.key] || 0) }))
       })
     } catch (e) {
     } finally {
       this.setData({ loading: false })
       wx.stopPullDownRefresh()
     }
+  },
+
+  // 侧栏数据：主体类型（个体户发票提示用）+ 待接受派单邀约（仅一次，不随翻页重复拉取）
+  async fetchSide() {
+    try {
+      const [profile, dispatches] = await Promise.all([
+        api.get('/worker/profile'),
+        api.get('/worker/dispatches')
+      ])
+      this.setData({
+        subjectType: profile.subjectType,
+        // 仅展示待接受、且任务仍在招募的邀约
+        dispatches: dispatches.list.filter(d => d.status === 'invited' && d.taskStatus === 'recruiting' && !d.expired)
+      })
+    } catch (e) {}
+  },
+
+  // 切换状态标签：重置分页并只拉取该状态的接单
+  onSelectStatus(e) {
+    const key = e.currentTarget.dataset.key
+    if (key === this.data.activeStatus) return
+    this.setData({ activeStatus: key, page: 1, orders: [], finished: false })
+    this.fetchOrders()
+  },
+
+  onReachBottom() {
+    this.fetchOrders()
   },
 
   // —— 派单邀约：接受 / 拒绝 ——
@@ -174,7 +229,7 @@ Page({
           this.setData({
             invoice: {
               show: true, orderId: id, uploadId: up.id, fileName: pick.tempFiles[0].name,
-              invoiceNo: '', amount: '', taxAmount: '', typeIndex: 0
+              invoiceNo: '', amount: '', taxAmount: '', typeIndex: 0, submitting: false
             }
           })
         } catch (err) {
@@ -208,12 +263,16 @@ Page({
     if (inv.invoiceNo.trim()) body.invoiceNo = inv.invoiceNo.trim()
     if (inv.amount !== '') body.amount = Number(inv.amount)
     if (inv.taxAmount !== '') body.taxAmount = Number(inv.taxAmount)
+    this.setData({ 'invoice.submitting': true })
     try {
       await api.post(`/worker/orders/${inv.orderId}/invoice`, body)
       this.setData({ 'invoice.show': false })
       wx.showToast({ title: '发票已上传', icon: 'success' })
       this.fetch()
-    } catch (err) {}
+    } catch (err) {
+    } finally {
+      this.setData({ 'invoice.submitting': false })
+    }
   },
 
   // —— 申请平台介入（争议）——
@@ -222,7 +281,7 @@ Page({
     if (!order) return
     const types = DISPUTE_TYPES.filter(t => t.statuses.includes(order.status))
     this.setData({
-      dispute: { show: true, orderId: order.id, types, typeKey: types[0].key, claim: '', claimAmount: '' }
+      dispute: { show: true, orderId: order.id, types, typeKey: types[0].key, claim: '', claimAmount: '', submitting: false }
     })
   },
 
@@ -246,6 +305,7 @@ Page({
     }
     const body = { type: d.typeKey, claim: d.claim.trim() }
     if (d.claimAmount !== '') body.claimAmount = Number(d.claimAmount)
+    this.setData({ 'dispute.submitting': true })
     try {
       const r = await api.post(`/worker/orders/${d.orderId}/dispute`, body)
       this.setData({ 'dispute.show': false })
@@ -258,16 +318,20 @@ Page({
           if (res.confirm) wx.navigateTo({ url: '/pages/disputes/disputes' })
         }
       })
-    } catch (err) {}
+    } catch (err) {
+    } finally {
+      this.setData({ 'dispute.submitting': false })
+    }
   },
 
   // —— 评价（结算后互盲互评）——
   onReview(e) {
     const id = Number(e.currentTarget.dataset.id)
+    const pool = (api.metaSync().reviewTags && api.metaSync().reviewTags.length) ? api.metaSync().reviewTags : REVIEW_TAGS
     this.setData({
       review: {
-        show: true, orderId: id, score: 0, comment: '',
-        tags: REVIEW_TAGS.map(name => ({ name, on: false }))
+        show: true, orderId: id, score: 0, comment: '', submitting: false,
+        tags: pool.map(name => ({ name, on: false }))
       }
     })
   },
@@ -292,6 +356,7 @@ Page({
   async onSubmitReview() {
     const r = this.data.review
     if (!r.score) return wx.showToast({ title: '请选择星级', icon: 'none' })
+    this.setData({ 'review.submitting': true })
     try {
       await api.post(`/worker/orders/${r.orderId}/review`, {
         score: r.score,
@@ -300,7 +365,10 @@ Page({
       })
       this.setData({ 'review.show': false })
       wx.showToast({ title: '评价成功', icon: 'success' })
-    } catch (err) {}
+    } catch (err) {
+    } finally {
+      this.setData({ 'review.submitting': false })
+    }
   },
 
   // 查看评价（互盲：双方评完或窗口期满后互相可见）

@@ -5,7 +5,7 @@
         <h2 class="page-title">客服工单</h2>
         <p class="page-sub">零工/企业的咨询与投诉受理，紧急工单自动置顶</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
@@ -29,7 +29,7 @@
         </el-select>
       </div>
 
-      <el-table :data="list" v-loading="loading" stripe :row-class-name="rowClass">
+      <el-table v-loading="loading" :data="list" stripe :row-class-name="rowClass">
         <el-table-column label="工单号" min-width="140">
           <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
         </el-table-column>

@@ -6,6 +6,7 @@ dist/
 build/
 output/
 screenshots/
+.review-shots/
 reports/
 coverage/
 

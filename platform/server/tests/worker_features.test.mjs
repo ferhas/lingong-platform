@@ -47,12 +47,12 @@ try {
   await api('POST', `/admin/companies/${companyId}/review`, { token: adminToken, body: { pass: true, note: '资质齐全' } })
   await api('POST', '/company/recharge', { token: companyToken, body: { amount: 200000 } })
 
-  // 任务A：线上设计（基础保额），城市北京，工种UI设计
-  r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '电商主图设计', category: '设计', trade: 'UI设计', city: '北京', payMethod: '按成果', price: 2000, deadline: '2099-07-01', description: '电商主图设计10张交付源文件' } })
+  // 任务A：线上设计（基础保额），城市南宁，工种UI设计
+  r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '电商主图设计', category: '设计', trade: 'UI设计', city: '南宁', payMethod: '按成果', price: 2000, deadline: '2099-07-01', description: '电商主图设计10张交付源文件' } })
   ok('发单携带工种/地点成功', r.status === 201)
   const taskA = r.data.id
-  // 任务B：线下安装（高保额），城市上海
-  r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '家电安装上门', category: '安装', city: '上海', payMethod: '按单', price: 1500, deadline: '2099-07-01', description: '家电上门安装服务按单结算' } })
+  // 任务B：线下安装（高保额），城市柳州
+  r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '家电安装上门', category: '安装', city: '柳州', payMethod: '按单', price: 1500, deadline: '2099-07-01', description: '家电上门安装服务按单结算' } })
   const taskB = r.data.id
   // 校验非法地点被拒
   r = await api('POST', '/company/tasks', { token: companyToken, body: { title: '非法地点任务', category: '设计', city: '火星', payMethod: '按成果', price: 100, deadline: '2099-07-01', description: '用于校验地点白名单' } })
@@ -65,13 +65,13 @@ try {
 
   console.log('— 基础数据字典 /worker/meta —')
   r = await api('GET', '/worker/meta', { token: workerToken })
-  ok('meta 返回类目/计酬/地点/工种/订阅模板', Array.isArray(r.data.categories) && Array.isArray(r.data.payMethods) && r.data.cities.includes('北京') && r.data.trades.includes('UI设计') && Array.isArray(r.data.subscribeTmplIds))
+  ok('meta 返回类目/计酬/地点/工种/订阅模板', Array.isArray(r.data.categories) && Array.isArray(r.data.payMethods) && r.data.cities.includes('南宁') && r.data.trades.includes('UI设计') && Array.isArray(r.data.subscribeTmplIds))
 
   console.log('— 任务大厅：地点/工种/技能筛选 —')
   r = await api('GET', '/worker/tasks', { token: workerToken })
   ok('任务列表返回 city/trade 字段', r.data.list.every(t => t.city) && r.data.list.find(t => t.id === taskA).trade === 'UI设计')
-  r = await api('GET', '/worker/tasks?city=北京', { token: workerToken })
-  ok('按城市筛选：仅北京任务', r.data.list.some(t => t.id === taskA) && !r.data.list.some(t => t.id === taskB))
+  r = await api('GET', '/worker/tasks?city=南宁', { token: workerToken })
+  ok('按城市筛选：仅南宁任务', r.data.list.some(t => t.id === taskA) && !r.data.list.some(t => t.id === taskB))
   r = await api('GET', '/worker/tasks?trade=UI设计', { token: workerToken })
   ok('按工种筛选：仅UI设计任务', r.data.list.some(t => t.id === taskA) && !r.data.list.some(t => t.id === taskB))
   r = await api('GET', '/worker/tasks?matchSkills=1', { token: workerToken })
@@ -80,7 +80,7 @@ try {
   console.log('— 任务详情：保险分级 + 收藏态 —')
   r = await api('GET', `/worker/tasks/${taskA}`, { token: workerToken })
   ok('线上设计任务=基础保额方案', r.data.insurance && r.data.insurance.plan === '基础方案' && r.data.favorited === false)
-  ok('详情含 city/trade', r.data.city === '北京' && r.data.trade === 'UI设计')
+  ok('详情含 city/trade', r.data.city === '南宁' && r.data.trade === 'UI设计')
   r = await api('GET', `/worker/tasks/${taskB}`, { token: workerToken })
   ok('线下安装任务=高保额方案', r.data.insurance && r.data.insurance.plan === '高保额方案')
 
@@ -88,7 +88,7 @@ try {
   r = await api('POST', `/worker/favorites/${taskA}`, { token: workerToken })
   ok('收藏任务（201）', r.status === 201 && r.data.favorited === true)
   r = await api('GET', '/worker/favorites', { token: workerToken })
-  ok('收藏列表含该任务（带city/trade）', r.data.total === 1 && r.data.list[0].id === taskA && r.data.list[0].city === '北京')
+  ok('收藏列表含该任务（带city/trade）', r.data.total === 1 && r.data.list[0].id === taskA && r.data.list[0].city === '南宁')
   r = await api('GET', `/worker/tasks/${taskA}`, { token: workerToken })
   ok('详情收藏态变为 true', r.data.favorited === true)
   await api('DELETE', `/worker/favorites/${taskA}`, { token: workerToken })

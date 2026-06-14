@@ -9,7 +9,7 @@
       </view>
       <view class="tc-unit">{{task.payMethod}} · 截止 {{task.deadline}}</view>
     </view>
-    <view class="tc-price"><text class="tc-symbol">¥</text>{{task.price}}</view>
+    <view class="tc-price"><text class="tc-symbol">¥</text>{{task.subPrice || task.price}}<text class="tc-price-note">税前报酬</text></view>
   </view>
   <view class="tc-bottom">
     <view class="tc-company"><text class="tc-mark"></text><text>{{task.companyName}}</text></view>

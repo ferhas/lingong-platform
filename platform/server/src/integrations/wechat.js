@@ -16,6 +16,11 @@ export async function code2session(code) {
     if (resp.errcode) return { ok: false, message: `微信登录失败：${resp.errmsg}` }
     return { ok: true, openid: resp.openid }
   }
+  // 生产环境严禁回退到确定性模拟登录：未配 WX_APPID/WX_SECRET 即误配，直接 fail-closed，
+  // 否则任何人可凭自选 code 取得稳定 openid 登录/注册零工账号（认证旁路）。
+  if (process.env.NODE_ENV === 'production') {
+    return { ok: false, message: '微信登录未配置（生产环境须设置 WX_APPID/WX_SECRET）' }
+  }
   // 开发态模拟：openid = 'mock_' + sha256(code) 前16位
   const openid = 'mock_' + crypto.createHash('sha256').update(code).digest('hex').slice(0, 16)
   return { ok: true, openid, mocked: true }

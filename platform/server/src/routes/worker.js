@@ -9,6 +9,7 @@ import { pageParams } from '../utils/pagination.js'
 import * as accounts from '../services/accounts.js'
 import * as taxEngine from '../services/taxEngine.js'
 import { getConfig } from '../services/configStore.js'
+import { allTrades } from '../services/taxonomy.js'
 import { notifyCompany } from '../services/notify.js'
 import { amlChecks } from '../services/risk.js'
 import { logAction } from '../services/audit.js'
@@ -27,6 +28,11 @@ router.use(authenticate, requireRole('worker'))
 const getProfile = id => db.prepare(`SELECT * FROM worker_profiles WHERE user_id = ?`).get(id)
 
 const isExpired = deadline => deadline < currentDate()
+
+// 接单锁定提示按锁定原因区分：阈值锁引导登记个体户自助解除，风控锁须联系客服（不可绕过）
+const lockMessage = p => p.lock_reason === 'threshold'
+  ? '已达市场主体强制登记阈值，自然人接单权限已锁定，请完成个体工商户登记后恢复'
+  : '您的接单权限已被平台风控锁定，如有疑问请联系平台客服'
 
 // 按单保险方案与保费（与 hiring.js 录用投保口径一致）：线下作业类目强制高保额方案
 function insuranceFor(category) {
@@ -252,10 +258,17 @@ router.post('/soletrader', (req, res, next) => {
     if (!p.verified) throw badRequest('NOT_VERIFIED', '请先完成实名认证')
     if (p.subject_type === 'soletrader') throw conflict('ALREADY_SOLETRADER', '已登记为个体工商户')
     db.transaction(() => {
-      db.prepare(`UPDATE worker_profiles SET subject_type = 'soletrader', locked = 0 WHERE user_id = ?`).run(req.user.id)
+      // 仅解除"强制登记阈值锁"（threshold）；风控人工锁（risk）不可借登记个体户绕过
+      db.prepare(`
+        UPDATE worker_profiles SET subject_type = 'soletrader',
+          locked = CASE WHEN lock_reason = 'threshold' THEN 0 ELSE locked END,
+          lock_reason = CASE WHEN lock_reason = 'threshold' THEN NULL ELSE lock_reason END
+        WHERE user_id = ?
+      `).run(req.user.id)
     })()
     logAction(req.user.id, 'soletrader_register', licenseNo)
-    res.json({ subjectType: 'soletrader', locked: false })
+    const after = getProfile(req.user.id)
+    res.json({ subjectType: 'soletrader', locked: !!after.locked })
   } catch (err) {
     next(err)
   }
@@ -267,7 +280,7 @@ router.get('/meta', (_req, res) => {
     categories: getConfig('categories'),
     payMethods: getConfig('payMethods'),
     cities: getConfig('cities'),
-    trades: getConfig('skillCatalog'),
+    trades: allTrades(),
     reviewTags: getConfig('reviewTags'),
     // 微信订阅消息模板ID（运营在小程序后台申请后填入；为空时小程序不弹订阅授权）
     subscribeTmplIds: getConfig('subscribeTmplIds')
@@ -310,7 +323,7 @@ router.get('/tasks', (req, res) => {
   const where = conds.join(' AND ')
   const total = db.prepare(`SELECT COUNT(*) AS n FROM tasks t WHERE ${where}`).get(...params).n
   const list = db.prepare(`
-    SELECT t.id, t.title, t.category, t.trade, t.city, t.price, t.pay_method, t.deadline, t.created_at,
+    SELECT t.id, t.title, t.category, t.trade, t.city, t.price, t.sub_price, t.pay_method, t.deadline, t.created_at,
            c.company_name,
            (SELECT COUNT(*) FROM applications a WHERE a.task_id = t.id AND a.status != 'withdrawn') AS applicants
     FROM tasks t JOIN companies c ON c.id = t.company_id
@@ -320,7 +333,8 @@ router.get('/tasks', (req, res) => {
     total,
     list: list.map(r => ({
       id: r.id, title: r.title, category: r.category, trade: r.trade ?? undefined, city: r.city,
-      price: centsToYuan(r.price), payMethod: r.pay_method,
+      // price=承揽价（企业付），subPrice=分包价（零工税前所得，约为承揽价的 1-平台毛利率）
+      price: centsToYuan(r.price), subPrice: centsToYuan(r.sub_price), payMethod: r.pay_method,
       deadline: r.deadline, expired: isExpired(r.deadline),
       companyName: r.company_name,
       applicants: r.applicants, createdAt: r.created_at
@@ -334,12 +348,18 @@ router.get('/tasks/:id', (req, res, next) => {
       SELECT t.*, c.company_name FROM tasks t JOIN companies c ON c.id = t.company_id WHERE t.id = ?
     `).get(req.params.id)
     if (!t) throw notFound('任务不存在')
+    // 任务详情仅对"招募中"或"与本人相关（已报名/被录用）"的任务开放，避免任意零工枚举他企业已下线/已结算任务详情
+    if (t.status !== 'recruiting' && t.worker_id !== req.user.id &&
+        !db.prepare(`SELECT 1 FROM applications WHERE task_id = ? AND worker_id = ?`).get(t.id, req.user.id)) {
+      throw notFound('任务不存在')
+    }
     const app = db.prepare(`SELECT status FROM applications WHERE task_id = ? AND worker_id = ?`).get(t.id, req.user.id)
     const est = taxEngine.estimateForWorker(req.user.id, t.sub_price)
     const favorited = !!db.prepare(`SELECT 1 FROM task_favorites WHERE worker_id = ? AND task_id = ?`).get(req.user.id, t.id)
     res.json({
       id: t.id, title: t.title, category: t.category, trade: t.trade ?? undefined, city: t.city,
-      price: centsToYuan(t.price), payMethod: t.pay_method,
+      // price=承揽价（企业付），subPrice=分包价（零工税前所得）
+      price: centsToYuan(t.price), subPrice: centsToYuan(t.sub_price), payMethod: t.pay_method,
       deadline: t.deadline, expired: isExpired(t.deadline),
       description: t.description, standard: t.standard,
       status: t.status, companyName: t.company_name,
@@ -349,6 +369,7 @@ router.get('/tasks/:id', (req, res, next) => {
       // 接单即按单投保（接单生效、交付终止），保费已含在平台成本中，零工免费享有
       insurance: insuranceFor(t.category),
       estimate: {
+        subjectType: est.subjectType,
         gross: centsToYuan(est.gross),
         tax: centsToYuan(est.tax),
         vat: centsToYuan(est.vat),
@@ -364,7 +385,7 @@ router.post('/tasks/:id/apply', (req, res, next) => {
   try {
     const p = getProfile(req.user.id)
     if (!p.verified) throw badRequest('NOT_VERIFIED', '请先完成实名认证并签署分包协议')
-    if (p.locked) throw locked('已达市场主体强制登记阈值，自然人接单权限已锁定，请完成个体工商户登记')
+    if (p.locked) throw locked(lockMessage(p))
     checkOrderLimit(req.user.id)
     const t = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(req.params.id)
     if (!t) throw notFound('任务不存在')
@@ -399,7 +420,7 @@ router.post('/tasks/:id/withdraw-apply', (req, res, next) => {
 // —— 我的收藏（任务大厅收藏/取消，便于零工回看心仪任务）——
 router.get('/favorites', (req, res) => {
   const list = db.prepare(`
-    SELECT t.id, t.title, t.category, t.trade, t.city, t.price, t.pay_method, t.deadline, t.status, c.company_name, f.created_at AS fav_at
+    SELECT t.id, t.title, t.category, t.trade, t.city, t.price, t.sub_price, t.pay_method, t.deadline, t.status, c.company_name, f.created_at AS fav_at
     FROM task_favorites f JOIN tasks t ON t.id = f.task_id JOIN companies c ON c.id = t.company_id
     WHERE f.worker_id = ? ORDER BY f.id DESC LIMIT 100
   `).all(req.user.id)
@@ -407,7 +428,7 @@ router.get('/favorites', (req, res) => {
     total: list.length,
     list: list.map(t => ({
       id: t.id, title: t.title, category: t.category, trade: t.trade ?? undefined, city: t.city,
-      price: centsToYuan(t.price), payMethod: t.pay_method, deadline: t.deadline,
+      price: centsToYuan(t.price), subPrice: centsToYuan(t.sub_price), payMethod: t.pay_method, deadline: t.deadline,
       status: t.status, expired: isExpired(t.deadline), recruiting: t.status === 'recruiting',
       companyName: t.company_name, favoritedAt: t.fav_at
     }))
@@ -461,7 +482,7 @@ router.post('/dispatches/:id/accept', async (req, res, next) => {
   try {
     const p = getProfile(req.user.id)
     if (!p.verified) throw badRequest('NOT_VERIFIED', '请先完成实名认证并签署分包协议')
-    if (p.locked) throw locked('已达市场主体强制登记阈值，自然人接单权限已锁定，请完成个体工商户登记')
+    if (p.locked) throw locked(lockMessage(p))
     checkOrderLimit(req.user.id)
     const d = db.prepare(`SELECT * FROM dispatches WHERE id = ? AND worker_id = ?`).get(req.params.id, req.user.id)
     if (!d) throw notFound('派单邀约不存在')
@@ -502,13 +523,32 @@ router.post('/dispatches/:id/reject', (req, res, next) => {
 })
 
 // —— 我的接单 ——
+// 我的接单：按状态过滤 + 分页（数量多时分页加载，避免一次返回全部）；附各状态计数供标签页展示
+const ORDER_STATUSES = ['working', 'delivered', 'settled', 'cancelled']
 router.get('/orders', (req, res) => {
+  const { pageSize, offset } = pageParams(req)
+  const conds = ['t.worker_id = ?']
+  const params = [req.user.id]
+  if (req.query.status && ORDER_STATUSES.includes(req.query.status)) {
+    conds.push('t.status = ?')
+    params.push(req.query.status)
+  }
+  const where = conds.join(' AND ')
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM tasks t WHERE ${where}`).get(...params).n
+  // 各状态计数（不受 status 过滤影响），用于标签页角标与「全部」总数
+  const counts = { all: 0 }
+  for (const s of ORDER_STATUSES) counts[s] = 0
+  for (const row of db.prepare(`SELECT status, COUNT(*) AS n FROM tasks WHERE worker_id = ? GROUP BY status`).all(req.user.id)) {
+    counts.all += row.n
+    if (row.status in counts) counts[row.status] = row.n
+  }
   const list = db.prepare(`
     SELECT t.*, c.company_name FROM tasks t JOIN companies c ON c.id = t.company_id
-    WHERE t.worker_id = ? ORDER BY t.id DESC
-  `).all(req.user.id)
+    WHERE ${where} ORDER BY t.id DESC LIMIT ? OFFSET ?
+  `).all(...params, pageSize, offset)
   res.json({
-    total: list.length,
+    total,
+    counts,
     list: list.map(t => ({
       id: t.id, title: t.title, category: t.category,
       price: centsToYuan(t.price), subPrice: centsToYuan(t.sub_price),
@@ -680,8 +720,15 @@ router.post('/skills', (req, res, next) => {
       const owned = db.prepare(`SELECT 1 FROM uploads WHERE id = ? AND owner_id = ?`).get(body.certUploadId, req.user.id)
       if (!owned) throw badRequest('BAD_ATTACHMENT', '证书附件不存在或不属于当前用户')
     }
-    const exists = db.prepare(`SELECT 1 FROM worker_skills WHERE worker_id = ? AND skill = ?`).get(req.user.id, body.skill)
-    if (exists) throw conflict('SKILL_EXISTS', '该技能已提交认证')
+    const exists = db.prepare(`SELECT * FROM worker_skills WHERE worker_id = ? AND skill = ?`).get(req.user.id, body.skill)
+    if (exists && exists.status !== 'rejected') throw conflict('SKILL_EXISTS', '该技能已提交认证')
+    if (exists) {
+      // 被驳回的技能允许重新提交（复用唯一行，重置为待审），避免一次驳回即永久封死无法再认证
+      db.prepare(`UPDATE worker_skills SET level = ?, cert_upload_id = ?, status = 'pending', verify_note = NULL, verified_by = NULL, created_at = datetime('now','localtime') WHERE id = ?`)
+        .run(body.level, body.certUploadId ?? null, exists.id)
+      logAction(req.user.id, 'skill_apply', `${body.skill}/${body.level} (重新提交)`)
+      return res.status(201).json({ id: exists.id, status: 'pending' })
+    }
     const { lastInsertRowid } = db.prepare(`
       INSERT INTO worker_skills (worker_id, skill, level, cert_upload_id) VALUES (?, ?, ?, ?)
     `).run(req.user.id, body.skill, body.level, body.certUploadId ?? null)
@@ -733,11 +780,11 @@ router.get('/income', (req, res) => {
       yearTax: centsToYuan(ys.tax),
       months: ys.months,
       consecutiveMonths,
-      // 本连续段累计已享减除费用 = 5000 × 连续月份数
+      // 本连续段累计已享减除费用 = 每月减除费用 × 连续月份数
       cumulativeDeduction: consecutiveMonths * monthlyDeduction,
       monthSales: centsToYuan(sales),
       vatFree: sales <= getConfig('vatFreeMonthlySales') * 100,
-      taxNote: `按本平台收入累计预扣（劳务报酬）：连续接单 ${consecutiveMonths} 个月，已累计扣除减除费用 ¥${consecutiveMonths * monthlyDeduction}（5000元/月）。某月无接单收入将中断连续、下月重新起算。此为预扣口径，年度汇算清缴以个人申报为准。`
+      taxNote: `按本平台收入累计预扣（劳务报酬）：连续接单 ${consecutiveMonths} 个月，已累计扣除减除费用 ¥${consecutiveMonths * monthlyDeduction}（${monthlyDeduction}元/月）。某月无接单收入将中断连续、下月重新起算。此为预扣口径，年度汇算清缴以个人申报为准。`
     },
     records: records.map(r => ({
       id: r.id, taskTitle: r.title,

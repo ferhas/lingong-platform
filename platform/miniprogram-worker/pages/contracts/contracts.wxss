@@ -74,37 +74,35 @@
 }
 .sheet-close { margin-top: 24rpx; }
 
-@media (prefers-color-scheme: dark) {
-  .tip {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    color: #FFFFFF;
-    box-shadow: none;
-  }
+.t-dark .tip {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  color: #FFFFFF;
+  box-shadow: none;
+}
 
-  .card-arrow {
-    color: #5EEAD4;
-  }
+.t-dark .card-arrow {
+  color: #5EEAD4;
+}
 
-  .card-meta,
-  .sheet-sub,
-  .sheet-hash {
-    color: #94A3B8;
-  }
+.t-dark .card-meta,
+.t-dark .sheet-sub,
+.t-dark .sheet-hash {
+  color: #94A3B8;
+}
 
-  .sheet {
-    background: #121C2B;
-  }
+.t-dark .sheet {
+  background: #121C2B;
+}
 
-  .card-title,
-  .sheet-title {
-    color: #E5E7EB;
-  }
+.t-dark .card-title,
+.t-dark .sheet-title {
+  color: #E5E7EB;
+}
 
-  .sheet-content {
-    color: #CBD5E1;
-  }
+.t-dark .sheet-content {
+  color: #CBD5E1;
+}
 
-  .sheet-hash {
-    background: #0F172A;
-  }
+.t-dark .sheet-hash {
+  background: #0F172A;
 }

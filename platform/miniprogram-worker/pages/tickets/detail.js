@@ -25,7 +25,8 @@ Page({
     id: 0,
     detail: null,
     reply: '',
-    sending: false
+    sending: false,
+    rateScore: 0
   },
 
   onLoad(options) {
@@ -85,9 +86,10 @@ Page({
     })
   },
 
-  // 满意度星级评价（1-5）
+  // 满意度星级评价（1-5）：先回显选中星级，再提交
   async onRate(e) {
     const satisfaction = Number(e.currentTarget.dataset.score)
+    this.setData({ rateScore: satisfaction })
     try {
       await api.post(`/me/tickets/${this.data.id}/rate`, { satisfaction })
       wx.showToast({ title: '感谢您的评价', icon: 'success' })

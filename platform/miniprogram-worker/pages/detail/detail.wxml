@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <block wx:if="{{task}}">
   <view class="detail-header">
     <view class="detail-kicker">
@@ -12,8 +13,8 @@
       <text wx:if="{{task.trade}}" class="d-tag d-tag-trade">{{task.trade}}</text>
     </view>
     <view class="d-price-row">
-      <text class="d-price">¥{{task.price}}</text>
-      <text class="d-unit">{{task.payMethod}}</text>
+      <text class="d-price">¥{{task.subPrice || task.price}}</text>
+      <text class="d-unit">{{task.payMethod}} · 税前报酬</text>
     </view>
     <view class="d-meta">{{task.companyName}} · 截止 {{task.deadline}} · {{task.applicants}}人已报名</view>
   </view>
@@ -31,11 +32,17 @@
   <view class="card">
     <view class="section-title"><text class="title-mark"></text>收入预估</view>
     <view class="section-sub">按当前累计预扣口径试算，实际以结算时为准</view>
-    <view class="income-row"><text>分包报酬</text><text>¥{{task.estimate.gross}}</text></view>
-    <view class="income-row gray"><text>预扣个税（平台代扣代缴）</text><text>-¥{{task.estimate.tax}}</text></view>
-    <view class="income-row gray" wx:if="{{task.estimate.vat > 0}}"><text>代办增值税及附加</text><text>-¥{{task.estimate.vat}}</text></view>
-    <view class="income-row net"><text>预计到手</text><text>¥{{task.estimate.net}}</text></view>
-    <view class="income-tip">月销售额10万元以下免征增值税 · 实际税额以结算时累计预扣计算为准</view>
+    <view class="income-row"><text>分包报酬（税前）</text><text>¥{{task.estimate.gross}}</text></view>
+    <block wx:if="{{task.estimate.subjectType === 'soletrader'}}">
+      <view class="income-row net"><text>预计到手</text><text>¥{{task.estimate.net}}</text></view>
+      <view class="income-tip">您是个体工商户（B线）：经营所得自行申报，平台不代扣个税；结算前需向平台开具发票。</view>
+    </block>
+    <block wx:else>
+      <view class="income-row gray"><text>预扣个税（平台代扣代缴）</text><text>-¥{{task.estimate.tax}}</text></view>
+      <view class="income-row gray" wx:if="{{task.estimate.vat > 0}}"><text>代办增值税及附加</text><text>-¥{{task.estimate.vat}}</text></view>
+      <view class="income-row net"><text>预计到手</text><text>¥{{task.estimate.net}}</text></view>
+      <view class="income-tip">月销售额达免征额前免征增值税 · 实际税额以结算时累计预扣计算为准</view>
+    </block>
   </view>
 
   <view class="card" wx:if="{{task.insurance}}">
@@ -60,5 +67,13 @@
       disabled="{{task.applied || task.status !== 'recruiting' || task.expired || applying}}"
       bindtap="onApply"
     >{{task.applied ? '已报名，等待企业确认' : (task.expired ? '已过截止日期' : (task.status === 'recruiting' ? '立即报名' : '已停止报名'))}}</button>
+    <button
+      wx:if="{{verified && task.applied && task.status === 'recruiting'}}"
+      style="margin-top:16rpx;background:#fff;color:#888;border:1rpx solid #ddd;"
+      hover-class="btn-hover"
+      disabled="{{applying}}"
+      bindtap="onWithdrawApply"
+    >取消报名</button>
   </view>
 </block>
+</view>

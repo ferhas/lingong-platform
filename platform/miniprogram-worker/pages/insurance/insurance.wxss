@@ -55,15 +55,43 @@
 .c-processing { color: #2563EB; background: #E5EDFF; }
 .c-closed { color: #0F766E; background: #E0F2EF; }
 
-@media (prefers-color-scheme: dark) {
-  .page-head { background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%); box-shadow: none; }
-  .tab { background: #121C2B; border-color: #233149; color: #94A3B8; }
-  .tab-on { color: #FFFFFF; }
-  .p-task { color: #E5E7EB; }
-  .p-meta, .c-desc { color: #CBD5E1; }
-  .state-on { color: #5EEAD4; background: rgba(20, 184, 166, 0.14); }
-  .state-off { color: #64748B; background: #1E293B; }
-  .c-reported { color: #FCD34D; background: rgba(180, 83, 9, 0.22); }
-  .c-processing { color: #93C5FD; background: rgba(37, 99, 235, 0.18); }
-  .c-closed { color: #5EEAD4; background: rgba(20, 184, 166, 0.14); }
+.t-dark .page-head {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%); box-shadow: none;
+}
+
+.t-dark .tab {
+  background: #121C2B; border-color: #233149; color: #94A3B8;
+}
+
+.t-dark .tab-on {
+  color: #FFFFFF;
+}
+
+.t-dark .p-task {
+  color: #E5E7EB;
+}
+
+.t-dark .p-meta,
+.t-dark .c-desc {
+  color: #CBD5E1;
+}
+
+.t-dark .state-on {
+  color: #5EEAD4; background: rgba(20, 184, 166, 0.14);
+}
+
+.t-dark .state-off {
+  color: #64748B; background: #1E293B;
+}
+
+.t-dark .c-reported {
+  color: #FCD34D; background: rgba(180, 83, 9, 0.22);
+}
+
+.t-dark .c-processing {
+  color: #93C5FD; background: rgba(37, 99, 235, 0.18);
+}
+
+.t-dark .c-closed {
+  color: #5EEAD4; background: rgba(20, 184, 166, 0.14);
 }

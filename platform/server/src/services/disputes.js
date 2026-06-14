@@ -17,6 +17,7 @@ const qDispute = db.prepare(`SELECT * FROM disputes WHERE id = ?`)
 const qEvent = db.prepare(`
   INSERT INTO dispute_events (dispute_id, actor_role, actor_id, action, content, attachment_ids) VALUES (?, ?, ?, ?, ?, ?)
 `)
+const qOwnedUpload = db.prepare(`SELECT 1 FROM uploads WHERE id = ? AND owner_id = ?`)
 
 function deadlineAfterHours(hours) {
   return new Date(Date.now() + hours * 3600000).toISOString().replace('T', ' ').slice(0, 19)
@@ -24,6 +25,14 @@ function deadlineAfterHours(hours) {
 
 export function addEvent(disputeId, actorRole, actorId, action, content = '', attachmentIds = []) {
   qEvent.run(disputeId, actorRole, actorId, action, content, JSON.stringify(attachmentIds))
+}
+
+function assertOwnedAttachments(actorId, attachmentIds) {
+  for (const uid of attachmentIds) {
+    if (!qOwnedUpload.get(uid, actorId)) {
+      throw badRequest('BAD_ATTACHMENT', '附件不存在或不属于当前用户')
+    }
+  }
 }
 
 function notifyParties(task, title, body, exceptRole = null) {
@@ -65,15 +74,20 @@ export function createDispute({ task, type, initiatorRole, initiatorId, claim, c
   if (settling && settling.status !== 'done' && task.status !== 'settled') {
     throw conflict('SETTLING', '该任务结算处理中，暂不可发起争议，请联系平台客服')
   }
+  assertOwnedAttachments(initiatorId, attachmentIds)
 
   const no = genNo('DSP')
   const negotiateHours = getConfig('disputeNegotiateHours')
   const disputeId = db.transaction(() => {
+    // 事务内复查并以条件更新抢占争议锁：杜绝并发双开（多实例下两请求都通过事务外 :56 检查）
+    const cur = db.prepare(`SELECT dispute_id FROM tasks WHERE id = ?`).get(task.id)
+    if (cur?.dispute_id) throw conflict('DISPUTE_EXISTS', '该任务已有处理中的争议')
     const { lastInsertRowid } = db.prepare(`
       INSERT INTO disputes (no, task_id, type, initiator_role, initiator_id, claim, claim_amount, stage_deadline)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `).run(no, task.id, type, initiatorRole, initiatorId, claim, claimAmount, deadlineAfterHours(negotiateHours))
-    db.prepare(`UPDATE tasks SET dispute_id = ? WHERE id = ?`).run(lastInsertRowid, task.id)
+    const upd = db.prepare(`UPDATE tasks SET dispute_id = ? WHERE id = ? AND dispute_id IS NULL`).run(lastInsertRowid, task.id)
+    if (upd.changes === 0) throw conflict('DISPUTE_EXISTS', '该任务已有处理中的争议')
     return lastInsertRowid
   })()
   addEvent(disputeId, initiatorRole, initiatorId, 'create', claim, attachmentIds)
@@ -103,7 +117,8 @@ export function withdrawDispute(disputeId, actorRole, actorId) {
   const task = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(d.task_id)
   db.transaction(() => {
     db.prepare(`UPDATE disputes SET status = 'withdrawn', closed_at = datetime('now','localtime') WHERE id = ?`).run(d.id)
-    db.prepare(`UPDATE tasks SET dispute_id = NULL WHERE id = ?`).run(d.task_id)
+    // 仅解除仍指向本争议的锁，避免误解他人争议的结算锁
+    db.prepare(`UPDATE tasks SET dispute_id = NULL WHERE id = ? AND dispute_id = ?`).run(d.task_id, d.id)
   })()
   addEvent(d.id, actorRole, actorId, 'withdraw', '发起方撤回争议（已和解或放弃）')
   notifyParties(task, '争议已撤回', `争议 ${d.no} 已由发起方撤回，任务恢复正常流转。`)
@@ -139,10 +154,7 @@ export function ruleDispute(disputeId, arbiterId, { rulingType, rulingAmount, ru
       throw badRequest('BAD_RULING_AMOUNT', '部分结算金额须大于0且小于分包价')
     }
   }
-  // 已结算任务（quality_after）：资金不可逆向扣划，仅支持记录性裁决（协商退款+发票红冲走线下通道）
-  if (task.status === 'settled' && ['full_pay', 'partial_pay', 'no_pay'].includes(rulingType) === false && rulingType !== 'redeliver') {
-    // redeliver 对已结算任务同样无效
-  }
+  // 已结算任务（quality_after）：资金不可逆向扣划，仅支持记录性裁决（退款/红冲走线下通道）；重交付无意义
   if (task.status === 'settled' && rulingType === 'redeliver') {
     throw badRequest('BAD_RULING', '已结算任务不支持限期重交付裁决')
   }
@@ -175,17 +187,23 @@ export async function executeDispute(disputeId, operatorId) {
   const task = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(d.task_id)
   const company = db.prepare(`SELECT * FROM companies WHERE id = ?`).get(task.company_id)
 
-  // 解除争议锁后按裁决处置
-  db.prepare(`UPDATE tasks SET dispute_id = NULL WHERE id = ?`).run(task.id)
+  // 幂等护栏：escalated 可能来自"已执行"态（closed_at 已写）。此时资金已按裁决处置完毕，
+  // 二次执行只补记状态、绝不重复划款/解冻（no_pay 解冻无幂等屏障，重复会吃掉其他冻结额）。
+  const alreadyExecuted = !!d.closed_at
 
-  if (task.status !== 'settled') {
+  if (!alreadyExecuted && task.status !== 'settled') {
     switch (d.ruling_type) {
       case 'full_pay':
-        await settleWithRuling(task, company, task.sub_price, d.no)
+      case 'partial_pay': {
+        // 幂等且对结算通道异常有韧性：结算单已 done（可能由结算重试 Job 补齐）则直接收尾；
+        // 若通道异常留下 pending 单，settleWithRuling 抛 SETTLING/502，本次不解锁、不改争议状态，
+        // 待结算重试 Job 完成后由超时 Job 再次执行收尾，避免争议永久卡在 ruled。
+        const existed = db.prepare(`SELECT status FROM settlements WHERE task_id = ?`).get(task.id)
+        if (existed?.status !== 'done') {
+          await settleWithRuling(task, company, d.ruling_type === 'full_pay' ? task.sub_price : d.ruling_amount, d.no)
+        }
         break
-      case 'partial_pay':
-        await settleWithRuling(task, company, d.ruling_amount, d.no)
-        break
+      }
       case 'no_pay':
         db.transaction(() => {
           db.prepare(`UPDATE tasks SET status = 'cancelled' WHERE id = ?`).run(task.id)
@@ -203,11 +221,15 @@ export async function executeDispute(disputeId, operatorId) {
     }
   }
   // 已结算任务：仅记录处置结论（退款/红冲走协商通道，不逆向扣划 C 端已提现资金）
+  // 处置成功后才解除争议锁（仅当仍指向本争议）：pay 分支结算 pending 时上面已抛错返回，锁保留待下轮收尾。
+  db.prepare(`UPDATE tasks SET dispute_id = NULL WHERE id = ? AND dispute_id = ?`).run(task.id, d.id)
 
-  db.prepare(`UPDATE disputes SET status = 'executed', closed_at = datetime('now','localtime') WHERE id = ?`).run(d.id)
-  addEvent(d.id, 'admin', operatorId, 'execute', `裁决已执行：${rulingLabel(d.ruling_type, d.ruling_amount)}`)
-  notifyParties(task, '争议处理完成', `争议 ${d.no} 裁决已执行完毕。`)
-  if (d.ruling_type === 'partial_pay' && task.worker_id) recalcWorkerCredit(task.worker_id)
+  db.prepare(`UPDATE disputes SET status = 'executed', closed_at = COALESCE(closed_at, datetime('now','localtime')) WHERE id = ?`).run(d.id)
+  if (!alreadyExecuted) {
+    addEvent(d.id, 'admin', operatorId, 'execute', `裁决已执行：${rulingLabel(d.ruling_type, d.ruling_amount)}`)
+    notifyParties(task, '争议处理完成', `争议 ${d.no} 裁决已执行完毕。`)
+    if (d.ruling_type === 'partial_pay' && task.worker_id) recalcWorkerCredit(task.worker_id)
+  }
   return { status: 'executed' }
 }
 
@@ -222,9 +244,9 @@ export function escalateDispute(disputeId, actorRole, actorId) {
   return { status: 'escalated' }
 }
 
-/** 超时流转 Job：协商期满自动转仲裁；仲裁举证期满提醒仲裁员；执行后24h归档关闭 */
-export function runDisputeTimeouts() {
-  let toArbitrating = 0, reminders = 0, closed = 0
+/** 超时流转 Job：协商期满自动转仲裁；仲裁举证期满提醒仲裁员；裁决公示期满自动执行；执行后24h归档关闭 */
+export async function runDisputeTimeouts() {
+  let toArbitrating = 0, reminders = 0, executed = 0, closed = 0
   const now = new Date().toISOString().replace('T', ' ').slice(0, 19)
 
   for (const d of db.prepare(`SELECT * FROM disputes WHERE status = 'negotiating' AND stage_deadline <= ?`).all(now)) {
@@ -243,9 +265,20 @@ export function runDisputeTimeouts() {
     reminders++
   }
 
+  // 裁决公示期满（ruled.stage_deadline，默认24h）自动执行：否则结算锁永不解除，零工资金被永久冻结。
+  for (const d of db.prepare(`SELECT id FROM disputes WHERE status = 'ruled' AND stage_deadline <= ?`).all(now)) {
+    try {
+      await executeDispute(d.id, 0)
+      executed++
+    } catch (err) {
+      // 单条执行失败（如银行通道异常）不影响整批，结算单留 pending 由结算重试 Job 补齐
+      console.error(`[disputeTimeouts] 自动执行争议#${d.id}失败:`, err.message)
+    }
+  }
+
   const r = db.prepare(`
     UPDATE disputes SET status = 'closed' WHERE status = 'executed' AND closed_at <= datetime('now','localtime','-1 day')
   `).run()
   closed = r.changes
-  return { toArbitrating, reminders, closed }
+  return { toArbitrating, reminders, executed, closed }
 }

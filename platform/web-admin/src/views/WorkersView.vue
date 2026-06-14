@@ -9,12 +9,40 @@
         <el-button type="primary" plain :icon="Download" :loading="exporting" @click="onExport">
           导出名册
         </el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <div class="filter-bar">
+        <el-input
+          v-model="filters.keyword"
+          placeholder="按姓名搜索"
+          clearable
+          style="width: 180px"
+          @keyup.enter="onFilter"
+          @clear="onFilter"
+        />
+        <el-select v-model="filters.subjectType" style="width: 140px" @change="onFilter">
+          <el-option label="全部主体" value="all" />
+          <el-option label="自然人" value="person" />
+          <el-option label="个体工商户" value="soletrader" />
+        </el-select>
+        <el-select v-model="filters.verified" style="width: 130px" @change="onFilter">
+          <el-option label="实名不限" value="all" />
+          <el-option label="已实名" value="1" />
+          <el-option label="未实名" value="0" />
+        </el-select>
+        <el-select v-model="filters.status" style="width: 130px" @change="onFilter">
+          <el-option label="状态不限" value="all" />
+          <el-option label="正常" value="active" />
+          <el-option label="已停用" value="disabled" />
+        </el-select>
+        <el-checkbox v-model="filters.lockedOnly" @change="onFilter">仅看已锁定</el-checkbox>
+        <el-button :icon="Search" @click="onFilter">查询</el-button>
+      </div>
+
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="70" align="center" />
         <el-table-column prop="name" label="姓名" min-width="110" />
         <el-table-column prop="phone" label="手机号" min-width="140">
@@ -264,9 +292,9 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Refresh, Download } from '@element-plus/icons-vue'
+import { Refresh, Download, Search } from '@element-plus/icons-vue'
 import { getWorkers, getWorkerDetail, lockWorker, getWorkerPii } from '../api/admin'
-import { fmtMoney, fmtTime } from '../utils/format'
+import { fmtMoney, fmtTime, today } from '../utils/format'
 import { downloadCsv } from '../utils/download'
 import { useAuthStore } from '../stores/auth'
 
@@ -284,10 +312,12 @@ const pageSize = ref(20)
 
 const drawer = reactive({ visible: false, loading: false, data: null })
 
+const filters = reactive({ keyword: '', subjectType: 'all', verified: 'all', status: 'all', lockedOnly: false })
+
 const TASK_STATUS_TEXT = {
-  recruiting: '招募中',
+  recruiting: '报名中',
   working: '进行中',
-  delivered: '已交付',
+  delivered: '待验收',
   settled: '已结算',
   cancelled: '已取消'
 }
@@ -326,7 +356,13 @@ function alertLevelTagType(level) {
 async function load() {
   loading.value = true
   try {
-    const data = await getWorkers({ page: page.value, pageSize: pageSize.value })
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (filters.keyword.trim()) params.keyword = filters.keyword.trim()
+    if (filters.subjectType !== 'all') params.subjectType = filters.subjectType
+    if (filters.verified !== 'all') params.verified = filters.verified
+    if (filters.status !== 'all') params.status = filters.status
+    if (filters.lockedOnly) params.locked = '1'
+    const data = await getWorkers(params)
     list.value = data.list
     total.value = data.total
   } catch {
@@ -334,6 +370,11 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+function onFilter() {
+  page.value = 1
+  load()
 }
 
 function onSizeChange() {
@@ -404,8 +445,7 @@ async function toggleLock(row, lock) {
 async function onExport() {
   exporting.value = true
   try {
-    const today = new Date().toISOString().slice(0, 10)
-    await downloadCsv('/admin/workers/export', `零工名册_${today}.csv`)
+    await downloadCsv('/admin/workers/export', `零工名册_${today()}.csv`)
     ElMessage.success('名册已导出')
   } catch {
     /* 错误已统一提示 */
@@ -423,6 +463,14 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
 .detail-body {
   min-height: 200px;
 }

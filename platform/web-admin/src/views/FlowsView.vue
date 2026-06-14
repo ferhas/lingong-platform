@@ -9,11 +9,11 @@
         <el-button type="primary" plain :icon="Download" :loading="exporting" @click="onExport">
           导出流水
         </el-button>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
-    <div class="panel recon-panel" v-if="recon">
+    <div v-if="recon" class="panel recon-panel">
       <div class="recon-head">
         <h3 class="recon-title">自动对账（银行存管回执 ↔ 平台账务）</h3>
         <el-tag :type="recon.balanced ? 'success' : 'danger'" effect="dark">
@@ -107,7 +107,18 @@
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <div class="filter-bar">
+        <el-select v-model="filters.ownerType" style="width: 170px" @change="onFilter">
+          <el-option label="全部账户" value="all" />
+          <el-option v-for="(text, key) in OWNER_TEXT" :key="key" :label="text" :value="key" />
+        </el-select>
+        <el-select v-model="filters.type" style="width: 150px" @change="onFilter">
+          <el-option label="全部类型" value="all" />
+          <el-option v-for="(text, key) in TYPE_TEXT" :key="key" :label="text" :value="key" />
+        </el-select>
+      </div>
+
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="流水编号" width="90" align="center" />
         <el-table-column label="账户类型" width="150">
           <template #default="{ row }">
@@ -122,7 +133,7 @@
         <el-table-column label="金额" min-width="130" align="right">
           <template #default="{ row }">
             <span class="money" :class="amountClass(row.type)">
-              {{ fmtMoney(row.amount, { sign: false }) }}
+              {{ amountSign(row.type) }}{{ fmtMoney(row.amount) }}
             </span>
           </template>
         </el-table-column>
@@ -150,7 +161,7 @@
           :page-sizes="[10, 20, 50]"
           layout="total, sizes, prev, pager, next"
           background
-          @current-change="load"
+          @current-change="loadFlows"
           @size-change="onSizeChange"
         />
       </div>
@@ -159,11 +170,11 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Refresh, Download } from '@element-plus/icons-vue'
 import { getFlows, getReconciliation } from '../api/admin'
-import { fmtMoney, fmtTime } from '../utils/format'
+import { fmtMoney, fmtTime, today } from '../utils/format'
 import { downloadCsv } from '../utils/download'
 
 const loading = ref(false)
@@ -173,6 +184,7 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const recon = ref(null)
+const filters = reactive({ ownerType: 'all', type: 'all' })
 // 默认收起;有差异日时自动展开,便于第一时间核查
 const dailyExpanded = ref([])
 
@@ -221,16 +233,22 @@ function amountClass(type) {
   return ''
 }
 
-async function load() {
+// 出/入方向用 +/- 前缀冗余表达，避免仅靠红绿色区分（色盲可读）
+function amountSign(type) {
+  if (['settle_out', 'withdraw'].includes(type)) return '-'
+  if (['recharge', 'settle_in', 'tax_in', 'revenue_in'].includes(type)) return '+'
+  return ''
+}
+
+async function loadFlows() {
   loading.value = true
   try {
-    const data = await getFlows({ page: page.value, pageSize: pageSize.value })
+    const params = { page: page.value, pageSize: pageSize.value }
+    if (filters.ownerType !== 'all') params.ownerType = filters.ownerType
+    if (filters.type !== 'all') params.type = filters.type
+    const data = await getFlows(params)
     list.value = data.list
     total.value = data.total
-    recon.value = await getReconciliation()
-    if (recon.value?.mismatchDays?.length) {
-      dailyExpanded.value = ['daily']
-    }
   } catch {
     /* 错误已统一提示 */
   } finally {
@@ -238,16 +256,35 @@ async function load() {
   }
 }
 
+// 对账汇总（近30天）随页加载一次即可，翻页不重复拉取
+async function loadRecon() {
+  try {
+    recon.value = await getReconciliation()
+    if (recon.value?.mismatchDays?.length) dailyExpanded.value = ['daily']
+  } catch {
+    /* 错误已统一提示 */
+  }
+}
+
+function load() {
+  loadFlows()
+  loadRecon()
+}
+
+function onFilter() {
+  page.value = 1
+  loadFlows()
+}
+
 function onSizeChange() {
   page.value = 1
-  load()
+  loadFlows()
 }
 
 async function onExport() {
   exporting.value = true
   try {
-    const today = new Date().toISOString().slice(0, 10)
-    await downloadCsv('/admin/flows/export', `平台资金流水_${today}.csv`)
+    await downloadCsv('/admin/flows/export', `平台资金流水_${today()}.csv`)
     ElMessage.success('流水已导出')
   } catch {
     /* 错误已统一提示 */
@@ -260,6 +297,14 @@ onMounted(load)
 </script>
 
 <style scoped>
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
 .amount-in {
   color: var(--success);
   font-weight: 700;

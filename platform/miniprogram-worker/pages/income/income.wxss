@@ -34,17 +34,18 @@ page { padding: 24rpx 24rpx 180rpx; }
 .balance-num { color: #FFFFFF; font-size: calc(60rpx * var(--fs, 1)); font-weight: 800; margin-top: 12rpx; }
 .balance-sub { color: rgba(255, 255, 255, 0.82); font-size: calc(26rpx * var(--fs, 1)); margin-top: 8rpx; }
 .withdraw-btn {
-  position: absolute;
-  top: 44rpx;
-  right: 32rpx;
+  position: relative;
+  z-index: 1;
+  display: inline-block;
+  margin-top: 28rpx;
   background: #FFFFFF;
   color: #0F766E;
   border-radius: 999rpx;
   font-size: calc(28rpx * var(--fs, 1));
   font-weight: 700;
-  padding: 0 38rpx;
-  line-height: 66rpx;
-  z-index: 1;
+  padding: 0 44rpx;
+  min-height: 80rpx;
+  line-height: 80rpx;
   box-shadow: 0 8rpx 20rpx rgba(15, 23, 42, 0.16);
 }
 
@@ -132,65 +133,63 @@ page { padding: 24rpx 24rpx 180rpx; }
 .record-voucher { font-size: calc(26rpx * var(--fs, 1)); color: #059669; margin-top: 6rpx; }
 .record-net { color: #059669; font-size: calc(28rpx * var(--fs, 1)); font-weight: 700; }
 
-@media (prefers-color-scheme: dark) {
-  .balance-card {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-    box-shadow: none;
-  }
+.t-dark .balance-card {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  box-shadow: none;
+}
 
-  .chart-bar {
-    background: linear-gradient(180deg, #2DD4BF 0%, #0F766E 100%);
-    box-shadow: none;
-  }
+.t-dark .chart-bar {
+  background: linear-gradient(180deg, #2DD4BF 0%, #0F766E 100%);
+  box-shadow: none;
+}
 
-  .withdraw-btn {
-    background: #F8FAFC;
-    color: #0F766E;
-  }
+.t-dark .withdraw-btn {
+  background: #F8FAFC;
+  color: #0F766E;
+}
 
-  .chart-val,
-  .chart-label,
-  .wd-time,
-  .tax-tip,
-  .empty-sm,
-  .record-time {
-    color: #94A3B8;
-  }
+.t-dark .chart-val,
+.t-dark .chart-label,
+.t-dark .wd-time,
+.t-dark .tax-tip,
+.t-dark .empty-sm,
+.t-dark .record-time {
+  color: #94A3B8;
+}
 
-  .tax-row,
-  .record-name,
-  .tax-title,
-  .record-title {
-    color: #CBD5E1;
-  }
+.t-dark .tax-row,
+.t-dark .record-name,
+.t-dark .tax-title,
+.t-dark .record-title {
+  color: #CBD5E1;
+}
 
-  .tax-tip {
-    background: #0F172A;
-  }
+.t-dark .tax-tip {
+  background: #0F172A;
+}
 
-  .wd-item,
-  .record-item {
-    border-bottom-color: #233149;
-  }
+.t-dark .wd-item,
+.t-dark .record-item {
+  border-bottom-color: #233149;
+}
 
-  .wd-done,
-  .record-voucher,
-  .record-net {
-    color: #6EE7B7;
-  }
+.t-dark .wd-done,
+.t-dark .record-voucher,
+.t-dark .record-net {
+  color: #6EE7B7;
+}
 
-  .wd-failed {
-    color: #FCA5A5;
-  }
+.t-dark .wd-failed {
+  color: #FCA5A5;
+}
 
-  .wd-processing,
-  .wd-applied {
-    color: #FDBA74;
-  }
+.t-dark .wd-processing,
+.t-dark .wd-applied {
+  color: #FDBA74;
+}
 
-  .voucher-link {
-    color: #5EEAD4;
-  }
+.t-dark .voucher-link {
+  color: #5EEAD4;
 }
 
 /* 提现弹窗表单间距 */

@@ -17,13 +17,11 @@ page { padding: 24rpx; }
 .notice { color: #64748B; font-size: calc(26rpx * var(--fs, 1)); line-height: 1.7; margin: 8rpx 8rpx 28rpx; }
 .submit { margin: 0 8rpx; }
 
-@media (prefers-color-scheme: dark) {
-  .picker-box {
-    background: #0F172A;
-    color: #F8FAFC;
-  }
+.t-dark .picker-box {
+  background: #0F172A;
+  color: #F8FAFC;
+}
 
-  .notice {
-    color: #94A3B8;
-  }
+.t-dark .notice {
+  color: #94A3B8;
 }

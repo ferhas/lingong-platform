@@ -1,11 +1,11 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div v-loading="loading" class="page">
     <div class="page-header">
       <div>
         <h2 class="page-title">运营总览</h2>
         <p class="page-sub">平台核心经营与合规指标一览</p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <!-- 四张统计卡(可点击跳转) -->
@@ -87,7 +87,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import * as echarts from 'echarts'
 import { Refresh, Money, OfficeBuilding, Warning, Coin } from '@element-plus/icons-vue'
 import { getDashboard, getStatsTrend } from '../api/admin'
 import { fmtMoney } from '../utils/format'
@@ -158,13 +157,39 @@ function baseTooltip(p) {
   }
 }
 
+// 无数据/全为 0 时隐藏空轴并居中提示「暂无数据」，避免渲染成像坏掉的空白网格
+// 置于 setOption 末尾展开，空态时覆盖 xAxis/yAxis/legend/series
+function emptyOpt(isEmpty, p) {
+  if (!isEmpty) return {}
+  return {
+    title: {
+      text: '暂无数据',
+      left: 'center',
+      top: 'middle',
+      textStyle: { color: p.text, fontWeight: 'normal', fontSize: 13 }
+    },
+    xAxis: { show: false },
+    yAxis: { show: false },
+    legend: { show: false },
+    series: []
+  }
+}
+
 function disposeCharts() {
   charts.forEach(c => c.dispose())
   charts = []
 }
 
-function renderCharts() {
+// echarts 按需异步加载：先渲染页面骨架，图表库就绪后再绘制，避免首次进入总览时白屏等待
+let echarts = null
+async function loadECharts() {
+  if (!echarts) echarts = (await import('../utils/echarts')).default
+  return echarts
+}
+
+async function renderCharts() {
   if (!trendData.value) return
+  await loadECharts()
   disposeCharts()
   const p = chartPalette()
   const { trend = [], taxTrend = [], statusDist = [] } = trendData.value
@@ -204,7 +229,8 @@ function renderCharts() {
             { offset: 1, color: 'rgba(99, 102, 241, 0.02)' }
           ])
         }
-      }]
+      }],
+      ...emptyOpt(!trend.some(t => t.amount), p)
     })
     charts.push(c)
   }
@@ -225,7 +251,8 @@ function renderCharts() {
         itemStyle: { borderRadius: 6, borderColor: theme.isDark ? '#151e30' : '#ffffff', borderWidth: 2 },
         label: { color: p.text, formatter: '{b}: {c}' },
         data: statusDist.map(s => ({ name: STATUS_TEXT[s.status] || s.status, value: s.count }))
-      }]
+      }],
+      ...emptyOpt(!statusDist.some(s => s.count), p)
     })
     charts.push(c)
   }
@@ -269,7 +296,8 @@ function renderCharts() {
           itemStyle: { color: '#10b981', borderRadius: [4, 4, 0, 0] },
           data: taxTrend.map(t => t.vat)
         }
-      ]
+      ],
+      ...emptyOpt(!taxTrend.some(t => t.tax || t.vat), p)
     })
     charts.push(c)
   }
@@ -286,7 +314,7 @@ async function load() {
     data.value = dash
     trendData.value = trend
     await nextTick()
-    renderCharts()
+    await renderCharts()
   } catch {
     /* 错误已统一提示 */
   } finally {

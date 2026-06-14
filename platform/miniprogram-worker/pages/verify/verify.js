@@ -135,9 +135,14 @@ Page({
   showSuccess(frameContractNo) {
     wx.showModal({
       title: '认证成功',
-      content: `实名核验通过，本人一类银行卡已绑定。\n\n《分包协议（框架）》已电子签署并司法存证。\n协议编号：${frameContractNo}`,
-      showCancel: false,
-      success: () => this.fetchProfile()
+      content: `实名核验通过，《分包协议（框架）》已电子签署并司法存证。\n协议编号：${frameContractNo}\n\n提现前请前往「我的-提现银行卡」完成绑卡四要素核验。`,
+      showCancel: true,
+      cancelText: '稍后',
+      confirmText: '去绑卡',
+      success: res => {
+        this.fetchProfile()
+        if (res.confirm) wx.navigateTo({ url: '/pages/bindcard/bindcard' })
+      }
     })
   }
 })

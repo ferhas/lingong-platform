@@ -81,6 +81,23 @@ page {
   font-weight: 800;
 }
 
+.mock-btn {
+  margin-top: 20rpx;
+  background: #FFFFFF;
+  color: #0F766E;
+  border: 2rpx dashed #0F766E;
+  border-radius: 999rpx;
+  font-size: calc(28rpx * var(--fs, 1));
+  font-weight: 700;
+  min-height: 84rpx;
+}
+.mock-tip {
+  text-align: center;
+  color: #94A3B8;
+  font-size: calc(24rpx * var(--fs, 1));
+  margin-top: 12rpx;
+}
+
 .agree-row {
   display: flex;
   align-items: center;
@@ -157,5 +174,15 @@ page {
   .agree-on {
     background: #0F766E;
     border-color: #0F766E;
+  }
+
+  .mock-btn {
+    background: #121C2B;
+    color: #5EEAD4;
+    border-color: #5EEAD4;
+  }
+
+  .mock-tip {
+    color: #64748B;
   }
 }

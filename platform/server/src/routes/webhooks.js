@@ -55,6 +55,9 @@ export function processEvent(provider, eventType, data) {
   }
 }
 
+// 毒丸熔断阈值：连续失败达此次数（未注册事件类型、永久畸形报文等）转 ignored 死信，停止无限重放
+const WEBHOOK_MAX_ATTEMPTS = 5
+
 /** 重放单个事件（webhook 入口、补单 Job、运营端手工重放共用） */
 export function replayEvent(event) {
   try {
@@ -63,9 +66,15 @@ export function replayEvent(event) {
       .run(event.id)
     return { ok: true }
   } catch (err) {
-    db.prepare(`UPDATE webhook_events SET status = 'failed', error = ? WHERE id = ?`)
-      .run(String(err.message).slice(0, 200), event.id)
-    return { ok: false, error: err.message }
+    const attempts = (event.attempts ?? 0) + 1
+    const deadLetter = attempts >= WEBHOOK_MAX_ATTEMPTS
+    db.prepare(`UPDATE webhook_events SET status = ?, attempts = ?, error = ? WHERE id = ?`)
+      .run(deadLetter ? 'ignored' : 'failed', attempts, String(err.message).slice(0, 200), event.id)
+    if (deadLetter) {
+      raiseAlert('中', '回调事件死信',
+        `回调事件#${event.id}（${event.provider}:${event.event_type}）连续 ${attempts} 次处理失败已转死信(ignored)，停止自动重放，请人工排查后手工重放：${err.message}`)
+    }
+    return { ok: false, error: err.message, deadLetter }
   }
 }
 
@@ -99,7 +108,8 @@ router.post('/:provider', express.raw({ type: '*/*', limit: '1mb' }), (req, res)
     INSERT OR IGNORE INTO webhook_events (provider, event_id, event_type, payload) VALUES (?, ?, ?, ?)
   `).run(provider, String(eventId), String(eventType), JSON.stringify(data ?? {}))
   const event = db.prepare(`SELECT * FROM webhook_events WHERE provider = ? AND event_id = ?`).get(provider, String(eventId))
-  if (!inserted.changes && event.status === 'processed') {
+  // 已处理或已死信(ignored)的重复推送直接幂等应答，杜绝毒丸事件靠重复投递绕过熔断阈值
+  if (!inserted.changes && (event.status === 'processed' || event.status === 'ignored')) {
     return res.json({ code: 'SUCCESS', duplicated: true })
   }
 

@@ -3,7 +3,7 @@ const api = require('../../utils/api.js')
 Page({
   data: {
     task: null,
-    verified: true,
+    verified: false,
     applying: false
   },
 
@@ -43,6 +43,20 @@ Page({
       if (e.message && e.message.includes('实名')) {
         setTimeout(() => wx.navigateTo({ url: '/pages/verify/verify' }), 1200)
       }
+    } finally {
+      this.setData({ applying: false })
+    }
+  },
+
+  // 取消报名（仅报名中、未被录用时可撤回；对应后端 /worker/tasks/:id/withdraw-apply）
+  async onWithdrawApply() {
+    if (this.data.applying) return
+    this.setData({ applying: true })
+    try {
+      await api.post(`/worker/tasks/${this.taskId}/withdraw-apply`)
+      wx.showToast({ title: '已取消报名', icon: 'success' })
+      this.fetch()
+    } catch (e) {
     } finally {
       this.setData({ applying: false })
     }

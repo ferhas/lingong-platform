@@ -46,11 +46,12 @@ export async function acceptAndSettle(task, company) {
 
   const worker = getWorker(task.worker_id)
 
-  // —— B线（个体户）发票流硬校验 ——
+  // —— B线（个体户）发票流硬校验：须有「未被驳回」的进项发票 ——
+  // 仅看附件存在会被作废票占位绕过；这里以进项台账状态为准（被运营驳回 rejected 的票不计）。
   if (worker.subject_type === 'soletrader') {
-    const inv = db.prepare(`SELECT 1 FROM task_attachments WHERE task_id = ? AND kind = 'invoice'`).get(task.id)
+    const inv = db.prepare(`SELECT 1 FROM input_invoices WHERE task_id = ? AND status != 'rejected'`).get(task.id)
     if (!inv) {
-      throw badRequest('NO_INPUT_INVOICE', '四流校验失败：个体工商户零工须先向平台上传发票（B线进项凭证）方可结算')
+      throw badRequest('NO_INPUT_INVOICE', '四流校验失败：个体工商户零工须先向平台上传有效进项发票（B线进项凭证）方可结算')
     }
   }
 
@@ -130,6 +131,19 @@ function createSettlementRecord(task, company, worker, gross, disputeNo) {
  * 可被 accept 主流程与重试 Job 共用，按腿幂等。
  */
 export async function processSettlement(s) {
+  // 幂等重读：以库内最新单据为准，避免用陈旧快照重复推进腿、覆盖 legs_done；已完成直接返回缓存结果（防并发双推进）
+  s = db.prepare(`SELECT * FROM settlements WHERE id = ?`).get(s.id)
+  if (!s) return { ok: false, error: '结算单不存在' }
+  if (s.status === 'done') {
+    return {
+      ok: true,
+      data: {
+        confirmNo: s.confirm_no,
+        invoice: { no: s.invoice_no, amount: s.gross + s.margin, taxRate: getConfig('outputVatRate') },
+        settlement: { workerNet: s.net, tax: s.tax, vat: s.vat, platformFee: s.margin }
+      }
+    }
+  }
   const task = db.prepare(`SELECT * FROM tasks WHERE id = ?`).get(s.task_id)
   const company = db.prepare(`SELECT * FROM companies WHERE id = ?`).get(s.company_id)
   const legs = JSON.parse(s.legs_done)
@@ -185,17 +199,21 @@ export async function processSettlement(s) {
     }
   } catch (err) {
     const attempts = s.attempts + 1
+    const RETRY_CAP = 8  // 与 jobs/settlementRetry.js 的自动重试上限一致
     const failed = attempts >= 3
     qFail.run(attempts, String(err.message).slice(0, 200), failed ? 'failed' : 'pending', s.id)
-    if (failed) {
+    // 首次跌入 failed（===3）告警一次；达自动重试上限（===CAP，此后 Job 不再自动重试）再告警一次。
+    // 否则 attempts 4→8 的恶化无任何新信号，运营易错过，进而结算永远 done 不了、连带争议永久卡 ruled。
+    if (failed && (attempts === 3 || attempts === RETRY_CAP)) {
+      const capReached = attempts >= RETRY_CAP
       risk.raiseAlert('高', '结算异常',
-        `任务#${s.task_id}（确认单 ${s.confirm_no}）分账重试 ${attempts} 次仍失败：${err.message}。请财务人工核查银行通道后手工重推。`, 'company', s.company_id)
+        `任务#${s.task_id}（确认单 ${s.confirm_no}）分账重试 ${attempts} 次仍失败：${err.message}。${capReached ? '已达自动重试上限，停止自动重试，请财务核查银行通道后手工重推（该任务资金仍冻结中）。' : '请财务人工核查银行通道后手工重推。'}`, 'company', s.company_id)
       const financeAdmins = db.prepare(`
         SELECT u.id FROM users u JOIN admin_roles r ON r.id = u.admin_role_id
         WHERE u.role = 'admin' AND u.status = 'active' AND (r.permissions LIKE '%"*"%' OR r.permissions LIKE '%flow:read%')
       `).all()
       notifyMany(financeAdmins.map(a => a.id), 'risk', '结算分账多次失败',
-        `任务#${s.task_id} 确认单 ${s.confirm_no} 银行分账重试失败，请人工处理。`)
+        `任务#${s.task_id} 确认单 ${s.confirm_no} 银行分账重试失败${capReached ? '已达自动重试上限，请立即人工重推' : '，请人工处理'}。`)
     }
     return { ok: false, error: err.message }
   }
@@ -207,7 +225,11 @@ function finalizeSettlement(s, task, company, invoiceNo) {
   const period = s.created_at.slice(0, 7)
   const charged = s.gross + s.margin
   const refund = task.price - charged
+  let finalized = false
   db.transaction(() => {
+    // 幂等护栏：并发双 finalize（手工重推与重试 Job 撞同一单）时，已 done 直接跳过，
+    // 杜绝重复划账（worker 二次入账/平台二次收税费）与把已完成单状态打回 pending/failed。
+    if (db.prepare(`SELECT status FROM settlements WHERE id = ?`).get(s.id).status === 'done') return
     // 部分结算（争议裁决）：未结算部分先解冻退回企业可用余额
     if (refund > 0) {
       accounts.unfreeze('company', s.company_id, refund, task.id, `争议裁决部分结算，剩余解冻退回：${task.title}`)
@@ -230,7 +252,10 @@ function finalizeSettlement(s, task, company, invoiceNo) {
     db.prepare(`UPDATE tasks SET status = 'settled', confirm_no = ?, settled_at = datetime('now','localtime') WHERE id = ?`)
       .run(s.confirm_no, task.id)
     db.prepare(`UPDATE settlements SET status = 'done', done_at = datetime('now','localtime') WHERE id = ?`).run(s.id)
+    finalized = true
   })()
+  // 并发下已被另一路径完成 → 跳过通知与结算后风控，避免重复触达/重复预警/重复阈值锁
+  if (!finalized) return
 
   const workerName = db.prepare(`SELECT name FROM users WHERE id = ?`).get(s.worker_id).name
   notifyWithSms(s.worker_id, 'settle', '任务已验收结算',

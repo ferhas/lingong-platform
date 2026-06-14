@@ -2,14 +2,20 @@
 // 算税引擎、风控、结算均通过本模块取参，运营端改值即时生效。
 import db from '../db.js'
 
+// 进程内缓存带 TTL：本进程 setConfig 立即失效（cache=null）；多实例(ROLE=api ×N)下其他进程
+// 通过 TTL 在 CONFIG_CACHE_TTL_MS 内自动重读，避免"A 实例改配置、B 实例长期不生效"。
 let cache = null
+let cachedAt = 0
+const CONFIG_CACHE_TTL_MS = Number(process.env.CONFIG_CACHE_TTL_MS || 10_000)
 
 function loadAll() {
-  if (cache) return cache
-  cache = {}
+  if (cache && Date.now() - cachedAt < CONFIG_CACHE_TTL_MS) return cache
+  const next = {}
   for (const row of db.prepare(`SELECT key, value FROM system_configs`).all()) {
-    cache[row.key] = JSON.parse(row.value)
+    next[row.key] = JSON.parse(row.value)
   }
+  cache = next
+  cachedAt = Date.now()
   return cache
 }
 
@@ -35,7 +41,7 @@ export function setConfig(key, value, userId) {
   // 数值防御：金额/比率类配置不允许负数与非有限值；比率类不得超过 1
   if (typeof value === 'number') {
     if (!Number.isFinite(value) || value < 0) throw new Error(`配置 ${key} 必须为非负有效数字`)
-    if (/Rate|Threshold$/.test(key) && value > 1) throw new Error(`配置 ${key} 为比率，取值应在 0-1 之间`)
+    if (/(Rate|Threshold)$/.test(key) && value > 1) throw new Error(`配置 ${key} 为比率，取值应在 0-1 之间`)
   }
   if (Array.isArray(value) && value.some(v => typeof v !== 'string' || !v.trim())) {
     throw new Error(`配置 ${key} 列表项必须为非空文本`)

@@ -8,7 +8,7 @@
       data-path="/{{item.pagePath}}"
       bindtap="switchTab"
     >
-      <view class="tab-icon">{{item.mark}}</view>
+      <view class="tab-icon">{{item.mark}}<view wx:if="{{item.dot}}" class="tab-dot"></view></view>
       <view class="tab-text">{{item.text}}</view>
     </view>
   </view>

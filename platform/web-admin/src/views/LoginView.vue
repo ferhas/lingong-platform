@@ -116,6 +116,8 @@ async function onTotpLogin(tmpToken) {
     )
     code = value.trim()
   } catch {
+    // 取消二次验证：给出明确反馈，避免用户停在登录页不知所措（手机号/密码仍保留，可直接重试）
+    ElMessage.info('已取消二次验证，如需登录请重新点击「登录」')
     return
   }
   try {

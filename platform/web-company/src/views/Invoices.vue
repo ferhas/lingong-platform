@@ -9,8 +9,10 @@
 
     <div class="page-card">
       <h3 class="page-title">发票中心</h3>
-      <el-table :data="list" v-loading="loading" stripe>
-        <el-table-column prop="no" label="发票号" width="200" />
+      <el-table v-loading="loading" :data="list" stripe>
+        <el-table-column prop="no" label="发票号" width="200">
+          <template #default="{ row }"><span class="mono">{{ row.no }}</span></template>
+        </el-table-column>
         <el-table-column prop="taskTitle" label="关联任务" min-width="180" show-overflow-tooltip />
         <el-table-column label="发票金额" width="130" align="right">
           <template #default="{ row }">
@@ -60,6 +62,15 @@
           </el-empty>
         </template>
       </el-table>
+      <el-pagination
+        v-if="total > pageSize"
+        class="pager"
+        layout="prev, pager, next, total"
+        :total="total"
+        :current-page="page"
+        :page-size="pageSize"
+        @current-change="onPage"
+      />
     </div>
 
     <!-- 发票详情 -->
@@ -125,6 +136,9 @@ import { printHtml, esc } from '../utils/print'
 import TermTip from '../components/TermTip.vue'
 
 const list = ref([])
+const total = ref(0)
+const page = ref(1)
+const pageSize = ref(20)
 const loading = ref(false)
 
 const detailVisible = ref(false)
@@ -157,15 +171,21 @@ function printInvoice(i) {
   `)
 }
 
-onMounted(async () => {
+async function load() {
   loading.value = true
   try {
-    const data = await getInvoices()
-    list.value = data.list
+    const data = await getInvoices(page.value, pageSize.value)
+    list.value = data.list || []
+    total.value = data.total || 0
   } finally {
     loading.value = false
   }
-})
+}
+function onPage(p) {
+  page.value = p
+  load()
+}
+onMounted(load)
 </script>
 
 <style scoped>
@@ -189,6 +209,11 @@ onMounted(async () => {
   font-size: 12px;
   line-height: 1.8;
   color: var(--text-3);
+}
+
+.pager {
+  margin-top: 16px;
+  justify-content: flex-end;
 }
 
 /* tooltip 包裹后按钮失去默认 sibling 间距，由包裹层补回 */

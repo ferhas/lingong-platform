@@ -17,18 +17,18 @@
           @change="onFilter"
         >
           <el-option
-            v-for="a in ACTIONS"
-            :key="a.value"
-            :label="`${a.label}(${a.value})`"
-            :value="a.value"
+            v-for="a in actionOptions"
+            :key="a"
+            :label="`${ACTION_TEXT[a] || a}(${a})`"
+            :value="a"
           />
         </el-select>
-        <el-button :icon="Refresh" circle @click="load" />
+        <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
       </div>
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column prop="id" label="ID" width="80" align="center" />
         <el-table-column label="时间" width="160">
           <template #default="{ row }">{{ fmtTime(row.createdAt) }}</template>
@@ -75,7 +75,7 @@
 <script setup>
 import { onMounted, ref } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
-import { getAuditLogs } from '../api/admin'
+import { getAuditLogs, getAuditActions } from '../api/admin'
 import { fmtTime } from '../utils/format'
 
 const loading = ref(false)
@@ -84,38 +84,56 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const action = ref('')
+// 筛选下拉的动作清单从后端实时拉取（库中实际出现过的动作），与写死清单解耦
+const actionOptions = ref([])
 
-const ACTIONS = [
-  { value: 'login', label: '登录' },
-  { value: 'register', label: '注册' },
-  { value: 'task_publish', label: '发布任务' },
-  { value: 'task_accept', label: '验收任务' },
-  { value: 'task_cancel', label: '取消任务' },
-  { value: 'review_company', label: '企业审核' },
-  { value: 'risk_resolve', label: '风控处置' },
-  { value: 'tax_declare', label: '税务申报' },
-  { value: 'tax_quarter_report', label: '季度报送' },
-  { value: 'config_update', label: '配置变更' },
-  { value: 'worker_lock', label: '零工锁定' },
-  { value: 'admin_user_create', label: '创建账号' },
-  { value: 'admin_user_role', label: '调整角色' },
-  { value: 'user_disable', label: '停用账号' },
-  { value: 'user_enable', label: '启用账号' },
-  { value: 'user_reset_password', label: '重置密码' },
-  { value: 'change_password', label: '修改密码' }
-]
+// 覆盖 logAction 全部 85 个动作的中文标签，避免审计列表出现英文原始码
+const ACTION_TEXT = {
+  login: '登录', logout: '登出', register: '注册', change_password: '修改密码',
+  '2fa_enable': '绑定动态码', '2fa_disable': '解绑动态码',
+  task_publish: '发布任务', task_batch_publish: '批量发单', task_accept: '验收任务', task_reject: '驳回交付',
+  task_cancel: '取消任务', task_hire: '录用零工', task_dispatch: '定向派单', openapi_task_publish: '开放API发单',
+  dispatch_accept: '接受派单', dispatch_reject: '拒绝派单', review_submit: '提交互评',
+  review_company: '企业准入审核', skill_apply: '申请技能认证', skill_review: '技能认证审核',
+  worker_verify: '零工实名', worker_verify_face: '零工人脸核身', worker_lock: '锁定零工接单',
+  soletrader_register: '个体户登记', bank_card_bind: '绑定银行卡',
+  recharge: '充值', recharge_order_create: '创建充值单', recharge_mock_pay: '模拟入金',
+  withdraw_apply: '申请提现', settlement_retry: '重试结算', fund_switches: '资金应急开关',
+  recon_diff_resolve: '处理对账差异', esign_authorize: '电子签授权', webhook_replay: '重放回调事件',
+  tax_declare: '个税申报', tax_quarter_report: '季度报送', tax_receipt_fill: '回执号回填',
+  platform_init_report: '平台初始化报送', input_invoice_verify: '进项发票认证', upload_input_invoice: '上传进项发票',
+  invoice_void: '发票红冲', invoice_reissue: '发票红冲重开',
+  dispute_create: '发起争议', dispute_accept: '接受争议方案', dispute_rule: '争议裁决',
+  dispute_execute: '执行裁决', dispute_withdraw: '撤回争议', dispute_escalate: '争议线下升级',
+  ticket_create: '创建工单', ticket_assign: '指派工单', ticket_resolve: '处理工单',
+  claim_report: '申报理赔', claim_process: '处理理赔', callback_sample: '回访抽查', callback_resolve: '处理回访',
+  risk_resolve: '处置风控预警', config_update: '修改业务参数', legal_update: '修改协议模板',
+  message_template_update: '修改消息模板', help_create: '新建帮助文章', help_update: '编辑帮助文章',
+  admin_user_create: '创建运营账号', admin_user_role: '调整运营角色',
+  role_create: '新建角色', role_update: '修改角色', role_delete: '删除角色',
+  user_disable: '停用账号', user_enable: '启用账号', user_reset_password: '重置密码',
+  api_credential_create: '创建API凭据', api_credential_disable: '停用API凭据',
+  pii_view: '查看完整个人信息', pii_decrypt: '解密个人信息',
+  export_apply: '申请数据导出', export_review: '审批导出', export_download: '下载导出', evidence_pack_export: '导出证据包',
+  member_create: '添加企业成员', member_role_change: '变更成员角色', member_disable: '停用企业成员',
+  update_profile: '修改资料', update_company_profile: '修改企业资料',
+  agreements_reagree: '重新同意协议', payroll_upload: '上传发薪名单', payroll_exempt: '发薪名单豁免'
+}
 
-const ACTION_TEXT = Object.fromEntries(ACTIONS.map(a => [a.value, a.label]))
+// 危险/敏感动作高亮（PII/资金/解绑/删除/锁定 等）
+const DANGER = ['pii_view', 'pii_decrypt', 'invoice_void', 'fund_switches', '2fa_disable', 'role_delete', 'user_disable', 'worker_lock', 'task_cancel', 'export_download']
+const WARNING = ['config_update', 'admin_user_role', 'role_update', 'legal_update', 'message_template_update', 'dispute_rule', 'dispute_execute', 'export_review', 'invoice_reissue']
+const SUCCESS = ['tax_declare', 'tax_quarter_report', 'review_company', 'skill_review', 'user_enable']
 
 function actionText(a) {
   return ACTION_TEXT[a] || a
 }
 
 function actionTagType(a) {
-  if (['config_update', 'admin_user_role', 'worker_lock'].includes(a)) return 'warning'
-  if (['user_disable', 'task_cancel'].includes(a)) return 'danger'
-  if (['tax_declare', 'tax_quarter_report', 'review_company'].includes(a)) return 'success'
-  if (['login', 'register'].includes(a)) return 'info'
+  if (DANGER.includes(a)) return 'danger'
+  if (WARNING.includes(a)) return 'warning'
+  if (SUCCESS.includes(a)) return 'success'
+  if (['login', 'logout', 'register'].includes(a)) return 'info'
   return 'primary'
 }
 
@@ -152,5 +170,17 @@ function onSizeChange() {
   load()
 }
 
-onMounted(load)
+async function loadActions() {
+  try {
+    const data = await getAuditActions()
+    actionOptions.value = data.actions || []
+  } catch {
+    // 拉取失败时下拉为空，仍可手动输入（allow-create）
+  }
+}
+
+onMounted(() => {
+  loadActions()
+  load()
+})
 </script>

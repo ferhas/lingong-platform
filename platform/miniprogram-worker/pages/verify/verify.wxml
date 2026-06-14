@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <block wx:if="{{profile && profile.verified}}">
   <view class="done-card">
     <view class="done-icon">✓</view>
@@ -44,21 +45,21 @@
   <view class="intro">
     <view class="intro-step">1 身份证核验</view>
     <view class="intro-step">2 人脸核身</view>
-    <view class="intro-step">3 银行卡三要素</view>
+    <view class="intro-step">3 绑卡四要素（提现前完成）</view>
   </view>
 
   <view class="card">
     <view class="field">
       <view class="field-label">真实姓名</view>
-      <input class="field-input" placeholder="与身份证一致" value="{{realName}}" data-field="realName" bindinput="onInput" />
+      <input class="field-input" cursor-spacing="40" placeholder="与身份证一致" value="{{realName}}" data-field="realName" bindinput="onInput" />
     </view>
     <view class="field">
       <view class="field-label">身份证号</view>
-      <input class="field-input" maxlength="18" placeholder="18位身份证号" value="{{idCard}}" data-field="idCard" bindinput="onInput" />
+      <input class="field-input" maxlength="18" cursor-spacing="40" placeholder="18位身份证号" value="{{idCard}}" data-field="idCard" bindinput="onInput" />
     </view>
     <view class="field">
       <view class="field-label">本人银行卡号</view>
-      <input class="field-input" type="number" maxlength="19" placeholder="须为本人一类卡" value="{{bankCard}}" data-field="bankCard" bindinput="onInput" />
+      <input class="field-input" type="digit" maxlength="19" cursor-spacing="40" placeholder="须为本人一类卡" value="{{bankCard}}" data-field="bankCard" bindinput="onInput" />
     </view>
   </view>
 
@@ -106,4 +107,5 @@
       >同意并提交</button>
     </view>
   </view>
+</view>
 </view>

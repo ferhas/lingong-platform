@@ -5,7 +5,7 @@
         <h2 class="page-title">财务报表中心</h2>
         <p class="page-sub">资金日报、经营月报（三方勾稽）、结算明细与企业月结单</p>
       </div>
-      <el-button :icon="Refresh" circle @click="reload" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
     </div>
 
     <div class="panel">
@@ -188,6 +188,9 @@
           <el-table-column label="个税" align="right" width="100">
             <template #default="{ row }"><span class="money">{{ fmtMoney(row.tax) }}</span></template>
           </el-table-column>
+          <el-table-column label="增值税" align="right" width="100">
+            <template #default="{ row }"><span class="money">{{ fmtMoney(row.vat) }}</span></template>
+          </el-table-column>
           <el-table-column label="实发" align="right" width="110">
             <template #default="{ row }"><span class="money net-amount">{{ fmtMoney(row.net) }}</span></template>
           </el-table-column>
@@ -307,12 +310,15 @@ function flowTypeText(type) {
   return FLOW_TYPE_TEXT[type] || type
 }
 
+// 用本地时间生成默认日期/月份，与后端 currentDate()/currentPeriod()（本地时区）口径一致，避免 UTC 跨日偏差
 function today() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function thisMonth() {
-  return new Date().toISOString().slice(0, 7)
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
 // —— ① 资金日报 ——

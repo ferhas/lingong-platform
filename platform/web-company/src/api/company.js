@@ -61,12 +61,16 @@ export const addMember = data => client.post('/company/members', data)
 export const changeMemberRole = (userId, memberRole) =>
   client.patch(`/company/members/${userId}`, { memberRole })
 export const disableMember = userId => client.delete(`/company/members/${userId}`)
+// 转移企业所有权（仅 owner）：解决"owner 不可停用、一旦不可用企业即瘫痪"的死结（与 admin 停用 owner 的提示配套）
+export const transferOwner = userId => client.post(`/company/members/${userId}/transfer-owner`)
 
 // 发布前税负测算（输入中实时预览，静默失败不打扰）
 export const getEstimate = (price, category) =>
   client.get('/company/estimate', { params: { price, category: category || undefined }, silent: true })
 
-// 发票与合同
-export const getInvoices = () => client.get('/company/invoices')
-export const getContracts = () => client.get('/company/contracts')
+// 发票与合同（分页）
+export const getInvoices = (page = 1, pageSize = 20) =>
+  client.get('/company/invoices', { params: { page, pageSize } })
+export const getContracts = (page = 1, pageSize = 20) =>
+  client.get('/company/contracts', { params: { page, pageSize } })
 export const getContractDetail = id => client.get(`/company/contracts/${id}`)

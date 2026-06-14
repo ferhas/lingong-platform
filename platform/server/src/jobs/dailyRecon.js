@@ -14,7 +14,7 @@ export function runDailyRecon(day) {
     SELECT txn_no, amount, purpose FROM escrow_txns WHERE date(created_at) = ?
   `).all(day)
   const platformFlows = db.prepare(`
-    SELECT f.id, f.amount, f.remark FROM fund_flows f
+    SELECT f.id, f.amount, f.remark, f.type, f.ref_id FROM fund_flows f
     WHERE f.type IN ('recharge','settle_out','withdraw') AND date(f.created_at) = ?
   `).all(day)
 
@@ -35,8 +35,23 @@ export function runDailyRecon(day) {
   if (status === 'mismatch') {
     // 逐笔核销：按金额多重集合相消，剩余项即差异明细（同日重跑先清除未处置项防重复）
     db.prepare(`DELETE FROM recon_diffs WHERE day = ? AND status = 'open'`).run(day)
-    const platformPool = new Map() // amount → flow 列表
+    // 结算腿粒度对齐：银行侧每笔结算产生 net/tax/margin 三条 escrow_txns，而平台侧仅 1 条 settle_out(=charged)。
+    // 逐笔核销前把 settle_out 拆成与银行腿同口径的三条（实发/税费/服务费），避免不平日把正常结算误判为多条幻影差异。
+    const platformItems = []
     for (const f of platformFlows) {
+      if (f.type === 'settle_out' && f.ref_id) {
+        const s = db.prepare(`SELECT net, tax, vat, margin FROM settlements WHERE task_id = ?`).get(f.ref_id)
+        if (s) {
+          if (s.net > 0) platformItems.push({ id: f.id, amount: s.net, remark: `${f.remark}·实发` })
+          if (s.tax + s.vat > 0) platformItems.push({ id: f.id, amount: s.tax + s.vat, remark: `${f.remark}·税费` })
+          if (s.margin > 0) platformItems.push({ id: f.id, amount: s.margin, remark: `${f.remark}·服务费` })
+          continue
+        }
+      }
+      platformItems.push({ id: f.id, amount: f.amount, remark: f.remark })
+    }
+    const platformPool = new Map() // amount → item 列表
+    for (const f of platformItems) {
       if (!platformPool.has(f.amount)) platformPool.set(f.amount, [])
       platformPool.get(f.amount).push(f)
     }

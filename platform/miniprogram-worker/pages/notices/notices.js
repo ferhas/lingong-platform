@@ -1,8 +1,11 @@
 const api = require('../../utils/api.js')
 
+// 通知类型字典：覆盖后端 notify() 发出的全部 16 种类型，未命中回退为 '信'
 const TYPE_ICON = {
   review: '审', hired: '录', deliver: '交', rejected: '退',
-  settle: '结', risk: '险', guide: '引', cancelled: '停', member: '员'
+  settle: '结', risk: '险', guide: '引', cancelled: '停', member: '员',
+  dispatch: '派', dispute: '议', ticket: '客', skill: '技', invoice: '票',
+  recharge: '充', export: '导'
 }
 
 Page({

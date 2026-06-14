@@ -28,6 +28,7 @@ Page({
       wx.showToast({ title: '修改成功，请重新登录', icon: 'success' })
       setTimeout(() => {
         wx.removeStorageSync('token')
+        wx.removeStorageSync('refreshToken')
         wx.removeStorageSync('user')
         wx.reLaunch({ url: '/pages/login/login' })
       }, 1200)

@@ -65,41 +65,39 @@
   padding: 16rpx 0 30rpx;
 }
 
-@media (prefers-color-scheme: dark) {
-  .help-header {
-    background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
-  }
+.t-dark .help-header {
+  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+}
 
-  .search {
-    background: #121C2B;
-  }
+.t-dark .search {
+  background: #121C2B;
+}
 
-  .search-input {
-    color: #F8FAFC;
-  }
+.t-dark .search-input {
+  color: #F8FAFC;
+}
 
-  .search-icon {
-    background: rgba(20, 184, 166, 0.16);
-    color: #5EEAD4;
-  }
+.t-dark .search-icon {
+  background: rgba(20, 184, 166, 0.16);
+  color: #5EEAD4;
+}
 
-  .group-title {
-    color: #E5E7EB;
-  }
+.t-dark .group-title {
+  color: #E5E7EB;
+}
 
-  .article-item {
-    border-bottom-color: #233149;
-  }
+.t-dark .article-item {
+  border-bottom-color: #233149;
+}
 
-  .article-hover {
-    background: #0F172A;
-  }
+.t-dark .article-hover {
+  background: #0F172A;
+}
 
-  .article-title {
-    color: #CBD5E1;
-  }
+.t-dark .article-title {
+  color: #CBD5E1;
+}
 
-  .contact-tip {
-    color: #5EEAD4;
-  }
+.t-dark .contact-tip {
+  color: #5EEAD4;
 }

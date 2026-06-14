@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="help-header">
   <view class="help-title">有什么可以帮您？</view>
   <view class="search">
@@ -35,4 +36,5 @@
   </view>
 
   <view class="contact-tip" bindtap="goTickets">没有解决您的问题？联系在线客服 ›</view>
+</view>
 </view>

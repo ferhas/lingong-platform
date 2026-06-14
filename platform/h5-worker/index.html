@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0F766E" />
+  <title>灵工云</title>
+</head>
+<body>
+  <!-- 手机框：在桌面浏览器里居中显示，移动端全宽 -->
+  <div id="wx-app">
+    <div id="wx-navbar">
+      <button class="nav-back" type="button" aria-label="返回" onclick="wx.navigateBack()">‹</button>
+      <div class="nav-title">灵工云</div>
+    </div>
+    <div id="wx-pages"></div>
+    <div id="wx-tabbar"></div>
+    <div id="wx-overlay"></div>
+  </div>
+  <script src="./mp-bundle.js"></script>
+  <script src="./runtime.js"></script>
+</body>
+</html>

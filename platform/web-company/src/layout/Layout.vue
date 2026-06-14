@@ -15,11 +15,11 @@
           <el-icon><List /></el-icon>
           <span>任务管理</span>
         </el-menu-item>
-        <el-menu-item index="/publish">
+        <el-menu-item v-if="auth.canManageTasks" index="/publish">
           <el-icon><CirclePlus /></el-icon>
           <span>发布任务</span>
         </el-menu-item>
-        <el-menu-item index="/batch-publish">
+        <el-menu-item v-if="auth.canManageTasks" index="/batch-publish">
           <el-icon><Files /></el-icon>
           <span>批量发单</span>
         </el-menu-item>
@@ -67,14 +67,14 @@
 
           <!-- 帮助中心 -->
           <el-tooltip content="帮助中心" placement="bottom">
-            <button class="icon-btn" @click="openHelp">
+            <button class="icon-btn" aria-label="帮助中心" @click="openHelp">
               <el-icon :size="18"><QuestionFilled /></el-icon>
             </button>
           </el-tooltip>
 
           <!-- 主题切换 -->
           <el-tooltip :content="theme.isDark ? '切换到浅色模式' : '切换到深色模式'" placement="bottom">
-            <button class="icon-btn" @click="theme.toggle()">
+            <button class="icon-btn" :aria-label="theme.isDark ? '切换到浅色模式' : '切换到深色模式'" @click="theme.toggle()">
               <el-icon :size="18"><Moon v-if="!theme.isDark" /><Sunny v-else /></el-icon>
             </button>
           </el-tooltip>
@@ -82,7 +82,7 @@
           <!-- 通知铃铛 -->
           <el-popover placement="bottom-end" :width="380" trigger="click" @show="fetchNotifications">
             <template #reference>
-              <button class="icon-btn">
+              <button class="icon-btn" aria-label="通知">
                 <el-badge :value="unread" :hidden="!unread" :max="99">
                   <el-icon :size="18"><Bell /></el-icon>
                 </el-badge>
@@ -103,7 +103,11 @@
                     @click="readOne(n)"
                   >
                     <div class="notify-item-title">
-                      <span class="notify-dot" v-if="!n.read"></span>{{ n.title }}
+                      <span v-if="!n.read" class="notify-dot"></span>
+                      <el-tag v-if="NOTIFY_TYPE[n.type]" size="small" effect="plain" class="notify-type">
+                        {{ NOTIFY_TYPE[n.type] }}
+                      </el-tag>
+                      <span class="notify-item-name">{{ n.title }}</span>
                     </div>
                     <div class="notify-item-body">{{ n.body }}</div>
                     <div class="notify-item-time">{{ fmtDateTime(n.created_at) }}</div>
@@ -155,7 +159,7 @@
         @keyup.enter="fetchHelp"
         @clear="fetchHelp"
       />
-      <div class="help-list" v-loading="helpLoading">
+      <div v-loading="helpLoading" class="help-list">
         <template v-if="helpList.length">
           <div v-for="a in helpList" :key="a.id" class="help-item" @click="openArticle(a)">
             <el-tag size="small" effect="plain" class="help-cate">{{ a.category }}</el-tag>
@@ -202,6 +206,7 @@
         </div>
       </div>
       <template #footer>
+        <el-button size="large" :disabled="reAgreeing" @click="onReAgreeDecline">暂不同意并退出</el-button>
         <el-button type="primary" size="large" :loading="reAgreeing" @click="onReAgree">
           我已阅读并同意最新协议
         </el-button>
@@ -210,7 +215,7 @@
 
     <!-- 协议全文 -->
     <el-dialog v-model="legalVisible" :title="legalDoc?.title || '协议全文'" width="640px" append-to-body>
-      <div class="article-body pre-wrap" v-loading="legalLoading">{{ legalDoc?.content }}</div>
+      <div v-loading="legalLoading" class="article-body pre-wrap">{{ legalDoc?.content }}</div>
       <template #footer>
         <el-button type="primary" @click="legalVisible = false">关闭</el-button>
       </template>
@@ -235,7 +240,7 @@ import {
   reAgreeAgreements,
   getLegalDoc
 } from '../api/me'
-import { COMPANY_STATUS, MEMBER_ROLE, fmtDateTime } from '../utils/format'
+import { COMPANY_STATUS, MEMBER_ROLE, NOTIFY_TYPE, fmtDateTime } from '../utils/format'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -281,7 +286,9 @@ const NOTIFY_ROUTE = {
   settle: '/tasks',
   cancelled: '/tasks',
   review: '/dashboard',
-  member: '/members'
+  member: '/members',
+  recharge: '/funds',
+  dispute: '/disputes'
 }
 
 async function readOne(n) {
@@ -384,6 +391,13 @@ async function onReAgree() {
   } finally {
     reAgreeing.value = false
   }
+}
+
+// 不同意则退出登录（避免「强制同意且无任何出口」的体验）
+async function onReAgreeDecline() {
+  reAgreeVisible.value = false
+  await auth.logout()
+  router.push('/login')
 }
 
 onMounted(() => {
@@ -599,6 +613,15 @@ function onCommand(command) {
   border-radius: 50%;
   background: var(--danger);
   flex-shrink: 0;
+}
+
+.notify-type {
+  flex-shrink: 0;
+}
+
+.notify-item-name {
+  flex: 1;
+  min-width: 0;
 }
 
 .notify-item-body {

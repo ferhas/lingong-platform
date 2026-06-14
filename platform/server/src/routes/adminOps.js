@@ -6,6 +6,7 @@ import { z } from 'zod'
 import db from '../db.js'
 import { authenticate, requireRole } from '../middleware/auth.js'
 import { requirePermission, getPermissions, hasPermission } from '../middleware/rbac.js'
+import { stepUp } from '../middleware/stepUp.js'
 import { notFound, conflict, badRequest, forbidden } from '../utils/errors.js'
 import { centsToYuan } from '../utils/money.js'
 import { currentDate, currentPeriod } from '../utils/ids.js'
@@ -36,17 +37,6 @@ function sendCsv(res, filename, header, rows) {
   res.setHeader('Content-Type', 'text/csv; charset=utf-8')
   res.setHeader('Content-Disposition', `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`)
   res.send(csv)
-}
-
-// ============ 敏感操作 step-up 复验（已绑定 2FA 的账号须携带 X-TOTP-Code 头） ============
-function stepUp(req, _res, next) {
-  const u = db.prepare(`SELECT totp_enabled, totp_secret FROM users WHERE id = ?`).get(req.user.id)
-  if (!u?.totp_enabled) return next() // 未绑定 2FA 的账号不强制（绑定后自动生效）
-  const code = req.headers['x-totp-code']
-  if (!code || !verifyTotp(u.totp_secret, String(code))) {
-    return next(forbidden('敏感操作须二次验证：请在请求头携带有效的动态码（X-TOTP-Code）'))
-  }
-  next()
 }
 
 // ============ 2FA 绑定（运营账号自助） ============
@@ -208,6 +198,8 @@ router.get('/tickets', requirePermission('ticket:read'), (req, res) => {
   })
 })
 
+// 注意：工单详情返回创建人完整手机号（userPhone 不脱敏）是登记在案的 PII 例外——
+// 客服需据此回拨处理诉求；与默认脱敏 + user:read_pii 专项查看口径区分。
 router.get('/tickets/:id', requirePermission('ticket:read'), (req, res, next) => {
   try {
     const t = db.prepare(`
@@ -342,8 +334,18 @@ router.post('/exports', requirePermission('worker:read'), (req, res, next) => {
     const { lastInsertRowid } = db.prepare(`
       INSERT INTO export_requests (applicant_id, scope, reason, row_estimate) VALUES (?, ?, ?, ?)
     `).run(req.user.id, body.scope, body.reason, body.rowEstimate ?? null)
-    logAction(req.user.id, 'export_apply', `export#${lastInsertRowid} ${body.scope}`)
-    res.status(201).json({ id: lastInsertRowid, status: 'pending' })
+    // PIPL 行数阈值：预计行数低于 exportApprovalRows 的小批量导出免双人审批，自动批准并开放限时下载
+    const threshold = getConfig('exportApprovalRows')
+    const autoApprove = body.rowEstimate != null && body.rowEstimate < threshold
+    if (autoApprove) {
+      const expiresAt = new Date(Date.now() + 48 * 3600000).toISOString()
+      db.prepare(`
+        UPDATE export_requests SET status = 'approved', approve_note = ?, expires_at = ?, approved_at = datetime('now','localtime')
+        WHERE id = ?
+      `).run(`系统自动批准：预计 ${body.rowEstimate} 行 < 审批阈值 ${threshold} 行（小批量免双人审批）`, expiresAt, lastInsertRowid)
+    }
+    logAction(req.user.id, 'export_apply', `export#${lastInsertRowid} ${body.scope}${autoApprove ? ' [自动批准]' : ''}`)
+    res.status(201).json({ id: lastInsertRowid, status: autoApprove ? 'approved' : 'pending' })
   } catch (err) {
     next(err)
   }
@@ -401,11 +403,23 @@ router.get('/exports/:id/download', requirePermission('worker:read'), (req, res,
       throw conflict('EXPIRED', '下载已过期，请重新申请')
     }
     const year = String(new Date().getFullYear())
+    // PIPL 收口：自动批准（approver_id 为空）的小批量导出，下载行数受申报 rowEstimate 物理限制，
+    // 杜绝"自报极小行数→自动批准→下载全量零工完整手机号"绕过双人审批的越权导出；人工审批（大批量）不设上限。
+    const autoApproved = e.approver_id == null
+    const rowCap = autoApproved ? Math.max(0, e.row_estimate ?? 0) : null
+    if (rowCap != null) {
+      const totalWorkers = db.prepare(`SELECT COUNT(*) AS n FROM users WHERE role = 'worker'`).get().n
+      if (totalWorkers > rowCap) {
+        raiseAlert('高', '导出越权风险',
+          `导出申请 #${e.id} 自动批准额度 ${rowCap} 行，全量零工 ${totalWorkers} 人——已按额度截断下载，疑似借小额申报套取全量名册，请合规复核`)
+      }
+    }
     const rows = db.prepare(`
       SELECT u.id, u.name, u.phone, p.verified, p.subject_type, p.locked, p.credit_score, u.status,
         (SELECT COALESCE(SUM(gross),0) FROM tax_records r WHERE r.worker_id = u.id AND r.period LIKE ?) AS year_gross
       FROM users u JOIN worker_profiles p ON p.user_id = u.id WHERE u.role = 'worker' ORDER BY u.id
-    `).all(`${year}-%`)
+      ${rowCap != null ? 'LIMIT ?' : ''}
+    `).all(...(rowCap != null ? [`${year}-%`, rowCap] : [`${year}-%`]))
     db.prepare(`UPDATE export_requests SET status = 'downloaded', downloaded_at = datetime('now','localtime') WHERE id = ?`).run(e.id)
     logAction(req.user.id, 'export_download', `export#${e.id} rows=${rows.length}`)
     sendCsv(res, `零工名册_完整_${currentDate()}.csv`,
@@ -457,7 +471,9 @@ router.post('/webhook-events/:id/replay', requirePermission('integration:read'),
   try {
     const e = db.prepare(`SELECT * FROM webhook_events WHERE id = ?`).get(req.params.id)
     if (!e) throw notFound('事件不存在')
-    const r = replayEvent(e)
+    // 人工重放给一次干净的重试预算：复活死信(ignored)事件，让根因修复后能重新自动补单
+    db.prepare(`UPDATE webhook_events SET attempts = 0 WHERE id = ?`).run(e.id)
+    const r = replayEvent({ ...e, attempts: 0 })
     logAction(req.user.id, 'webhook_replay', `event#${e.id} ${r.ok ? 'ok' : r.error}`)
     res.json(r)
   } catch (err) {
@@ -648,6 +664,8 @@ router.post('/input-invoices/:id/verify', requirePermission('tax:declare'), (req
     }).parse(req.body)
     const i = db.prepare(`SELECT * FROM input_invoices WHERE id = ?`).get(req.params.id)
     if (!i) throw notFound('进项发票不存在')
+    // 已抵扣为终态，不可再改（防止 deducted→rejected 等无依据的状态横跳，与税务抵扣台账脱钩）
+    if (i.status === 'deducted') throw conflict('ALREADY_DEDUCTED', '该进项发票已抵扣，状态不可再变更')
     db.prepare(`
       UPDATE input_invoices SET status = ?, verify_note = ?, verified_by = ?, verified_at = datetime('now','localtime') WHERE id = ?
     `).run(status, note, req.user.id, i.id)
@@ -836,6 +854,8 @@ router.post('/api-credentials', requirePermission('config:write'), stepUp, (req,
   }
 })
 
+// 停用为「降权/应急吊销」操作，刻意不挂 stepUp：紧急止血不应被二次验证拖慢；
+// step-up 只把守「授权类」操作（create/enable 授予访问）。此非对称是有意的最小阻力安全设计。
 router.post('/api-credentials/:id/disable', requirePermission('config:write'), (req, res, next) => {
   try {
     const a = db.prepare(`SELECT * FROM api_credentials WHERE id = ?`).get(req.params.id)
@@ -848,8 +868,23 @@ router.post('/api-credentials/:id/disable', requirePermission('config:write'), (
   }
 })
 
+// 重新启用凭据（误停用/暂时停用后恢复）：补齐 active↔disabled 双向，避免停用即单向死态
+router.post('/api-credentials/:id/enable', requirePermission('config:write'), stepUp, (req, res, next) => {
+  try {
+    const a = db.prepare(`SELECT * FROM api_credentials WHERE id = ?`).get(req.params.id)
+    if (!a) throw notFound('凭据不存在')
+    const c = db.prepare(`SELECT status FROM companies WHERE id = ?`).get(a.company_id)
+    if (!c || c.status !== 'approved') throw badRequest('BAD_COMPANY', '所属企业未通过准入，不可启用凭据')
+    db.prepare(`UPDATE api_credentials SET status = 'active' WHERE id = ?`).run(a.id)
+    logAction(req.user.id, 'api_credential_enable', a.app_key)
+    res.json({ status: 'active' })
+  } catch (err) {
+    next(err)
+  }
+})
+
 // ============ 系统健康（Job 哑死检测 / 回调积压 / 资金开关 / 结算单据） ============
-router.get('/system-health', requirePermission('dashboard:read'), async (_req, res) => {
+router.get('/system-health', requirePermission('integration:read'), async (_req, res) => {
   const jobs = db.prepare(`SELECT * FROM job_runs ORDER BY job`).all()
   const webhookBacklog = db.prepare(`SELECT COUNT(*) AS n FROM webhook_events WHERE status IN ('received','failed')`).get().n
   const pendingSettlements = db.prepare(`

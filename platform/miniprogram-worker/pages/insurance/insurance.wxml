@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="page-head">
   <view class="ph-title">我的保险</view>
   <view class="ph-sub">接单即按单投保意外险，接单生效、交付终止</view>
@@ -38,4 +39,5 @@
       <view class="c-time">报案时间 {{item.createdAt}}</view>
     </view>
   </block>
+</view>
 </view>

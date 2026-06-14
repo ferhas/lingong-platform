@@ -1,4 +1,5 @@
-<page-meta page-style="--fs: {{fsScale}};"></page-meta>
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
 <view class="page-head">
   <view class="ph-title">我的收藏</view>
   <view class="ph-sub">共 {{list.length}} 个收藏任务 · 点卡片查看详情</view>
@@ -12,4 +13,5 @@
       <text class="fav-remove" catch:tap="onRemove" data-id="{{item.id}}">取消收藏</text>
     </view>
   </task-card>
+</view>
 </view>

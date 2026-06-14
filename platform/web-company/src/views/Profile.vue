@@ -25,7 +25,7 @@
       </el-button>
     </div>
 
-    <div class="page-card" v-loading="profileStore.loading">
+    <div v-loading="profileStore.loading" class="page-card">
       <template v-if="profile">
         <el-alert
           v-if="!isOwner"

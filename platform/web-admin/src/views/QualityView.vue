@@ -5,7 +5,7 @@
         <h2 class="page-title">回访与理赔</h2>
         <p class="page-sub">电话回访已结算任务核实真实性,防止企业虚构交易;协助零工处理保险报案</p>
       </div>
-      <el-button :icon="Refresh" circle @click="reload" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="reload" />
     </div>
 
     <div class="panel">
@@ -45,7 +45,7 @@
           </el-radio-group>
         </div>
 
-        <el-table :data="callbacks" v-loading="cbLoading" stripe>
+        <el-table v-loading="cbLoading" :data="callbacks" stripe>
           <el-table-column label="任务" min-width="200" show-overflow-tooltip>
             <template #default="{ row }">
               <span>{{ row.taskTitle }}</span>
@@ -110,7 +110,7 @@
 
       <!-- ===== 保险理赔 ===== -->
       <template v-else>
-        <el-table :data="claims" v-loading="claimsLoading" stripe>
+        <el-table v-loading="claimsLoading" :data="claims" stripe>
           <el-table-column label="任务" min-width="180" show-overflow-tooltip>
             <template #default="{ row }">{{ row.taskTitle }}</template>
           </el-table-column>

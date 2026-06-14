@@ -10,11 +10,11 @@
           作废
         </p>
       </div>
-      <el-button :icon="Refresh" circle @click="load" />
+      <el-button :icon="Refresh" circle aria-label="刷新" @click="load" />
     </div>
 
     <div class="panel">
-      <el-table :data="list" v-loading="loading" stripe>
+      <el-table v-loading="loading" :data="list" stripe>
         <el-table-column label="发票号" min-width="170">
           <template #default="{ row }">
             <span class="mono">{{ row.no }}</span>
@@ -27,10 +27,13 @@
             <span class="money">{{ fmtMoney(row.amount) }}</span>
           </template>
         </el-table-column>
+        <el-table-column label="税率" width="80" align="center">
+          <template #default="{ row }">{{ row.taxRate || '—' }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="100" align="center">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'issued' ? 'success' : 'danger'" size="small">
-              {{ row.status === 'issued' ? '已开具' : '已红冲' }}
+            <el-tag :type="invoiceStatusTag(row.status)" size="small">
+              {{ invoiceStatusText(row.status) }}
             </el-tag>
           </template>
         </el-table-column>
@@ -54,7 +57,11 @@
                 </span>
               </el-tooltip>
             </template>
-            <span v-else class="voided-text">已作废</span>
+            <template v-else-if="row.status === 'voided'">
+              <el-button v-if="canVoid" type="primary" link size="small" @click="onReissue(row)">重 开</el-button>
+              <span v-else class="voided-text">已作废</span>
+            </template>
+            <span v-else class="empty-dash">—</span>
           </template>
         </el-table-column>
         <template #empty>
@@ -118,12 +125,26 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { getInvoices, voidInvoice } from '../api/admin'
+import { getInvoices, voidInvoice, reissueInvoice } from '../api/admin'
 import { fmtMoney, fmtTime } from '../utils/format'
 import { useAuthStore } from '../stores/auth'
+import { withStepUp } from '../utils/stepup'
 
 const auth = useAuthStore()
 const canVoid = computed(() => auth.can('tax:declare'))
+
+// 发票状态：issuing 开具中（异步开票）/ issued 已开具 / voided 已红冲
+const INVOICE_STATUS = {
+  issuing: { label: '开具中', tag: 'warning' },
+  issued: { label: '已开具', tag: 'success' },
+  voided: { label: '已红冲', tag: 'danger' }
+}
+function invoiceStatusText(s) {
+  return INVOICE_STATUS[s]?.label || s
+}
+function invoiceStatusTag(s) {
+  return INVOICE_STATUS[s]?.tag || 'info'
+}
 
 const loading = ref(false)
 const list = ref([])
@@ -174,14 +195,33 @@ async function submitVoid() {
   }
   dialog.submitting = true
   try {
-    await voidInvoice(dialog.invoice.id, reason)
+    await withStepUp(totp => voidInvoice(dialog.invoice.id, reason, totp))
     dialog.visible = false
     ElMessage.success('发票已红冲,企业已收到通知')
     load()
   } catch {
-    /* 错误已统一提示 */
+    /* 错误已统一提示（含动态码校验失败） */
   } finally {
     dialog.submitting = false
+  }
+}
+
+async function onReissue(row) {
+  try {
+    await ElMessageBox.confirm(
+      `确定为已红冲的发票 ${row.no}（${fmtMoney(row.amount)}）重新开具一张正确发票吗？将关联原发票留痕。`,
+      '红冲重开确认',
+      { type: 'warning', confirmButtonText: '确认重开', cancelButtonText: '取消' }
+    )
+  } catch {
+    return
+  }
+  try {
+    const r = await withStepUp(totp => reissueInvoice(row.id, totp))
+    ElMessage.success(`已重开发票 ${r.no}`)
+    load()
+  } catch {
+    /* 错误已统一提示/用户取消 */
   }
 }
 
@@ -202,6 +242,10 @@ onMounted(load)
 
 .voided-text {
   font-size: 12px;
+  color: var(--text-3);
+}
+
+.empty-dash {
   color: var(--text-3);
 }
 

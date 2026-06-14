@@ -34,19 +34,32 @@
             <el-select v-model="form.category" placeholder="请选择类目" style="width: 240px">
               <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
             </el-select>
+            <span v-if="isOffline" class="form-tip">线下作业类目，将自动投保高保额方案，并需选择具体工作城市</span>
           </el-form-item>
 
           <el-form-item label="工种（选填）" prop="trade">
-            <el-select v-model="form.trade" placeholder="细分工种，便于零工按技能匹配" clearable style="width: 240px">
-              <el-option v-for="t in trades" :key="t" :label="t" :value="t" />
+            <el-select
+              v-model="form.trade"
+              :placeholder="tradePlaceholder"
+              :disabled="!form.category || !availableTrades.length"
+              clearable
+              style="width: 240px"
+            >
+              <el-option v-for="t in availableTrades" :key="t" :label="t" :value="t" />
             </el-select>
           </el-form-item>
 
           <el-form-item label="工作地点" prop="city">
-            <el-select v-model="form.city" placeholder="线上任务选「远程」" style="width: 240px">
-              <el-option v-for="c in cities" :key="c" :label="c" :value="c" />
+            <el-select v-model="form.city" :placeholder="isOffline ? '请选择具体工作城市' : '线上任务选「远程」'" style="width: 240px">
+              <el-option
+                v-for="c in cities"
+                :key="c"
+                :label="c"
+                :value="c"
+                :disabled="isOffline && c === '远程'"
+              />
             </el-select>
-            <span class="form-tip">线下作业（配送/安装/施工）将自动投保高保额方案</span>
+            <span class="form-tip">线下作业类目（{{ offlineCategories.join('/') }}）会自动投保高保额方案；线上任务选「远程」即可</span>
           </el-form-item>
 
           <el-form-item label="计酬方式" prop="payMethod">
@@ -64,7 +77,7 @@
               :step="100"
               :controls="false"
               style="width: 240px"
-              placeholder="发布后将从存管户冻结该金额"
+              placeholder="请输入预算金额"
             />
             <span class="form-tip">元，发布后将从<TermTip term="存管户" />冻结该金额</span>
           </el-form-item>
@@ -103,23 +116,13 @@
           </el-form-item>
 
           <el-form-item>
-            <el-popconfirm
-              :title="`发布后将从存管户冻结预算 ¥${fmtMoney(form.price || 0)}，零工即可看到任务并报名。是否继续？`"
-              confirm-button-text="继续发布"
-              cancel-button-text="再想想"
-              width="300"
-              @confirm="onSubmit"
-            >
-              <template #reference>
-                <el-button type="primary" size="large" :loading="submitting">发布任务</el-button>
-              </template>
-            </el-popconfirm>
+            <el-button type="primary" size="large" :loading="submitting" @click="onSubmit">发布任务</el-button>
             <el-button size="large" @click="onReset">重置</el-button>
           </el-form-item>
         </el-form>
 
         <!-- 费用速算（v4：发布前税负测算预览） -->
-        <div class="estimate-card" v-loading="estimateLoading">
+        <div v-loading="estimateLoading" class="estimate-card">
           <div class="estimate-title">
             <el-icon><DataLine /></el-icon>费用速算
           </div>
@@ -169,7 +172,7 @@
 <script setup>
 import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useDebounceFn } from '@vueuse/core'
 import { publishTask, getCompanyMeta, getEstimate } from '../api/company'
 import { useProfileStore } from '../stores/profile'
@@ -179,15 +182,45 @@ import TermTip from '../components/TermTip.vue'
 const router = useRouter()
 const profileStore = useProfileStore()
 
-// 兜底默认值：/company/meta 加载失败时回退
-const DEFAULT_CATEGORIES = ['设计', '技术', '翻译', '文案', '视频', '配送', '安装', '施工', '其他']
+// 兜底默认值：/company/meta 加载失败时回退（与后端 db.js 配置 / taxonomy.js 保持同步）
+const DEFAULT_CATEGORIES = ['设计', '技术', '翻译', '文案', '视频', '直播电商', '跨境边贸', '文旅', '配送', '物流仓储', '安装', '施工', '制造生产', '农业', '家政服务', '其他']
 const DEFAULT_PAY_METHODS = ['按成果', '按件', '按单']
-const DEFAULT_CITIES = ['远程', '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '西安', '南京', '其他']
+const DEFAULT_CITIES = ['远程', '南宁', '柳州', '桂林', '梧州', '北海', '防城港', '钦州', '贵港', '玉林', '百色', '贺州', '河池', '来宾', '崇左', '其他']
+const DEFAULT_CATEGORY_TRADES = {
+  设计: ['UI设计', '平面设计', '电商美工', '空间设计'],
+  技术: ['前端开发', '后端开发', '小程序开发', '测试运维'],
+  翻译: ['中英翻译', '越南语翻译', '小语种翻译', '同声传译'],
+  文案: ['文案策划', '新媒体运营', '稿件撰写'],
+  视频: ['短视频剪辑', '配音', '动画制作', '直播运营'],
+  直播电商: ['带货主播', '直播助播', '选品场控', '直播投流'],
+  跨境边贸: ['跨境电商客服', '报关报检', '海外仓运营', '选品采购'],
+  文旅: ['导游讲解', '景区服务', '民宿管家', '活动执行'],
+  配送: ['同城配送', '快递分拣', '仓储理货'],
+  物流仓储: ['货运司机', '装卸搬运', '仓储分拣', '调度跟单'],
+  安装: ['家具安装', '家电安装', '弱电安装'],
+  施工: ['水电施工', '泥瓦工', '木工', '油漆工'],
+  制造生产: ['普工', '质检员', '装配工', '食品加工'],
+  农业: ['果蔬采摘', '分拣包装', '茶叶采制', '农技服务'],
+  家政服务: ['家庭保洁', '月嫂育儿', '养老护理', '收纳整理'],
+  其他: []
+}
+const DEFAULT_OFFLINE = ['配送', '安装', '施工', '物流仓储', '制造生产', '农业', '家政服务']
 
 const categories = ref(DEFAULT_CATEGORIES)
 const payMethods = ref(DEFAULT_PAY_METHODS)
 const cities = ref(DEFAULT_CITIES)
-const trades = ref([])
+const categoryTrades = ref(DEFAULT_CATEGORY_TRADES)
+const offlineCategories = ref(DEFAULT_OFFLINE)
+
+// 当前类目下可选的细分工种（类目→工种级联）
+const availableTrades = computed(() => categoryTrades.value[form.category] || [])
+// 当前类目是否为线下作业（决定高保额提示与"不可远程"约束）
+const isOffline = computed(() => offlineCategories.value.includes(form.category))
+const tradePlaceholder = computed(() => {
+  if (!form.category) return '请先选择任务类目'
+  if (!availableTrades.value.length) return '该类目暂无细分工种'
+  return '细分工种，便于零工按技能匹配'
+})
 
 onMounted(async () => {
   // 余额不足提示依赖账户信息
@@ -197,7 +230,8 @@ onMounted(async () => {
     if (Array.isArray(meta?.categories) && meta.categories.length) categories.value = meta.categories
     if (Array.isArray(meta?.payMethods) && meta.payMethods.length) payMethods.value = meta.payMethods
     if (Array.isArray(meta?.cities) && meta.cities.length) cities.value = meta.cities
-    if (Array.isArray(meta?.trades)) trades.value = meta.trades
+    if (meta?.categoryTrades && typeof meta.categoryTrades === 'object') categoryTrades.value = meta.categoryTrades
+    if (Array.isArray(meta?.offlineCategories)) offlineCategories.value = meta.offlineCategories
     // 当前选中的计酬方式不在动态列表中时，回到列表第一项
     if (!payMethods.value.includes(form.payMethod)) form.payMethod = payMethods.value[0]
   } catch {
@@ -219,6 +253,15 @@ const form = reactive({
   description: '',
   standard: ''
 })
+
+// 类目变化：清掉不属于新类目的工种；若新类目为线下且当前地点为"远程"，清空地点强制重选
+watch(
+  () => form.category,
+  () => {
+    if (form.trade && !availableTrades.value.includes(form.trade)) form.trade = ''
+    if (isOffline.value && form.city === '远程') form.city = ''
+  }
+)
 
 // —— 余额不足引导 ——
 const available = computed(() => profileStore.profile?.account?.available)
@@ -275,15 +318,39 @@ const rules = {
   payMethod: [{ required: true, message: '请选择计酬方式', trigger: 'change' }],
   price: [{ required: true, message: '请输入预算金额', trigger: 'blur' }],
   deadline: [{ required: true, message: '请选择截止日期', trigger: 'change' }],
+  city: [
+    { required: true, message: '请选择工作地点', trigger: 'change' },
+    {
+      validator: (_r, value, cb) =>
+        isOffline.value && value === '远程'
+          ? cb(new Error('线下作业类目需选择具体工作城市，不能为「远程」'))
+          : cb(),
+      trigger: 'change'
+    }
+  ],
   description: [
     { required: true, message: '请输入任务描述', trigger: 'blur' },
     { min: 5, max: 2000, message: '任务描述至少 5 个字符', trigger: 'blur' }
+  ],
+  standard: [
+    { required: true, message: '请输入交付标准（验收依据）', trigger: 'blur' },
+    { min: 5, max: 2000, message: '交付标准至少 5 个字符', trigger: 'blur' }
   ]
 }
 
 async function onSubmit() {
   try {
     await formRef.value.validate()
+  } catch {
+    return
+  }
+  // 校验通过后再二次确认，展示真实冻结金额（避免确认「¥0」后才报字段错误）
+  try {
+    await ElMessageBox.confirm(
+      `发布后将从存管户冻结预算 ¥${fmtMoney(form.price)}，零工即可看到任务并报名。是否继续？`,
+      '确认发布任务',
+      { confirmButtonText: '继续发布', cancelButtonText: '再想想', type: 'warning' }
+    )
   } catch {
     return
   }

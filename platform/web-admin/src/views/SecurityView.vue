@@ -90,13 +90,23 @@
 </template>
 
 <script setup>
-import { reactive, ref } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { setup2fa, enable2fa, disable2fa } from '../api/admin'
+import { useAuthStore } from '../stores/auth'
 
-// 绑定状态:服务端未在 /auth/me 暴露,通过 setup 的 409(已绑定)与
-// 启用/解绑结果在本地推断并同步
-const enabled = ref(false)
+const auth = useAuthStore()
+// 绑定状态来自 /auth/me 的 totpEnabled；先用本地缓存初始化，再刷新真实状态
+const enabled = ref(!!auth.user?.totpEnabled)
+
+onMounted(async () => {
+  try {
+    const me = await auth.fetchProfile()
+    enabled.value = !!me?.totpEnabled
+  } catch {
+    /* 刷新失败则保留本地状态；setup 的 409 仍可兜底纠正 */
+  }
+})
 
 const setupStep = ref(0)
 const settingUp = ref(false)

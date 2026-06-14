@@ -16,6 +16,7 @@
 .tc-title { font-size: calc(32rpx * var(--fs, 1)); font-weight: 700; color: #172033; line-height: 1.45; }
 .tc-price { color: #EA8C00; font-size: calc(38rpx * var(--fs, 1)); font-weight: 800; flex-shrink: 0; }
 .tc-symbol { font-size: calc(24rpx * var(--fs, 1)); margin-right: 2rpx; font-weight: 700; }
+.tc-price-note { display: block; font-size: calc(18rpx * var(--fs, 1)); color: #9CA3AF; font-weight: 500; text-align: right; line-height: 1.2; }
 .tc-tags { margin-top: 12rpx; display: flex; flex-wrap: wrap; gap: 10rpx; }
 .tc-tag {
   font-size: calc(22rpx * var(--fs, 1));
@@ -66,15 +67,44 @@
 }
 .tc-status-off { color: #94A3B8; background: #F1F5F4; }
 
-@media (prefers-color-scheme: dark) {
-  .tc-card { background: #121C2B; border-color: #233149; box-shadow: none; }
-  .tc-title { color: #E5E7EB; }
-  .tc-price { color: #FBBF24; }
-  .tc-unit, .tc-company { color: #94A3B8; }
-  .tc-tag { color: #5EEAD4; background: rgba(20, 184, 166, 0.14); }
-  .tc-tag-city { color: #93C5FD; background: rgba(37, 99, 235, 0.18); }
-  .tc-tag-trade { color: #FCD34D; background: rgba(180, 83, 9, 0.22); }
-  .tc-bottom { border-top-color: #233149; }
-  .tc-applicants, .tc-status { color: #5EEAD4; background: rgba(20, 184, 166, 0.14); }
-  .tc-status-off { color: #64748B; background: #1E293B; }
+.t-dark .tc-card {
+  background: #121C2B; border-color: #233149; box-shadow: none;
+}
+
+.t-dark .tc-title {
+  color: #E5E7EB;
+}
+
+.t-dark .tc-price {
+  color: #FBBF24;
+}
+
+.t-dark .tc-unit,
+.t-dark .tc-company {
+  color: #94A3B8;
+}
+
+.t-dark .tc-tag {
+  color: #5EEAD4; background: rgba(20, 184, 166, 0.14);
+}
+
+.t-dark .tc-tag-city {
+  color: #93C5FD; background: rgba(37, 99, 235, 0.18);
+}
+
+.t-dark .tc-tag-trade {
+  color: #FCD34D; background: rgba(180, 83, 9, 0.22);
+}
+
+.t-dark .tc-bottom {
+  border-top-color: #233149;
+}
+
+.t-dark .tc-applicants,
+.t-dark .tc-status {
+  color: #5EEAD4; background: rgba(20, 184, 166, 0.14);
+}
+
+.t-dark .tc-status-off {
+  color: #64748B; background: #1E293B;
 }

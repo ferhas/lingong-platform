@@ -1,24 +1,47 @@
 // 环境配置：开发联调用局域网 IP；上线前把 ENV 改为 'prod' 并填入 HTTPS 正式域名，
 // 同时在微信小程序后台「开发-服务器域名」配置 request/uploadFile 合法域名（必须 HTTPS）。
 const ENV = 'dev' // 上线改为 'prod'
+// dev：开发者工具「模拟器」跑在本机，用 127.0.0.1 最稳（已 urlCheck:false 不校验合法域名）。
+// 真机调试（手机与电脑同一 WiFi）时改成本机局域网 IP，并放行防火墙 3000 入站，例如：
+//   dev: 'http://192.168.100.110:3000/api/v1'
 const API_BASES = {
-  dev: 'http://192.168.6.170:3000/api/v1',
+  dev: 'http://127.0.0.1:3000/api/v1',
   prod: 'https://api.your-domain.com/api/v1' // TODO: 替换为正式域名
 }
 
 const api = require('./utils/api.js')
 const fontScale = require('./utils/fontScale.js')
+const theme = require('./utils/theme.js')
 
-// 全局字体大小：劫持 Page 构造器，给每个页面 data 注入 fsScale/fsKey，并在 onShow 时
-// 按最新设置刷新（在设置页改完返回即时生效）。配合各页 <page-meta page-style="--fs:{{fsScale}}">。
-// 失败兜底：即便注入失效，wxss 里的 var(--fs, 1) 也会回落到正常字号，不影响功能。
+// 全局注入：字体大小 + 深色主题。劫持 Page 构造器，给每个页面 data 注入 fsScale/fsKey 与
+// themeClass/themePref/pageStyle，并在 onShow 时按最新设置刷新（设置页改完返回即时生效）。
+// 配合各页 <page-meta page-style="{{pageStyle}}"> 与根节点 <view class="theme-root {{themeClass}}">。
+// 失败兜底：注入失效时 wxss 的 var(--fs,1) 回落正常字号、缺省类回落浅色，不影响功能。
+// 无需登录态即可访问的公开页（登录页 / 公开协议页）；其余页面进入前要求本地有 token
+const PUBLIC_PAGES = ['pages/login/login', 'pages/legal/legal']
+
+function injectAll() {
+  const fs = fontScale.injectData()
+  return Object.assign({}, fs, theme.injectData(fs.fsScale))
+}
+
 const originalPage = Page
 Page = function (options) {
-  options.data = Object.assign({}, fontScale.injectData(), options.data)
+  options.data = Object.assign({}, injectAll(), options.data)
   const userOnShow = options.onShow
   options.onShow = function (...args) {
-    const next = fontScale.injectData()
-    if (this.data.fsScale !== next.fsScale) this.setData(next)
+    const next = injectAll()
+    // 字号或主题变化则刷新（避免无谓 setData）
+    if (this.data.fsScale !== next.fsScale || this.data.themeName !== next.themeName || this.data.themePref !== next.themePref) {
+      this.setData(next)
+    }
+    // 原生导航栏/窗口背景同步当前主题（forced 主题需覆盖 theme.json 的系统跟随）
+    theme.applyChrome()
+    // 登录态守卫：非公开页在本地无 token 时主动跳登录（不再仅依赖后端 401 被动兜底）
+    if (!PUBLIC_PAGES.includes(this.route) && !wx.getStorageSync('token')) {
+      wx.reLaunch({ url: '/pages/login/login' })
+      return
+    }
     if (typeof userOnShow === 'function') return userOnShow.apply(this, args)
   }
   return originalPage(options)

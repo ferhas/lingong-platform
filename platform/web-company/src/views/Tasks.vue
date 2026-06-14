@@ -24,7 +24,7 @@
       <el-tab-pane label="已取消" name="cancelled" />
     </el-tabs>
 
-    <el-table :data="list" v-loading="loading" stripe>
+    <el-table v-loading="loading" :data="list" stripe>
       <el-table-column prop="id" label="ID" width="64" />
       <el-table-column prop="title" label="任务标题" min-width="180" show-overflow-tooltip />
       <el-table-column prop="category" label="类目" width="80" />
@@ -47,21 +47,21 @@
         <template #default="{ row }">
           <template v-if="row.status === 'recruiting'">
             <el-button type="primary" link @click="openDetail(row.id)">报名（{{ row.applicants ?? 0 }}）</el-button>
-            <el-button type="primary" link @click="openDispatch(row)">派单</el-button>
-            <el-button type="danger" link @click="onCancel(row)">取消任务</el-button>
+            <el-button v-if="auth.canManageTasks" type="primary" link @click="openDispatch(row)">派单</el-button>
+            <el-button v-if="auth.canManageTasks" type="danger" link @click="onCancel(row)">取消任务</el-button>
           </template>
           <template v-else-if="row.status === 'delivered'">
-            <el-button type="success" link :loading="acceptingId === row.id" @click="onAccept(row.id)">验收</el-button>
-            <el-button type="danger" link @click="openReject(row.id)">驳回</el-button>
+            <el-button v-if="auth.canManageTasks" type="success" link :loading="acceptingId === row.id" @click="onAccept(row.id)">验收</el-button>
+            <el-button v-if="auth.canManageTasks" type="danger" link @click="openReject(row.id)">驳回</el-button>
             <el-button type="primary" link @click="openDetail(row.id)">详情</el-button>
           </template>
           <template v-else-if="row.status === 'working'">
-            <el-button type="warning" link @click="openDispute(row)">发起争议</el-button>
+            <el-button v-if="auth.canManageTasks" type="warning" link @click="openDispute(row)">发起争议</el-button>
             <el-button type="primary" link @click="openDetail(row.id)">详情</el-button>
           </template>
           <template v-else-if="row.status === 'settled'">
-            <el-button type="success" link @click="openReview(row)">评价</el-button>
-            <el-button type="warning" link @click="openDispute(row)">发起争议</el-button>
+            <el-button v-if="auth.canManageTasks" type="success" link @click="openReview(row)">评价</el-button>
+            <el-button v-if="auth.canManageTasks" type="warning" link @click="openDispute(row)">发起争议</el-button>
             <el-button type="primary" link @click="openDetail(row.id)">详情</el-button>
           </template>
           <template v-else>
@@ -137,7 +137,7 @@
             </el-table>
           </template>
 
-          <div v-if="detail.status === 'recruiting'" class="action-bar">
+          <div v-if="detail.status === 'recruiting' && auth.canManageTasks" class="action-bar">
             <el-button type="primary" plain @click="openDispatch(detail)">向零工派单</el-button>
           </div>
 
@@ -176,7 +176,7 @@
             <el-table-column label="报名时间" min-width="140">
               <template #default="{ row }">{{ fmtDateTime(row.createdAt) }}</template>
             </el-table-column>
-            <el-table-column v-if="detail.status === 'recruiting'" label="操作" width="80" align="center">
+            <el-table-column v-if="detail.status === 'recruiting' && auth.canManageTasks" label="操作" width="80" align="center">
               <template #default="{ row }">
                 <el-button type="primary" link size="small" :loading="hiringId === row.workerId" @click="onHire(row)">
                   录用
@@ -236,7 +236,7 @@
             </div>
           </template>
 
-          <div v-if="detail.status === 'delivered'" class="action-bar">
+          <div v-if="detail.status === 'delivered' && auth.canManageTasks" class="action-bar">
             <el-button type="primary" :loading="acceptingId === detail.id" @click="onAccept(detail.id)">验收通过</el-button>
             <el-button type="danger" plain @click="openReject(detail.id)">驳回</el-button>
           </div>
@@ -441,13 +441,13 @@
         @clear="loadCandidates"
       />
       <el-table
-        :data="candidates"
         v-loading="candidateLoading"
+        :data="candidates"
         size="small"
         border
         highlight-current-row
-        @current-change="row => (dispatchWorker = row)"
         max-height="280"
+        @current-change="row => (dispatchWorker = row)"
       >
         <el-table-column width="40">
           <template #default="{ row }">
@@ -505,9 +505,11 @@ import {
 } from '../api/company'
 import { downloadFile } from '../utils/download'
 import { useProfileStore } from '../stores/profile'
+import { useAuthStore } from '../stores/auth'
 import { fmtMoney, fmtDateTime, SUBJECT_TYPE, DISPUTE_TYPE, REVIEW_TAGS } from '../utils/format'
 
 const router = useRouter()
+const auth = useAuthStore()
 const profileStore = useProfileStore()
 
 const activeStatus = ref('all')

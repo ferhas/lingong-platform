@@ -14,6 +14,7 @@ import * as risk from '../services/risk.js'
 import { acceptAndSettle } from '../services/settlement.js'
 import { hireWorker } from '../services/hiring.js'
 import { getConfig } from '../services/configStore.js'
+import { CATEGORY_TRADES, tradesForCategory, allTrades } from '../services/taxonomy.js'
 import { notify, notifyMany } from '../services/notify.js'
 import { logAction } from '../services/audit.js'
 import { esign, escrow } from '../integrations/index.js'
@@ -93,10 +94,13 @@ router.patch('/profile', requireCompanyRole('owner'), (req, res, next) => {
 })
 
 // [兼容保留] 一步充值（开发/演示态）；商用充值请使用充值单收银台（/recharge-orders）
+// 生产环境禁用：真实入金必须经银行回调驱动（绕过会与"余额=银行子户镜像"不变量冲突、污染对账）。
 router.post('/recharge', requireCompanyRole('owner', 'finance'), async (req, res, next) => {
   try {
+    if (process.env.NODE_ENV === 'production') throw forbidden('生产环境请使用充值单收银台（/recharge-orders），入金由存管银行回调确认')
     const { amount } = z.object({ amount: z.number().positive().max(10_000_000) }).parse(req.body)
     const c = myCompany(req)
+    requireApproved(c)
     const cents = yuanToCents(amount)
     await escrow.transfer({ from: `bank:company:${c.id}`, to: `escrow:company:${c.id}`, amountCents: cents, purpose: '企业存管户充值' })
     const acc = accounts.recharge('company', c.id, cents, '存管户充值（银行存管虚拟户）')
@@ -123,6 +127,7 @@ router.post('/recharge-orders', requireCompanyRole('owner', 'finance'), async (r
     logAction(req.user.id, 'recharge_order_create', `${orderNo} ¥${amount}`)
     res.status(201).json({
       orderNo,
+      no: orderNo, // 与列表接口字段名(no)对齐，避免同概念双名导致重构踩坑
       amount,
       payAccount: cashier.payAccount,
       payBank: cashier.payBank,
@@ -263,12 +268,15 @@ router.post('/members', requireCompanyRole('owner'), (req, res, next) => {
 })
 
 // 任务发布元数据（类目/计酬方式/地点/工种，实时读配置）
+// categoryTrades 提供「类目→工种」级联数据；offlineCategories 用于前端动态展示高保额提示与"线下不可远程"校验。
 router.get('/meta', (_req, res) => {
   res.json({
     categories: getConfig('categories'),
     payMethods: getConfig('payMethods'),
     cities: getConfig('cities'),
-    trades: getConfig('skillCatalog')
+    trades: allTrades(),
+    categoryTrades: CATEGORY_TRADES,
+    offlineCategories: getConfig('offlineCategories')
   })
 })
 
@@ -300,6 +308,28 @@ router.delete('/members/:userId', requireCompanyRole('owner'), (req, res, next) 
     })()
     logAction(req.user.id, 'member_disable', `user#${m.user_id}`)
     res.json({ ok: true })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// 转移企业所有权（仅 owner）：owner 身份转给某在职成员，自身降为 operator。
+// 解决"owner 不可转移/降级，一旦 owner 账号不可用企业即瘫痪"的死结。
+router.post('/members/:userId/transfer-owner', requireCompanyRole('owner'), (req, res, next) => {
+  try {
+    const c = myCompany(req)
+    const target = db.prepare(`SELECT * FROM company_members WHERE user_id = ? AND company_id = ?`).get(req.params.userId, c.id)
+    if (!target) throw notFound('成员不存在')
+    if (target.member_role === 'owner') throw badRequest('ALREADY_OWNER', '该成员已是企业主')
+    const targetUser = db.prepare(`SELECT status FROM users WHERE id = ?`).get(target.user_id)
+    if (!targetUser || targetUser.status !== 'active') throw badRequest('TARGET_INACTIVE', '目标成员账号未激活，不可转移所有权')
+    db.transaction(() => {
+      db.prepare(`UPDATE company_members SET member_role = 'operator' WHERE user_id = ? AND company_id = ?`).run(req.user.id, c.id)
+      db.prepare(`UPDATE company_members SET member_role = 'owner' WHERE user_id = ? AND company_id = ?`).run(target.user_id, c.id)
+    })()
+    logAction(req.user.id, 'transfer_owner', `company#${c.id} owner#${req.user.id} → user#${target.user_id}`)
+    notify(target.user_id, 'member', '您已成为企业主', `「${c.company_name}」的所有权已转移给您，您现在是企业主（owner），原企业主已降为运营成员。`)
+    res.json({ ok: true, newOwnerId: target.user_id })
   } catch (err) {
     next(err)
   }
@@ -365,10 +395,17 @@ async function publishTask(c, userId, body) {
   if (!cities.includes(city)) {
     throw badRequest('BAD_CITY', `任务地点仅支持：${cities.join('/')}`)
   }
+  // 线下作业类目（配送/安装/施工）必须落到具体城市，不能为"远程"——否则按类目触发的高保额投保与属地匹配失去依据
+  const offlineCategories = getConfig('offlineCategories')
+  if (offlineCategories.includes(body.category) && city === '远程') {
+    throw badRequest('OFFLINE_NEEDS_CITY', `「${body.category}」属于线下作业类目，请选择具体工作城市（不能为"远程"）`)
+  }
   if (body.trade) {
-    const trades = getConfig('skillCatalog')
-    if (!trades.includes(body.trade)) {
-      throw badRequest('BAD_TRADE', `工种仅支持：${trades.join('/')}`)
+    const allowed = tradesForCategory(body.category)
+    if (!allowed.includes(body.trade)) {
+      throw badRequest('BAD_TRADE', allowed.length
+        ? `「${body.category}」类目下的工种仅支持：${allowed.join('/')}`
+        : `「${body.category}」类目暂无细分工种，请将工种留空`)
     }
   }
 
@@ -583,7 +620,10 @@ router.post('/tasks/:id/dispatch', requireCompanyRole('owner', 'operator'), (req
     }
 
     const existing = db.prepare(`SELECT * FROM dispatches WHERE task_id = ? AND worker_id = ?`).get(t.id, workerId)
-    if (existing && existing.status === 'invited') throw conflict('ALREADY_DISPATCHED', '已向该零工派单，等待其接受')
+    // 进行中的派单（待接受 invited 或已接受 accepted）不可重复派；仅 rejected/cancelled 可改派
+    if (existing && (existing.status === 'invited' || existing.status === 'accepted')) {
+      throw conflict('ALREADY_DISPATCHED', '已向该零工派单或其已接受，无需重复派单')
+    }
 
     db.transaction(() => {
       if (existing) {
@@ -742,12 +782,14 @@ router.get('/stats/trend', (req, res) => {
 // —— 发票与合同 ——
 router.get('/invoices', (req, res) => {
   const c = myCompany(req)
+  const { pageSize, offset } = pageParams(req)
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM invoices WHERE company_id = ?`).get(c.id).n
   const list = db.prepare(`
     SELECT i.*, t.title FROM invoices i JOIN tasks t ON t.id = i.task_id
-    WHERE i.company_id = ? ORDER BY i.id DESC
-  `).all(c.id)
+    WHERE i.company_id = ? ORDER BY i.id DESC LIMIT ? OFFSET ?
+  `).all(c.id, pageSize, offset)
   res.json({
-    total: list.length,
+    total,
     list: list.map(i => ({
       id: i.id, no: i.no, taskTitle: i.title, amount: centsToYuan(i.amount),
       taxRate: i.tax_rate, item: i.item, confirmNo: i.confirm_no, issuedAt: i.issued_at,
@@ -759,12 +801,14 @@ router.get('/invoices', (req, res) => {
 
 router.get('/contracts', (req, res) => {
   const c = myCompany(req)
+  const { pageSize, offset } = pageParams(req)
+  const total = db.prepare(`SELECT COUNT(*) AS n FROM contracts WHERE company_id = ?`).get(c.id).n
   const list = db.prepare(`
     SELECT ct.*, t.title FROM contracts ct LEFT JOIN tasks t ON t.id = ct.task_id
-    WHERE ct.company_id = ? ORDER BY ct.id DESC
-  `).all(c.id)
+    WHERE ct.company_id = ? ORDER BY ct.id DESC LIMIT ? OFFSET ?
+  `).all(c.id, pageSize, offset)
   res.json({
-    total: list.length,
+    total,
     list: list.map(x => ({
       id: x.id, type: x.type, no: x.no, taskTitle: x.title,
       partyA: x.party_a, partyB: x.party_b, contentHash: x.content_hash,
