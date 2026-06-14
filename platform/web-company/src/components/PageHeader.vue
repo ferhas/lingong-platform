@@ -13,7 +13,7 @@
 <script setup>
 defineProps({
   title: { type: String, required: true },
-  subtitle: { type: String, default: '' }
+  subtitle: { type: String, default: '' },
 })
 </script>
 
@@ -35,9 +35,9 @@ defineProps({
 }
 
 .page-header-subtitle {
-  margin: 4px 0 0;
+  margin: 5px 0 0;
   font-size: 13px;
-  color: var(--text-3);
+  color: var(--text-2);
   line-height: 1.6;
 }
 

@@ -69,7 +69,7 @@
     >{{task.applied ? '已报名，等待企业确认' : (task.expired ? '已过截止日期' : (task.status === 'recruiting' ? '立即报名' : '已停止报名'))}}</button>
     <button
       wx:if="{{verified && task.applied && task.status === 'recruiting'}}"
-      style="margin-top:16rpx;background:#fff;color:#888;border:1rpx solid #ddd;"
+      class="withdraw-apply"
       hover-class="btn-hover"
       disabled="{{applying}}"
       bindtap="onWithdrawApply"

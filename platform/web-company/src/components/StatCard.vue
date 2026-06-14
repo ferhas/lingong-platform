@@ -28,7 +28,7 @@ const props = defineProps({
   label: { type: String, required: true },
   value: { type: [String, Number], default: '' },
   extra: { type: String, default: '' },
-  clickable: { type: Boolean, default: false }
+  clickable: { type: Boolean, default: false },
 })
 
 const emit = defineEmits(['click'])
@@ -41,6 +41,7 @@ function onClick() {
 <style scoped>
 .stat-card {
   background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-card);
   padding: 20px 24px;
@@ -48,7 +49,11 @@ function onClick() {
   align-items: flex-start;
   gap: 16px;
   position: relative;
-  transition: background-color 0.25s, transform 0.15s, box-shadow 0.15s;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s,
+    transform 0.15s,
+    box-shadow 0.15s;
 }
 
 .stat-card.clickable {
@@ -77,7 +82,7 @@ function onClick() {
 }
 
 .stat-label {
-  color: var(--text-3);
+  color: var(--text-2);
   font-size: 13px;
   margin-bottom: 8px;
 }

@@ -238,6 +238,7 @@ onMounted(load)
 .hc-card {
   background: var(--bg-card);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--success);
   border-radius: 10px;
   padding: 14px 16px;
   margin-bottom: 12px;
@@ -245,6 +246,7 @@ onMounted(load)
 
 .hc-card.hc-danger {
   border-color: var(--danger);
+  border-left-color: var(--danger);
 }
 
 .hc-card.hc-danger .hc-value {
@@ -253,6 +255,7 @@ onMounted(load)
 
 .hc-card.hc-warning {
   border-color: var(--warning);
+  border-left-color: var(--warning);
 }
 
 .hc-card.hc-warning .hc-value {
@@ -261,7 +264,7 @@ onMounted(load)
 
 .hc-label {
   font-size: 12px;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .hc-value {

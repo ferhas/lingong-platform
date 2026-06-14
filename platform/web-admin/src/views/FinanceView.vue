@@ -475,6 +475,7 @@ onMounted(loadDaily)
 }
 
 .kpi-card {
+  background: var(--bg-hover);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 14px 16px;
@@ -483,7 +484,7 @@ onMounted(loadDaily)
 
 .kpi-label {
   font-size: 12px;
-  color: var(--text-3);
+  color: var(--text-2);
 }
 
 .kpi-value {

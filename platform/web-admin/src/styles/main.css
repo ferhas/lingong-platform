@@ -130,7 +130,8 @@ body {
 .page-sub {
   margin: 6px 0 0;
   font-size: 13px;
-  color: var(--text-3);
+  color: var(--text-2);
+  line-height: 1.5;
 }
 
 .page-actions {
@@ -191,7 +192,7 @@ html.dark .stat-card {
 
 .stat-card .stat-label {
   font-size: 13px;
-  color: var(--text-3);
+  color: var(--text-2);
   margin-bottom: 6px;
 }
 
@@ -224,8 +225,84 @@ html.dark .stat-card {
   border-radius: 12px;
 }
 
+/* —— 表格：统一表头作为独立色带、收紧行高、弱化网格线 —— */
+.el-table {
+  --el-table-header-bg-color: var(--bg-hover);
+  --el-table-header-text-color: var(--text-2);
+  --el-table-border-color: var(--border);
+  --el-table-row-hover-bg-color: var(--accent-weak);
+  font-size: 13px;
+}
+
 .el-table .cell {
   font-variant-numeric: tabular-nums;
+}
+
+/* 表头：略增字重与字间距,降低视觉噪音的同时强化层级 */
+.el-table th.el-table__cell {
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* 行高收紧：默认表过去偏松，缩到更紧凑的密度（小号表 size="small" 不受影响） */
+.el-table:not(.el-table--small) .el-table__cell {
+  padding-top: 9px;
+  padding-bottom: 9px;
+}
+
+/* 操作列里 link 按钮间距更均匀,避免“锁定/解锁”等贴在一起 */
+.el-table .el-button.is-link + .el-button.is-link {
+  margin-left: 12px;
+}
+
+/* —— 标签：统一圆角与字重，状态色更显眼 —— */
+.el-tag {
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+/* —— 描述列表（el-descriptions border）：标签列作为浅色带，读起来更像“表单” —— */
+.el-descriptions__label.el-descriptions__cell.is-bordered-label {
+  background: var(--bg-hover);
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+/* —— 标签页：选中态下划线更克制，未选中态对比度更高 —— */
+.el-tabs__item {
+  font-weight: 600;
+}
+
+.el-tabs__item:not(.is-active) {
+  color: var(--text-2);
+}
+
+/* —— 抽屉/对话框标题：与正文层级拉开 —— */
+.el-drawer__title,
+.el-dialog__title {
+  font-weight: 700;
+  color: var(--text-1);
+}
+
+/* —— 空状态文案：略提对比度，避免“暂无数据”过淡 —— */
+.el-empty__description p {
+  color: var(--text-2);
+}
+
+/* —— 分页：当前页与可点页码区分更清晰 —— */
+.el-pagination.is-background .el-pager li:not(.is-active):hover {
+  color: var(--accent);
+}
+
+/* —— 表单标签字重统一（顶部对齐表单更清爽）—— */
+.el-form-item__label {
+  font-weight: 600;
+  color: var(--text-2);
+}
+
+/* —— 顶部刷新等图标按钮 hover 反馈 —— */
+.page-actions .el-button.is-circle:hover {
+  color: var(--accent);
 }
 
 /* —— 键盘可达性：自定义控件的可见焦点环（仅键盘 Tab 触发，鼠标点击不出现）—— */

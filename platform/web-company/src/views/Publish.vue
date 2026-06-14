@@ -3,9 +3,13 @@
     <!-- 余额不足引导 -->
     <el-alert v-if="insufficient" type="warning" show-icon :closable="false" class="balance-alert">
       <template #title>
-        <TermTip term="存管户" />可用余额 ¥{{ fmtMoney(available) }}，不足以冻结本次预算 ¥{{ fmtMoney(form.price) }}，发布将被拦截
+        <TermTip term="存管户" />可用余额 ¥{{ fmtMoney(available) }}，不足以冻结本次预算 ¥{{
+          fmtMoney(form.price)
+        }}，发布将被拦截
       </template>
-      <el-button type="primary" size="small" class="recharge-btn" @click="router.push('/funds')">去充值</el-button>
+      <el-button type="primary" size="small" class="recharge-btn" @click="router.push('/funds')"
+        >去充值</el-button
+      >
     </el-alert>
 
     <el-alert
@@ -25,16 +29,29 @@
         </el-button>
       </div>
       <div class="publish-body">
-        <el-form ref="formRef" :model="form" :rules="rules" label-width="100px" class="publish-form">
+        <el-form
+          ref="formRef"
+          :model="form"
+          :rules="rules"
+          label-width="100px"
+          class="publish-form"
+        >
           <el-form-item label="任务标题" prop="title">
-            <el-input v-model="form.title" maxlength="80" show-word-limit placeholder="例如：电商主图设计（10 张）" />
+            <el-input
+              v-model="form.title"
+              maxlength="80"
+              show-word-limit
+              placeholder="例如：电商主图设计（10 张）"
+            />
           </el-form-item>
 
           <el-form-item label="任务类目" prop="category">
             <el-select v-model="form.category" placeholder="请选择类目" style="width: 240px">
               <el-option v-for="c in categories" :key="c" :label="c" :value="c" />
             </el-select>
-            <span v-if="isOffline" class="form-tip">线下作业类目，将自动投保高保额方案，并需选择具体工作城市</span>
+            <span v-if="isOffline" class="form-tip"
+              >线下作业类目，将自动投保高保额方案，并需选择具体工作城市</span
+            >
           </el-form-item>
 
           <el-form-item label="工种（选填）" prop="trade">
@@ -50,7 +67,11 @@
           </el-form-item>
 
           <el-form-item label="工作地点" prop="city">
-            <el-select v-model="form.city" :placeholder="isOffline ? '请选择具体工作城市' : '线上任务选「远程」'" style="width: 240px">
+            <el-select
+              v-model="form.city"
+              :placeholder="isOffline ? '请选择具体工作城市' : '线上任务选「远程」'"
+              style="width: 240px"
+            >
               <el-option
                 v-for="c in cities"
                 :key="c"
@@ -59,7 +80,11 @@
                 :disabled="isOffline && c === '远程'"
               />
             </el-select>
-            <span class="form-tip">线下作业类目（{{ offlineCategories.join('/') }}）会自动投保高保额方案；线上任务选「远程」即可</span>
+            <span class="form-tip"
+              >线下作业类目（{{
+                offlineCategories.join('/')
+              }}）会自动投保高保额方案；线上任务选「远程」即可</span
+            >
           </el-form-item>
 
           <el-form-item label="计酬方式" prop="payMethod">
@@ -88,7 +113,7 @@
               type="date"
               value-format="YYYY-MM-DD"
               placeholder="选择截止日期"
-              :disabled-date="d => d.getTime() < Date.now() - 86400000"
+              :disabled-date="(d) => d.getTime() < Date.now() - 86400000"
               style="width: 240px"
             />
           </el-form-item>
@@ -116,7 +141,9 @@
           </el-form-item>
 
           <el-form-item>
-            <el-button type="primary" size="large" :loading="submitting" @click="onSubmit">发布任务</el-button>
+            <el-button type="primary" size="large" :loading="submitting" @click="onSubmit"
+              >发布任务</el-button
+            >
             <el-button size="large" @click="onReset">重置</el-button>
           </el-form-item>
         </el-form>
@@ -127,13 +154,13 @@
             <el-icon><DataLine /></el-icon>费用速算
           </div>
           <template v-if="estimate">
-            <div class="estimate-row total-row">
-              <span class="estimate-label">
+            <div class="estimate-total">
+              <span class="estimate-total-label">
                 <TermTip term="承揽价" text="任务总价（承揽价）" />
               </span>
-              <span class="money estimate-value">¥{{ fmtMoney(estimate.price) }}</span>
+              <span class="money estimate-total-value">¥{{ fmtMoney(estimate.price) }}</span>
             </div>
-            <el-divider class="estimate-divider" />
+            <div class="estimate-breakdown-label">费用构成</div>
             <div class="estimate-row">
               <span class="estimate-label">
                 <TermTip term="分包价" text="零工税前所得（分包价）" />
@@ -183,9 +210,43 @@ const router = useRouter()
 const profileStore = useProfileStore()
 
 // 兜底默认值：/company/meta 加载失败时回退（与后端 db.js 配置 / taxonomy.js 保持同步）
-const DEFAULT_CATEGORIES = ['设计', '技术', '翻译', '文案', '视频', '直播电商', '跨境边贸', '文旅', '配送', '物流仓储', '安装', '施工', '制造生产', '农业', '家政服务', '其他']
+const DEFAULT_CATEGORIES = [
+  '设计',
+  '技术',
+  '翻译',
+  '文案',
+  '视频',
+  '直播电商',
+  '跨境边贸',
+  '文旅',
+  '配送',
+  '物流仓储',
+  '安装',
+  '施工',
+  '制造生产',
+  '农业',
+  '家政服务',
+  '其他',
+]
 const DEFAULT_PAY_METHODS = ['按成果', '按件', '按单']
-const DEFAULT_CITIES = ['远程', '南宁', '柳州', '桂林', '梧州', '北海', '防城港', '钦州', '贵港', '玉林', '百色', '贺州', '河池', '来宾', '崇左', '其他']
+const DEFAULT_CITIES = [
+  '远程',
+  '南宁',
+  '柳州',
+  '桂林',
+  '梧州',
+  '北海',
+  '防城港',
+  '钦州',
+  '贵港',
+  '玉林',
+  '百色',
+  '贺州',
+  '河池',
+  '来宾',
+  '崇左',
+  '其他',
+]
 const DEFAULT_CATEGORY_TRADES = {
   设计: ['UI设计', '平面设计', '电商美工', '空间设计'],
   技术: ['前端开发', '后端开发', '小程序开发', '测试运维'],
@@ -202,7 +263,7 @@ const DEFAULT_CATEGORY_TRADES = {
   制造生产: ['普工', '质检员', '装配工', '食品加工'],
   农业: ['果蔬采摘', '分拣包装', '茶叶采制', '农技服务'],
   家政服务: ['家庭保洁', '月嫂育儿', '养老护理', '收纳整理'],
-  其他: []
+  其他: [],
 }
 const DEFAULT_OFFLINE = ['配送', '安装', '施工', '物流仓储', '制造生产', '农业', '家政服务']
 
@@ -227,10 +288,13 @@ onMounted(async () => {
   if (!profileStore.profile) profileStore.fetch().catch(() => {})
   try {
     const meta = await getCompanyMeta()
-    if (Array.isArray(meta?.categories) && meta.categories.length) categories.value = meta.categories
-    if (Array.isArray(meta?.payMethods) && meta.payMethods.length) payMethods.value = meta.payMethods
+    if (Array.isArray(meta?.categories) && meta.categories.length)
+      categories.value = meta.categories
+    if (Array.isArray(meta?.payMethods) && meta.payMethods.length)
+      payMethods.value = meta.payMethods
     if (Array.isArray(meta?.cities) && meta.cities.length) cities.value = meta.cities
-    if (meta?.categoryTrades && typeof meta.categoryTrades === 'object') categoryTrades.value = meta.categoryTrades
+    if (meta?.categoryTrades && typeof meta.categoryTrades === 'object')
+      categoryTrades.value = meta.categoryTrades
     if (Array.isArray(meta?.offlineCategories)) offlineCategories.value = meta.offlineCategories
     // 当前选中的计酬方式不在动态列表中时，回到列表第一项
     if (!payMethods.value.includes(form.payMethod)) form.payMethod = payMethods.value[0]
@@ -251,7 +315,7 @@ const form = reactive({
   price: undefined,
   deadline: '',
   description: '',
-  standard: ''
+  standard: '',
 })
 
 // 类目变化：清掉不属于新类目的工种；若新类目为线下且当前地点为"远程"，清空地点强制重选
@@ -260,13 +324,16 @@ watch(
   () => {
     if (form.trade && !availableTrades.value.includes(form.trade)) form.trade = ''
     if (isOffline.value && form.city === '远程') form.city = ''
-  }
+  },
 )
 
 // —— 余额不足引导 ——
 const available = computed(() => profileStore.profile?.account?.available)
 const insufficient = computed(
-  () => Number(form.price) > 0 && available.value !== undefined && Number(form.price) > Number(available.value)
+  () =>
+    Number(form.price) > 0 &&
+    available.value !== undefined &&
+    Number(form.price) > Number(available.value),
 )
 
 // —— 费用速算：金额/类目变化防抖 500ms 调测算接口 ——
@@ -306,13 +373,13 @@ watch(
       return
     }
     debouncedEstimate()
-  }
+  },
 )
 
 const rules = {
   title: [
     { required: true, message: '请输入任务标题', trigger: 'blur' },
-    { min: 2, max: 80, message: '标题长度应为 2 至 80 个字符', trigger: 'blur' }
+    { min: 2, max: 80, message: '标题长度应为 2 至 80 个字符', trigger: 'blur' },
   ],
   category: [{ required: true, message: '请选择任务类目', trigger: 'change' }],
   payMethod: [{ required: true, message: '请选择计酬方式', trigger: 'change' }],
@@ -325,17 +392,17 @@ const rules = {
         isOffline.value && value === '远程'
           ? cb(new Error('线下作业类目需选择具体工作城市，不能为「远程」'))
           : cb(),
-      trigger: 'change'
-    }
+      trigger: 'change',
+    },
   ],
   description: [
     { required: true, message: '请输入任务描述', trigger: 'blur' },
-    { min: 5, max: 2000, message: '任务描述至少 5 个字符', trigger: 'blur' }
+    { min: 5, max: 2000, message: '任务描述至少 5 个字符', trigger: 'blur' },
   ],
   standard: [
     { required: true, message: '请输入交付标准（验收依据）', trigger: 'blur' },
-    { min: 5, max: 2000, message: '交付标准至少 5 个字符', trigger: 'blur' }
-  ]
+    { min: 5, max: 2000, message: '交付标准至少 5 个字符', trigger: 'blur' },
+  ],
 }
 
 async function onSubmit() {
@@ -349,7 +416,7 @@ async function onSubmit() {
     await ElMessageBox.confirm(
       `发布后将从存管户冻结预算 ¥${fmtMoney(form.price)}，零工即可看到任务并报名。是否继续？`,
       '确认发布任务',
-      { confirmButtonText: '继续发布', cancelButtonText: '再想想', type: 'warning' }
+      { confirmButtonText: '继续发布', cancelButtonText: '再想想', type: 'warning' },
     )
   } catch {
     return
@@ -365,12 +432,12 @@ async function onSubmit() {
       price: form.price,
       deadline: form.deadline,
       description: form.description,
-      standard: form.standard || ''
+      standard: form.standard || '',
     })
     ElMessage({
       type: 'success',
       duration: 6000,
-      message: `发布成功，任务工单号 ${res.workOrderNo}，已冻结预算 ¥${fmtMoney(res.frozen)}。零工报名后您会收到站内通知`
+      message: `发布成功，任务工单号 ${res.workOrderNo}，已冻结预算 ¥${fmtMoney(res.frozen)}。零工报名后您会收到站内通知`,
     })
     profileStore.fetch().catch(() => {})
     router.push('/tasks')
@@ -454,6 +521,35 @@ function onReset() {
   color: var(--brand);
 }
 
+/* 承揽价：作为速算卡的锚点数字，独立成块、品牌弱底强调 */
+.estimate-total {
+  background: var(--brand-weak);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.estimate-total-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-2);
+  margin-bottom: 4px;
+}
+
+.estimate-total-value {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--brand);
+}
+
+.estimate-breakdown-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+
 .estimate-row {
   display: flex;
   justify-content: space-between;
@@ -473,16 +569,7 @@ function onReset() {
 
 .estimate-value.strong {
   font-weight: 700;
-  color: var(--brand);
-}
-
-.total-row .estimate-value {
-  font-weight: 700;
-  font-size: 15px;
-}
-
-.estimate-divider {
-  margin: 10px 0;
+  color: var(--text-1);
 }
 
 .estimate-note {

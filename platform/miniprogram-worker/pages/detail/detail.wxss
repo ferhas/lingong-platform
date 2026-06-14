@@ -114,6 +114,15 @@ page { padding: 0 0 220rpx; }
 }
 .footer-note { text-align: center; color: #8A99A8; font-size: calc(25rpx * var(--fs, 1)); margin-bottom: 12rpx; }
 .verify-btn { background: linear-gradient(135deg, #D97706 0%, #EA580C 100%); }
+.withdraw-apply {
+  margin-top: 16rpx;
+  background: #FFFFFF;
+  color: #64748B;
+  border: 1rpx solid #D8E0E5;
+  border-radius: 999rpx;
+  font-size: calc(28rpx * var(--fs, 1));
+  min-height: 80rpx;
+}
 
 .t-dark .detail-header {
   background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
@@ -155,4 +164,10 @@ page { padding: 0 0 220rpx; }
 .t-dark .footer {
   background: rgba(18, 28, 43, 0.94);
   box-shadow: none;
+}
+
+.t-dark .withdraw-apply {
+  background: #121C2B;
+  color: #94A3B8;
+  border-color: #233149;
 }

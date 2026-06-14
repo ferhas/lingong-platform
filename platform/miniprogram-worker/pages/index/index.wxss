@@ -237,7 +237,7 @@
   font-size: calc(24rpx * var(--fs, 1));
   margin-bottom: 14rpx;
 }
-.history-clear { color: #0F766E; }
+.history-clear { color: #0F766E; padding: 8rpx 16rpx; margin: -8rpx -16rpx -8rpx 0; }
 .history-tags { display: flex; flex-wrap: wrap; gap: 14rpx; }
 .history-tag {
   font-size: calc(25rpx * var(--fs, 1));

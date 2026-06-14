@@ -147,6 +147,10 @@ page { padding: 24rpx; }
   color: #CBD5E1;
 }
 
+.t-dark .terms-title {
+  color: #E5E7EB;
+}
+
 .t-dark .notice {
   color: #94A3B8;
 }

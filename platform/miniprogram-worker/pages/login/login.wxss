@@ -162,6 +162,10 @@ page {
     color: #CBD5E1;
   }
 
+  .bind-title {
+    color: #E5E7EB;
+  }
+
   .divider::before,
   .divider::after {
     background: #233149;

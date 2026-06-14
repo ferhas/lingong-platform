@@ -64,7 +64,7 @@
           </template>
         </el-table-column>
         <template #empty>
-          <el-empty description="暂无企业数据" :image-size="90" />
+          <el-empty :description="emptyText" :image-size="90" />
         </template>
       </el-table>
     </div>
@@ -475,6 +475,16 @@ function statusTagType(status) {
 function statusText(status) {
   return { pending: '待审核', approved: '已入驻', rejected: '未通过' }[status] || status
 }
+
+// 空状态文案随当前分页变化,告诉用户“这个篮子是空的”而非“整体无数据”
+const emptyText = computed(
+  () =>
+    ({
+      pending: '当前没有待审核的企业',
+      approved: '暂无已入驻企业',
+      rejected: '暂无未通过的企业'
+    })[activeStatus.value] || '暂无企业数据'
+)
 
 function taskStatusText(status) {
   return TASK_STATUS_TEXT[status] || status

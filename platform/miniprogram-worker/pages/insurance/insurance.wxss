@@ -43,7 +43,10 @@
   color: #FFFFFF;
   background: linear-gradient(135deg, #D97706 0%, #EA580C 100%);
   border-radius: 999rpx;
-  padding: 10rpx 30rpx;
+  padding: 0 32rpx;
+  min-height: 64rpx;
+  display: inline-flex;
+  align-items: center;
   font-weight: 600;
 }
 .p-claimed { font-size: calc(25rpx * var(--fs, 1)); color: #94A3B8; }

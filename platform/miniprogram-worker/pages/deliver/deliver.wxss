@@ -104,14 +104,19 @@
 }
 .fc-del {
   color: #94A3B8;
-  font-size: calc(26rpx * var(--fs, 1));
+  font-size: calc(28rpx * var(--fs, 1));
+  padding: 4rpx 8rpx;
+  margin: -4rpx -4rpx -4rpx 0;
 }
 .file-add {
   background: #FFFFFF;
   border: 1rpx dashed #0F766E;
   color: #0F766E;
   border-radius: 14rpx;
-  padding: 12rpx 24rpx;
+  padding: 0 26rpx;
+  min-height: 72rpx;
+  display: inline-flex;
+  align-items: center;
   font-size: calc(26rpx * var(--fs, 1));
 }
 
@@ -127,4 +132,50 @@
   color: #94A3B8;
   padding: 80rpx 0;
   font-size: calc(28rpx * var(--fs, 1));
+}
+
+/* —— 深色模式 —— */
+.t-dark .hero-kicker {
+  color: #5EEAD4;
+}
+
+.t-dark .hero-title {
+  color: #E5E7EB;
+}
+
+.t-dark .hero-meta {
+  color: #94A3B8;
+}
+
+.t-dark .standard-tip {
+  background: rgba(20, 184, 166, 0.12);
+  border-color: #134E4A;
+  color: #5EEAD4;
+}
+
+.t-dark .field-label .unit,
+.t-dark .up-hint,
+.t-dark .up-tip {
+  color: #94A3B8;
+}
+
+.t-dark .picker-box {
+  background: #0F172A;
+  border-color: transparent;
+  color: #F8FAFC;
+}
+
+.t-dark .file-chip2 {
+  background: #0F172A;
+  border-color: #233149;
+}
+
+.t-dark .fc-name {
+  color: #E5E7EB;
+}
+
+.t-dark .file-add {
+  background: #121C2B;
+  border-color: #134E4A;
+  color: #5EEAD4;
 }

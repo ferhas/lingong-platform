@@ -114,16 +114,21 @@ body {
   background: var(--bg-page);
   color: var(--text-1);
   -webkit-font-smoothing: antialiased;
-  transition: background-color 0.25s, color 0.25s;
+  transition:
+    background-color 0.25s,
+    color 0.25s;
 }
 
 /* —— 公共类 —— */
 .page-card {
   background: var(--bg-card);
+  border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-card);
   padding: 20px 24px;
-  transition: background-color 0.25s;
+  transition:
+    background-color 0.25s,
+    border-color 0.25s;
 }
 
 .page-title {
@@ -153,6 +158,69 @@ body {
   display: flex;
   justify-content: flex-end;
   margin-top: 16px;
+}
+
+/* ============================================================
+   Element Plus 组件统一精修（全局，沿用语义变量）
+   ============================================================ */
+
+/* —— 表格：表头加权增对比、单元格留白、斑马/悬浮更清晰 —— */
+.el-table {
+  --el-table-border-color: var(--border);
+  --el-table-header-bg-color: var(--bg-hover);
+  --el-table-header-text-color: var(--text-2);
+  --el-table-row-hover-bg-color: var(--bg-hover);
+  font-size: 13px;
+}
+
+.el-table th.el-table__cell {
+  font-weight: 600;
+  background-color: var(--el-table-header-bg-color);
+}
+
+.el-table th.el-table__cell > .cell {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+/* 表头与表体之间一条更实的分隔线，强化「标题行」的层级 */
+.el-table thead .el-table__cell {
+  border-bottom: 1px solid var(--border);
+}
+
+/* 行高留白：默认偏紧，纵向加一点呼吸感（small 尺寸的密集表格保持紧凑） */
+.el-table:not(.el-table--small) td.el-table__cell {
+  padding: 11px 0;
+}
+
+/* —— 空状态：描述文字提一档对比、收紧上下间距 —— */
+.el-empty {
+  --el-empty-description-color: var(--text-2);
+  padding: 32px 0;
+}
+
+.el-empty__description {
+  margin-top: 8px;
+}
+
+.el-empty__description p {
+  color: var(--text-2);
+  font-size: 13px;
+}
+
+/* —— 描述列表（详情抽屉/弹窗大量使用）：标签对比与留白 —— */
+.el-descriptions {
+  --el-descriptions-item-bordered-label-background: var(--bg-hover);
+}
+
+.el-descriptions__label.is-bordered-label {
+  color: var(--text-2);
+  font-weight: 600;
+}
+
+/* —— 标签页：选中态加权，下划线用品牌色（已默认，仅补字重）—— */
+.el-tabs__item.is-active {
+  font-weight: 600;
 }
 
 /* —— 键盘可达性：自定义控件的可见焦点环（仅键盘 Tab 触发，鼠标点击不出现）—— */
