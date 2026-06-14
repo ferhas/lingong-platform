@@ -916,6 +916,46 @@
       }
       input.click()
     },
+    chooseImage: function (o) {
+      var input = document.createElement('input')
+      input.type = 'file'; input.accept = 'image/*'
+      if ((o.count || 1) > 1) input.multiple = true
+      input.style.position = 'fixed'; input.style.left = '-9999px'
+      document.body.appendChild(input)
+      input.onchange = function () {
+        var files = Array.prototype.slice.call(input.files || [])
+        document.body.removeChild(input)
+        if (!files.length) { o.fail && o.fail({ errMsg: 'chooseImage:fail cancel' }); o.complete && o.complete(); return }
+        var tempFiles = files.slice(0, o.count || files.length).map(function (f) {
+          var path = 'wxfile://' + (++fileSeq); fileStore[path] = f
+          return { path: path, size: f.size }
+        })
+        o.success && o.success({ tempFilePaths: tempFiles.map(function (t) { return t.path }), tempFiles: tempFiles })
+        o.complete && o.complete()
+      }
+      input.click()
+    },
+    chooseMedia: function (o) {
+      var input = document.createElement('input')
+      input.type = 'file'
+      var mt = o.mediaType || ['image']
+      input.accept = mt.indexOf('video') >= 0 ? 'video/*' : 'image/*'
+      if ((o.count || 1) > 1) input.multiple = true
+      input.style.position = 'fixed'; input.style.left = '-9999px'
+      document.body.appendChild(input)
+      input.onchange = function () {
+        var files = Array.prototype.slice.call(input.files || [])
+        document.body.removeChild(input)
+        if (!files.length) { o.fail && o.fail({ errMsg: 'chooseMedia:fail cancel' }); o.complete && o.complete(); return }
+        var tempFiles = files.slice(0, o.count || files.length).map(function (f) {
+          var path = 'wxfile://' + (++fileSeq); fileStore[path] = f
+          return { tempFilePath: path, size: f.size, fileType: (f.type.indexOf('video') >= 0 ? 'video' : 'image') }
+        })
+        o.success && o.success({ tempFiles: tempFiles })
+        o.complete && o.complete()
+      }
+      input.click()
+    },
 
     // —— 导航 ——
     navigateTo: function (o) { Router.navigateTo(o.url); o.success && o.success(); o.complete && o.complete() },

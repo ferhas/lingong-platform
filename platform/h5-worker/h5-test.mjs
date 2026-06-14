@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url'
 const HOST = 'http://127.0.0.1:3000'
 const API = HOST + '/api/v1'
 const PORT = 9224
-const EDGE = 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'
+const EDGE = process.env.CHROME_BIN || 'C:/Program Files/Google/Chrome/Application/chrome.exe'
 const here = path.dirname(fileURLToPath(import.meta.url))
 const OUT = path.resolve(here, '../.review-shots')
 fs.mkdirSync(OUT, { recursive: true })
