@@ -11,7 +11,7 @@
     "seed": "node src/seed.js",
     "mock": "node ../scripts/mock.mjs",
     "demo": "node src/demoSeed.js",
-    "test": "node tests/migration.test.mjs && node tests/taxengine.test.mjs && node tests/copy.test.mjs && node tests/integration.test.mjs && node tests/commercial.test.mjs && node tests/worker_features.test.mjs && node tests/audit_fixes.test.mjs && node tests/audit_fixes2.test.mjs && node tests/permission_hardening.test.mjs && node tests/optimizations.test.mjs && node tests/audit_fixes3.test.mjs"
+    "test": "node tests/migration.test.mjs && node tests/taxengine.test.mjs && node tests/copy.test.mjs && node tests/integration.test.mjs && node tests/commercial.test.mjs && node tests/worker_features.test.mjs && node tests/audit_fixes.test.mjs && node tests/audit_fixes2.test.mjs && node tests/permission_hardening.test.mjs && node tests/optimizations.test.mjs && node tests/audit_fixes3.test.mjs && node tests/delivery_specs.test.mjs"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

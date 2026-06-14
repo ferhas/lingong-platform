@@ -166,54 +166,11 @@ Page({
     this.fetch()
   },
 
-  // 交付：可选附带文件
+  // 交付：进入按工种结构化交付页（动态表单，填写字段 + 分类上传材料）
   onDeliver(e) {
-    const id = e.currentTarget.dataset.id
-    wx.showActionSheet({
-      itemList: ['填写说明直接提交', '选择文件并提交'],
-      success: res => {
-        if (res.tapIndex === 0) {
-          this.deliverWithNote(id, [])
-        } else {
-          wx.chooseMessageFile({
-            count: 3,
-            success: async pick => {
-              wx.showLoading({ title: '上传中…' })
-              try {
-                const ids = []
-                for (const f of pick.tempFiles) {
-                  const up = await api.upload(f.path, f.name)
-                  ids.push(up.id)
-                }
-                wx.hideLoading()
-                this.deliverWithNote(id, ids)
-              } catch (err) {
-                wx.hideLoading()
-              }
-            }
-          })
-        }
-      }
-    })
-  },
-
-  deliverWithNote(id, attachmentIds) {
-    wx.showModal({
-      title: '交付说明',
-      editable: true,
-      placeholderText: '如：成片链接+工程文件',
-      confirmText: '提交',
-      success: async res => {
-        if (!res.confirm) return
-        const note = (res.content || '').trim()
-        if (!note) return wx.showToast({ title: '请填写交付说明', icon: 'none' })
-        try {
-          await api.post(`/worker/orders/${id}/deliver`, { note, attachmentIds })
-          wx.showToast({ title: '已提交，等待企业验收', icon: 'success' })
-          this.fetch()
-        } catch (err) {}
-      }
-    })
+    const order = this.data.orders.find(o => o.id === Number(e.currentTarget.dataset.id))
+    const title = order ? encodeURIComponent(order.title) : ''
+    wx.navigateTo({ url: `/pages/deliver/deliver?id=${e.currentTarget.dataset.id}&title=${title}` })
   },
 
   // —— B线个体户：上传进项发票（先选文件上传，再补录发票号/金额/类型）——

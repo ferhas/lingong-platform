@@ -159,7 +159,8 @@ const GROUP_META = [
 ]
 
 // 全局资金应急开关由「结算/提现单据·应急开关」step-up 复验入口治理，不在此明文编辑（避免绕过二次验证）
-const HIDDEN_KEYS = ['settlementPaused', 'withdrawalPaused']
+// deliverySpecs 为结构化对象配置，由「交付物模板」专用编辑器维护（通用编辑器仅支持标量/数组）
+const HIDDEN_KEYS = ['settlementPaused', 'withdrawalPaused', 'deliverySpecs']
 // 0/1 语义的开关型配置，渲染为开关而非数字框
 const BOOLEAN_KEYS = ['withdrawSmsRequired', 'faceVerifyRequired']
 // 允许保存为空数组的配置（如订阅消息模板ID，为空表示不发订阅消息）

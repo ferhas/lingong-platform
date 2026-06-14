@@ -16,22 +16,20 @@
   white-space: pre-wrap;
 }
 
-@media (prefers-color-scheme: dark) {
-  .doc {
-    background: #121C2B;
-    border-color: #233149;
-    box-shadow: none;
-  }
+.t-dark .doc {
+  background: #121C2B;
+  border-color: #233149;
+  box-shadow: none;
+}
 
-  .doc-title {
-    color: #E5E7EB;
-  }
+.t-dark .doc-title {
+  color: #E5E7EB;
+}
 
-  .doc-version {
-    color: #94A3B8;
-  }
+.t-dark .doc-version {
+  color: #94A3B8;
+}
 
-  .doc-content {
-    color: #CBD5E1;
-  }
+.t-dark .doc-content {
+  color: #CBD5E1;
 }

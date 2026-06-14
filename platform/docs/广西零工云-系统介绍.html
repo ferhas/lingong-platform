@@ -171,6 +171,7 @@
       <a href="#roles">角色权限</a>
       <a href="#trades">类目工种</a>
       <a href="#flows">业务流程</a>
+      <a href="#delivery">结构化交付</a>
       <a href="#enums">状态机</a>
       <a href="#risk">风控通知</a>
       <a href="#ops">后台集成</a>
@@ -551,6 +552,86 @@
       <div class="card reveal"><h4>按单投保 / 理赔</h4><ul class="clean"><li>录用即按单出保单(基础/高保额)</li><li>出险报案(<code>reported</code>)</li><li>处理(<code>processing</code>)→办结(<code>closed</code>)</li></ul></div>
       <div class="card reveal"><h4>开票 / 红冲</h4><ul class="clean"><li>结算后开数电票给企业</li><li>开票中→已开具(<code>issued</code>)</li><li>错误可红冲(<code>voided</code>)重开</li></ul></div>
       <div class="card reveal"><h4>税务申报</h4><ul class="clean"><li>月度代扣代缴申报(<code>monthly_declare</code>)</li><li>季度汇总报送(<code>quarter_report</code>)</li><li>幂等：每期一次</li></ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ DELIVERY ============ -->
+<section id="delivery">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">交付与验收</span>
+      <h2>按工种结构化交付：填什么、传什么，因工种而异</h2>
+      <p>平台连接劳务覆盖 <b>16 类目 / 57 工种</b>，而短视频剪辑、同城配送、家庭保洁、水电施工……每个工种「该交付什么、要核对什么」并不相同。交付环节因此<b>不再是「一段自由说明 + 随意附件」</b>，而是<b>按工种动态生成的结构化表单</b>：每个工种规定要<b>填写的字段</b>与要<b>上传的材料</b>，零工端动态渲染、企业端结构化验收、运营端在线可编辑模板。落地约 <b>17 套</b>差异化交付模板（大类基础 + 高频工种覆盖 + 默认兜底）。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 三端协同：模板一处定义，三端各取所需</h3>
+    <div class="grid g3">
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></div>
+        <span class="role">运营端 · 在线编辑</span>
+        <h4>定义交付模板</h4>
+        <p>按「大类基础模板 + 工种覆盖」维护每个工种的字段与上传项；存于系统配置，<b>改即生效</b>、自动审计。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic teal"><svg viewBox="0 0 24 24"><path d="M9 11l3 3 8-8"/><path d="M20 12v6a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/></svg></div>
+        <span class="role">零工端 · 动态表单</span>
+        <h4>按工种填写上传</h4>
+        <p>进交付页按所接工种拉取模板，动态渲染输入框 / 数字 / 日期 / 选择 / 分类上传；<b>必填项不齐不可提交</b>。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M8 13h8M8 17h6"/></svg></div>
+        <span class="role">企业端 · 结构化验收</span>
+        <h4>逐项核对验收</h4>
+        <p>验收时按「字段 → 取值」清单 + 「按材料项分组」的可鉴权下载逐项核对，比一段文字更可核验。</p>
+      </div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 各工种交付内容对照（约 17 套模板）</h3>
+    <p class="lead-sm reveal">下表列出各类目 / 高频工种的交付字段与上传材料；标 <b style="color:var(--red)">*</b> 为必填，括号内为数量上限。<span class="tag b">工种覆盖</span>表示该工种在所属大类基础模板上做了差异化覆盖。</p>
+    <div class="tbl-wrap reveal">
+      <table>
+        <thead><tr><th>类目 / 工种</th><th>要填写的字段</th><th>要上传的材料</th></tr></thead>
+        <tbody>
+          <tr><td><b>设计</b></td><td>成果说明<b style="color:var(--red)">*</b> · 源文件链接</td><td>成果预览图<b style="color:var(--red)">*</b>（图·9）· 源文件（文件·3）</td></tr>
+          <tr><td><b>技术</b></td><td>仓库或演示地址<b style="color:var(--red)">*</b> · 自测说明</td><td>交付物压缩包（文件·3）</td></tr>
+          <tr><td><b>翻译 / 文案</b></td><td>字数 · 交付链接</td><td>成稿文件<b style="color:var(--red)">*</b>（文件·3）</td></tr>
+          <tr><td><b>视频</b></td><td>成片链接<b style="color:var(--red)">*</b> · 说明</td><td>封面截图（图·1）· 工程文件（文件·3）</td></tr>
+          <tr><td>↳ <b>短视频剪辑</b> <span class="tag b">工种覆盖</span></td><td>成片链接<b style="color:var(--red)">*</b> · 成片时长(秒)<b style="color:var(--red)">*</b> · 说明</td><td>封面截图（图·1）· 工程文件（文件·3）</td></tr>
+          <tr><td><b>直播电商</b> <span class="tag r">广西特色</span></td><td>直播场次时间<b style="color:var(--red)">*</b> · 场观/成交额说明</td><td>后台数据截图<b style="color:var(--red)">*</b>（图·5）</td></tr>
+          <tr><td><b>跨境边贸</b> <span class="tag r">广西特色</span></td><td>完成说明<b style="color:var(--red)">*</b> · 单据/报关单号</td><td>单据/凭证（文件·5）</td></tr>
+          <tr><td><b>文旅</b> <span class="tag r">广西特色</span></td><td>服务时间<b style="color:var(--red)">*</b> · 服务说明</td><td>现场照片<b style="color:var(--red)">*</b>（图·9）</td></tr>
+          <tr><td><b>配送</b></td><td>完成单量<b style="color:var(--red)">*</b> · 异常说明</td><td>签收照片<b style="color:var(--red)">*</b>（图·9）</td></tr>
+          <tr><td>↳ <b>同城配送</b> <span class="tag b">工种覆盖</span></td><td>收件人<b style="color:var(--red)">*</b> · 送达时间<b style="color:var(--red)">*</b> · 异常说明</td><td>签收照片<b style="color:var(--red)">*</b>（图·3）</td></tr>
+          <tr><td><b>物流仓储</b> <span class="tag r">广西特色</span></td><td>完成数量<b style="color:var(--red)">*</b> · 作业说明</td><td>现场照片（图·9）</td></tr>
+          <tr><td><b>安装</b></td><td>完工说明<b style="color:var(--red)">*</b> · 验收人</td><td>完工照片<b style="color:var(--red)">*</b>（图·9）</td></tr>
+          <tr><td><b>施工</b></td><td>完工说明<b style="color:var(--red)">*</b> · 验收人</td><td>完工照片<b style="color:var(--red)">*</b>（图·9）· 隐蔽工程照片（图·9）</td></tr>
+          <tr><td><b>制造生产</b> <span class="tag r">广西特色</span></td><td>完成数量<b style="color:var(--red)">*</b> · 质检说明</td><td>成品照片<b style="color:var(--red)">*</b>（图·9）</td></tr>
+          <tr><td><b>农业</b> <span class="tag r">广西特色</span></td><td>完成数量<b style="color:var(--red)">*</b> · 说明</td><td>成品照片<b style="color:var(--red)">*</b>（图·9）</td></tr>
+          <tr><td><b>家政服务</b> <span class="tag r">广西特色</span></td><td>服务时长(小时)<b style="color:var(--red)">*</b> · 客户确认<b style="color:var(--red)">*</b>（已确认/未确认）</td><td>服务前照片<b style="color:var(--red)">*</b>（图·3）· 服务后照片<b style="color:var(--red)">*</b>（图·3）</td></tr>
+          <tr><td><b>其他</b> <span class="tag i">默认兜底</span></td><td>交付说明<b style="color:var(--red)">*</b>（≤500 字）</td><td>交付附件（文件·10）</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid g2">
+      <div class="reveal">
+        <h4 class="sub">字段类型（填写）</h4>
+        <div class="chips"><span class="vchip"><code>text</code> 单行文本</span><span class="vchip"><code>textarea</code> 多行说明</span><span class="vchip"><code>number</code> 数字</span><span class="vchip"><code>date</code> 日期</span><span class="vchip"><code>datetime</code> 日期时间</span><span class="vchip"><code>url</code> 链接</span><span class="vchip"><code>tel</code> 电话</span><span class="vchip"><code>select</code> 单选</span></div>
+        <h4 class="sub">上传类型（材料）</h4>
+        <div class="chips"><span class="vchip"><code>image</code> 图片</span><span class="vchip"><code>file</code> 文件</span><span class="vchip"><code>video</code> 视频</span></div>
+        <p class="lead-sm" style="margin-top:10px">每个上传项可设<b>数量上下限</b>与<b>是否必填</b>；每个字段可设<b>必填 / 最大长度 / 单位 / 选项 / 占位提示</b>。</p>
+      </div>
+      <div class="reveal">
+        <h4 class="sub">模板解析与存储机制</h4>
+        <ul class="clean">
+          <li><b>解析优先级</b>：工种覆盖 <code>byTrade</code> &gt; 大类基础 <code>byCategory</code> &gt; 默认兜底 <code>default</code></li>
+          <li><b>快照式留痕</b>：提交时把「字段 label/值、材料 label/文件」整体快照入库，运营日后改模板<b>不污染历史交付</b></li>
+          <li><b>四流校验不变</b>：结构化内容自动生成交付物摘要，「无交付物不可验收」继续生效</li>
+          <li><b>向后兼容</b>：旧的「说明 + 附件」提交方式与历史数据照常工作</li>
+        </ul>
+        <div class="note teal" style="margin-top:6px">交付模板存于运营端可在线编辑的系统配置（同字典管理），无需发版即可调整某工种的填写/上传要求，变更自动写入审计日志。</div>
+      </div>
     </div>
   </div>
 </section>

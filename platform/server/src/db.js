@@ -855,6 +855,11 @@ if (!hasColumn('settlements', 'income_type')) {
   db.exec(`UPDATE settlements SET income_type = 'business' WHERE method = 'business_income'`)
 }
 
+// —— 按工种结构化交付：交付内容 JSON 快照列（{specRef, fields[], uploads[]}）——
+if (!hasColumn('tasks', 'deliverable_data')) {
+  db.exec(`ALTER TABLE tasks ADD COLUMN deliverable_data TEXT`)
+}
+
 // 旧库 tasks.status CHECK 不含 cancelled / applications 不含 withdrawn → 重建表
 function rebuildIfCheckMissing(table, marker, createSql) {
   const row = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name=?`).get(table)
@@ -954,6 +959,87 @@ db.prepare(`
 `).run()
 
 // 业务参数入库（仅当 key 不存在时写入默认值）
+// 各工种结构化交付物模板（运营端可在线编辑）。解析优先级：byTrade > byCategory > default。
+// field.type ∈ text|textarea|number|date|datetime|url|tel|select；upload.accept ∈ image|file|video。
+const DELIVERY_SPECS = {
+  default: {
+    fields: [{ key: 'note', label: '交付说明', type: 'textarea', required: true, max: 500, placeholder: '请说明交付内容、成果链接等' }],
+    uploads: [{ key: 'files', label: '交付附件', accept: 'file', required: false, min: 0, max: 10, hint: '可上传成果文件/截图等' }]
+  },
+  byCategory: {
+    设计: {
+      fields: [{ key: 'note', label: '成果说明', type: 'textarea', required: true, max: 500 }, { key: 'sourceUrl', label: '源文件链接', type: 'url', required: false, max: 300, placeholder: '网盘/云文档链接' }],
+      uploads: [{ key: 'preview', label: '成果预览图', accept: 'image', required: true, min: 1, max: 9 }, { key: 'source', label: '源文件', accept: 'file', required: false, min: 0, max: 3, hint: 'PSD/AI 等源文件' }]
+    },
+    技术: {
+      fields: [{ key: 'repoUrl', label: '仓库或演示地址', type: 'url', required: true, max: 300 }, { key: 'selfTest', label: '自测说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'package', label: '交付物压缩包', accept: 'file', required: false, min: 0, max: 3, hint: '源码/构建产物 zip' }]
+    },
+    翻译: {
+      fields: [{ key: 'wordCount', label: '字数', type: 'number', required: false, min: 0, unit: '字' }, { key: 'deliverUrl', label: '交付链接', type: 'url', required: false, max: 300 }],
+      uploads: [{ key: 'manuscript', label: '成稿文件', accept: 'file', required: true, min: 1, max: 3 }]
+    },
+    文案: {
+      fields: [{ key: 'wordCount', label: '字数', type: 'number', required: false, min: 0, unit: '字' }, { key: 'deliverUrl', label: '交付链接', type: 'url', required: false, max: 300 }],
+      uploads: [{ key: 'manuscript', label: '成稿文件', accept: 'file', required: true, min: 1, max: 3 }]
+    },
+    视频: {
+      fields: [{ key: 'videoUrl', label: '成片链接', type: 'url', required: true, max: 300 }, { key: 'note', label: '说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'cover', label: '封面截图', accept: 'image', required: false, min: 0, max: 1 }, { key: 'project', label: '工程文件', accept: 'file', required: false, min: 0, max: 3 }]
+    },
+    直播电商: {
+      fields: [{ key: 'sessionTime', label: '直播场次时间', type: 'datetime', required: true }, { key: 'gmv', label: '场观/成交额说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'screenshot', label: '后台数据截图', accept: 'image', required: true, min: 1, max: 5 }]
+    },
+    跨境边贸: {
+      fields: [{ key: 'note', label: '完成说明', type: 'textarea', required: true, max: 500 }, { key: 'refNo', label: '单据/报关单号', type: 'text', required: false, max: 100 }],
+      uploads: [{ key: 'docs', label: '单据/凭证', accept: 'file', required: false, min: 0, max: 5 }]
+    },
+    文旅: {
+      fields: [{ key: 'serviceTime', label: '服务时间', type: 'datetime', required: true }, { key: 'note', label: '服务说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'photos', label: '现场照片', accept: 'image', required: true, min: 1, max: 9 }]
+    },
+    配送: {
+      fields: [{ key: 'count', label: '完成单量', type: 'number', required: true, min: 0, unit: '单' }, { key: 'note', label: '异常说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'sign', label: '签收照片', accept: 'image', required: true, min: 1, max: 9 }]
+    },
+    物流仓储: {
+      fields: [{ key: 'count', label: '完成数量', type: 'number', required: true, min: 0, unit: '件' }, { key: 'note', label: '作业说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'photos', label: '现场照片', accept: 'image', required: false, min: 0, max: 9 }]
+    },
+    安装: {
+      fields: [{ key: 'note', label: '完工说明', type: 'textarea', required: true, max: 500 }, { key: 'acceptor', label: '验收人', type: 'text', required: false, max: 50 }],
+      uploads: [{ key: 'done', label: '完工照片', accept: 'image', required: true, min: 1, max: 9 }]
+    },
+    施工: {
+      fields: [{ key: 'note', label: '完工说明', type: 'textarea', required: true, max: 500 }, { key: 'acceptor', label: '验收人', type: 'text', required: false, max: 50 }],
+      uploads: [{ key: 'done', label: '完工照片', accept: 'image', required: true, min: 1, max: 9 }, { key: 'hidden', label: '隐蔽工程照片', accept: 'image', required: false, min: 0, max: 9 }]
+    },
+    制造生产: {
+      fields: [{ key: 'count', label: '完成数量', type: 'number', required: true, min: 0, unit: '件' }, { key: 'qc', label: '质检说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'photos', label: '成品照片', accept: 'image', required: true, min: 1, max: 9 }]
+    },
+    农业: {
+      fields: [{ key: 'count', label: '完成数量', type: 'number', required: true, min: 0, unit: '斤' }, { key: 'note', label: '说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'photos', label: '成品照片', accept: 'image', required: true, min: 1, max: 9 }]
+    },
+    家政服务: {
+      fields: [{ key: 'hours', label: '服务时长', type: 'number', required: true, min: 0, unit: '小时' }, { key: 'confirm', label: '客户确认', type: 'select', required: true, options: ['已确认', '未确认'] }],
+      uploads: [{ key: 'before', label: '服务前照片', accept: 'image', required: true, min: 1, max: 3 }, { key: 'after', label: '服务后照片', accept: 'image', required: true, min: 1, max: 3 }]
+    }
+  },
+  byTrade: {
+    短视频剪辑: {
+      fields: [{ key: 'videoUrl', label: '成片链接', type: 'url', required: true, max: 300 }, { key: 'duration', label: '成片时长', type: 'number', required: true, min: 0, unit: '秒' }, { key: 'note', label: '说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'cover', label: '封面截图', accept: 'image', required: false, min: 0, max: 1 }, { key: 'project', label: '工程文件', accept: 'file', required: false, min: 0, max: 3 }]
+    },
+    同城配送: {
+      fields: [{ key: 'receiver', label: '收件人', type: 'text', required: true, max: 50 }, { key: 'arriveTime', label: '送达时间', type: 'datetime', required: true }, { key: 'note', label: '异常说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'sign', label: '签收照片', accept: 'image', required: true, min: 1, max: 3 }]
+    }
+  }
+}
+
 const CONFIG_SEEDS = [
   ['platformMarginRate', 0.08, 'tax', '平台毛利率（承揽价与分包价之差比例）'],
   ['laborExpenseRate', 0.2, 'tax', '劳务报酬费用减除比例'],
@@ -1000,7 +1086,8 @@ const CONFIG_SEEDS = [
   ['reviewTags', ['按时交付', '质量过硬', '沟通顺畅', '响应及时', '需求清晰', '验收爽快'], 'review', '互评标签字典'],
   ['skillCatalog', ['UI设计', '平面设计', '前端开发', '后端开发', '中英翻译', '越南语翻译', '文案策划', '短视频剪辑', '配音', '带货主播', '跨境电商运营', '电工', '焊工', '育婴师', '茶艺师', '导游'], 'review', '技能认证目录'],
   // 微信订阅消息模板ID（按事件场景，需在小程序后台「订阅消息」申请后填入；为空则仅站内信+短信，不发订阅消息）
-  ['subscribeTmplIds', [], 'notify', '微信订阅消息模板ID白名单（小程序 requestSubscribeMessage 用）']
+  ['subscribeTmplIds', [], 'notify', '微信订阅消息模板ID白名单（小程序 requestSubscribeMessage 用）'],
+  ['deliverySpecs', DELIVERY_SPECS, 'task', '各工种结构化交付物模板（按工种动态渲染交付表单/上传项）']
 ]
 const insertConfig = db.prepare(`INSERT OR IGNORE INTO system_configs (key, value, grp, label) VALUES (?, ?, ?, ?)`)
 for (const [key, value, grp, label] of CONFIG_SEEDS) insertConfig.run(key, JSON.stringify(value), grp, label)

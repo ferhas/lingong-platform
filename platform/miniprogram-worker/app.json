@@ -5,6 +5,7 @@
     "pages/detail/detail",
     "pages/verify/verify",
     "pages/orders/orders",
+    "pages/deliver/deliver",
     "pages/income/income",
     "pages/mine/mine",
     "pages/notices/notices",

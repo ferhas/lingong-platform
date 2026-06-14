@@ -1,4 +1,4 @@
-<view class="tab-shell">
+<view class="tab-shell {{themeClass}}">
   <view class="tabbar">
     <view
       wx:for="{{list}}"

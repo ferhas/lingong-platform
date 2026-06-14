@@ -28,6 +28,7 @@ const router = createRouter({
         { path: 'flows', name: 'flows', component: () => import('../views/FlowsView.vue'), meta: { title: '资金流水', perm: 'flow:read' } },
         { path: 'funds-orders', name: 'fundsOrders', component: () => import('../views/FundsOrdersView.vue'), meta: { title: '结算/提现单据', perm: 'flow:read' } },
         { path: 'configs', name: 'configs', component: () => import('../views/ConfigsView.vue'), meta: { title: '业务参数配置', perm: 'config:read' } },
+        { path: 'delivery-specs', name: 'deliverySpecs', component: () => import('../views/DeliverySpecsView.vue'), meta: { title: '交付物模板', perm: 'config:read' } },
         { path: 'legal', name: 'legal', component: () => import('../views/LegalView.vue'), meta: { title: '协议/合同模板', perm: 'config:read' } },
         { path: 'users', name: 'users', component: () => import('../views/UsersView.vue'), meta: { title: '用户管理', perm: 'user:read' } },
         { path: 'audit', name: 'audit', component: () => import('../views/AuditLogsView.vue'), meta: { title: '审计日志', perm: 'audit:read' } },

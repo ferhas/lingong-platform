@@ -152,5 +152,24 @@
   </view>
 </view>
 
+<view class="fs-card">
+  <view class="title-row fs-head">
+    <text class="title-mark"></text>
+    <text class="fs-title">深色模式</text>
+    <text class="fs-cur">当前：{{themePref === 'light' ? '浅色' : themePref === 'dark' ? '深色' : '跟随系统'}}</text>
+  </view>
+  <view class="fs-seg">
+    <view
+      wx:for="{{themeOptions}}"
+      wx:key="key"
+      class="fs-opt {{themePref === item.key ? 'fs-opt-on' : ''}}"
+      hover-class="fs-opt-hover"
+      hover-stay-time="60"
+      data-key="{{item.key}}"
+      bindtap="onPickTheme"
+    >{{item.label}}</view>
+  </view>
+</view>
+
 <view class="logout" hover-class="card-hover" hover-stay-time="80" bindtap="onLogout">退出登录</view>
 </view>

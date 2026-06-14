@@ -1,5 +1,6 @@
 const api = require('../../utils/api.js')
 const fontScale = require('../../utils/fontScale.js')
+const theme = require('../../utils/theme.js')
 
 // 信用等级 → ASCII class 后缀（WXSS 选择器不支持中文标识符）
 const GRADE_CLASS = { '优选': 'premium', '良好': 'good', '一般': 'normal', '受限': 'limited' }
@@ -9,7 +10,8 @@ Page({
     profile: null,
     user: null,
     unread: 0,
-    fontOptions: fontScale.OPTIONS // 字体档位：小/标准/大/特大（fsKey/fsScale 由 app.js 全局注入）
+    fontOptions: fontScale.OPTIONS, // 字体档位：小/标准/大/特大（fsKey/fsScale 由 app.js 全局注入）
+    themeOptions: theme.OPTIONS // 深色档位：跟随系统/浅色/深色（themePref/themeClass 由 app.js 全局注入）
   },
 
   onShow() {
@@ -151,11 +153,24 @@ Page({
   },
 
   // 切换字体大小：持久化并就地刷新本页（其它页在 onShow 时由全局包装自动跟随）
+  // 注：字号经 page-meta 的 pageStyle 注入，故需同步刷新 pageStyle（含新的 --fs）
   onPickFont(e) {
     const key = e.currentTarget.dataset.key
     if (key === this.data.fsKey) return
     const scale = fontScale.setKey(key)
-    this.setData({ fsKey: key, fsScale: scale })
+    this.setData(Object.assign({ fsKey: key, fsScale: scale }, theme.injectData(scale)))
+  },
+
+  // 切换深色模式：持久化并就地刷新本页主题 + 导航栏/窗口背景 + 自定义 tabBar
+  // 其它页在 onShow 时由 app.js 全局包装自动跟随
+  onPickTheme(e) {
+    const key = e.currentTarget.dataset.key
+    if (key === this.data.themePref) return
+    theme.setPref(key)
+    this.setData(theme.injectData(this.data.fsScale))
+    theme.applyChrome()
+    const tb = this.getTabBar && this.getTabBar()
+    if (tb && tb.syncTheme) tb.syncTheme()
   },
 
   onLogout() {

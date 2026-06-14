@@ -107,6 +107,12 @@
 }
 .row-icon.claim { background: #FFF7ED; color: #D97706; }
 .card-row.deliver { background: #F7FAF9; border-radius: 14rpx; padding: 14rpx 18rpx; }
+.deliver-struct { background: #F7FAF9; border-radius: 14rpx; padding: 12rpx 18rpx; margin-top: 14rpx; }
+.ds-row { display: flex; gap: 16rpx; font-size: calc(26rpx * var(--fs, 1)); line-height: 1.8; }
+.ds-k { color: #64748B; flex-shrink: 0; }
+.ds-v { color: #172033; flex: 1; word-break: break-all; }
+.t-dark .deliver-struct { background: rgba(148, 163, 184, 0.12); }
+.t-dark .ds-v { color: #E5E7EB; }
 
 .card-actions {
   margin-top: 20rpx;

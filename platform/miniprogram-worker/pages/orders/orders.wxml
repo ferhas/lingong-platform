@@ -50,7 +50,10 @@
       <view class="card-row" data-id="{{item.id}}" bindtap="onViewOrder"><text class="row-icon">单</text>工单 {{item.workOrderNo}} · 已投保 ›</view>
       <view class="claim-link" data-id="{{item.id}}" bindtap="onClaim"><text class="row-icon claim">险</text>保险报案</view>
     </view>
-    <view wx:if="{{item.deliverable}}" class="card-row deliver"><text class="row-icon">附</text>{{item.deliverable}}</view>
+    <view wx:if="{{item.deliverableData}}" class="deliver-struct">
+      <view wx:for="{{item.deliverableData.fields}}" wx:for-item="fd" wx:key="key" class="ds-row"><text class="ds-k">{{fd.label}}</text><text class="ds-v">{{fd.value}}</text></view>
+    </view>
+    <view wx:elif="{{item.deliverable}}" class="card-row deliver"><text class="row-icon">附</text>{{item.deliverable}}</view>
     <view wx:if="{{item.attachments.length}}" class="card-row files">
       <text wx:for="{{item.attachments}}" wx:for-item="f" wx:key="id" class="file-chip">{{f.kind === 'invoice' ? '发票' : '文件'}} · {{f.name}}</text>
     </view>

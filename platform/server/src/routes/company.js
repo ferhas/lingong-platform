@@ -54,7 +54,8 @@ const taskView = t => ({
   deadline: t.deadline, description: t.description, standard: t.standard,
   status: t.status, workerId: t.worker_id, workerName: t.worker_name ?? undefined,
   taskOrderNo: t.task_order_no, subOrderNo: t.sub_order_no, policyNo: t.policy_no,
-  deliverable: t.deliverable, deliveredAt: t.delivered_at,
+  deliverable: t.deliverable, deliverableData: t.deliverable_data ? JSON.parse(t.deliverable_data) : null,
+  deliveredAt: t.delivered_at,
   confirmNo: t.confirm_no, settledAt: t.settled_at, createdAt: t.created_at
 })
 
@@ -671,7 +672,7 @@ router.post('/tasks/:id/reject', requireCompanyRole('owner', 'operator'), (req, 
     if (!t) throw notFound('任务不存在')
     if (t.status !== 'delivered') throw conflict('BAD_STATUS', '当前状态不可驳回')
     db.transaction(() => {
-      db.prepare(`UPDATE tasks SET status = 'working', deliverable = NULL, delivered_at = NULL WHERE id = ?`).run(t.id)
+      db.prepare(`UPDATE tasks SET status = 'working', deliverable = NULL, deliverable_data = NULL, delivered_at = NULL WHERE id = ?`).run(t.id)
       db.prepare(`DELETE FROM task_attachments WHERE task_id = ? AND kind = 'deliverable'`).run(t.id)
     })()
     logAction(req.user.id, 'task_reject', `task#${t.id}：${reason}`)

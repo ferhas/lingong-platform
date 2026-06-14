@@ -344,3 +344,44 @@ button::after {
   background: #0F172A;
   color: #F8FAFC;
 }
+
+/* task-card 组件（addGlobalClass）：深色由所在页 .theme-root 的 .t-dark 命中 */
+.t-dark .tc-card {
+  background: #121C2B;
+  border-color: #233149;
+  box-shadow: none;
+}
+.t-dark .tc-title {
+  color: #E5E7EB;
+}
+.t-dark .tc-price {
+  color: #FBBF24;
+}
+.t-dark .tc-unit,
+.t-dark .tc-company {
+  color: #94A3B8;
+}
+.t-dark .tc-tag {
+  color: #5EEAD4;
+  background: rgba(20, 184, 166, 0.14);
+}
+.t-dark .tc-tag-city {
+  color: #93C5FD;
+  background: rgba(37, 99, 235, 0.18);
+}
+.t-dark .tc-tag-trade {
+  color: #FCD34D;
+  background: rgba(180, 83, 9, 0.22);
+}
+.t-dark .tc-bottom {
+  border-top-color: #233149;
+}
+.t-dark .tc-applicants,
+.t-dark .tc-status {
+  color: #5EEAD4;
+  background: rgba(20, 184, 166, 0.14);
+}
+.t-dark .tc-status-off {
+  color: #64748B;
+  background: #1E293B;
+}

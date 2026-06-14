@@ -1,6 +1,7 @@
 // 业务参数读取层：数据库为唯一事实源，进程内缓存，写入时失效。
 // 算税引擎、风控、结算均通过本模块取参，运营端改值即时生效。
 import db from '../db.js'
+import { validateSpecConfig } from './deliverySpecs.js'
 
 // 进程内缓存带 TTL：本进程 setConfig 立即失效（cache=null）；多实例(ROLE=api ×N)下其他进程
 // 通过 TTL 在 CONFIG_CACHE_TTL_MS 内自动重读，避免"A 实例改配置、B 实例长期不生效"。
@@ -46,6 +47,8 @@ export function setConfig(key, value, userId) {
   if (Array.isArray(value) && value.some(v => typeof v !== 'string' || !v.trim())) {
     throw new Error(`配置 ${key} 列表项必须为非空文本`)
   }
+  // 结构化对象配置的专项校验（交付模板）
+  if (key === 'deliverySpecs') validateSpecConfig(value)
   db.prepare(`
     UPDATE system_configs SET value = ?, updated_at = datetime('now','localtime'), updated_by = ? WHERE key = ?
   `).run(JSON.stringify(value), userId ?? null, key)

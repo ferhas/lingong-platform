@@ -26,7 +26,8 @@ import {
   Monitor,
   Message,
   QuestionFilled,
-  Key
+  Key,
+  Files
 } from '@element-plus/icons-vue'
 
 export const menus = [
@@ -97,6 +98,7 @@ export const menus = [
     icon: Setting,
     children: [
       { path: '/configs', label: '业务参数配置', icon: Setting, perm: 'config:read' },
+      { path: '/delivery-specs', label: '交付物模板', icon: Files, perm: 'config:read' },
       { path: '/legal', label: '协议/合同模板', icon: Reading, perm: 'config:read' },
       { path: '/credentials', label: '开放API凭据', icon: Key, perm: 'config:read' },
       { path: '/templates', label: '消息中心', icon: Message, perm: 'message:manage' },

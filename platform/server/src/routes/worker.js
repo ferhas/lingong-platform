@@ -10,6 +10,7 @@ import * as accounts from '../services/accounts.js'
 import * as taxEngine from '../services/taxEngine.js'
 import { getConfig } from '../services/configStore.js'
 import { allTrades } from '../services/taxonomy.js'
+import { resolveSpec, validateAndSnapshot, summarize } from '../services/deliverySpecs.js'
 import { notifyCompany } from '../services/notify.js'
 import { amlChecks } from '../services/risk.js'
 import { logAction } from '../services/audit.js'
@@ -554,35 +555,67 @@ router.get('/orders', (req, res) => {
       price: centsToYuan(t.price), subPrice: centsToYuan(t.sub_price),
       payMethod: t.pay_method, status: t.status,
       workOrderNo: t.sub_order_no, policyNo: t.policy_no,
-      deliverable: t.deliverable, confirmNo: t.confirm_no,
+      deliverable: t.deliverable, deliverableData: t.deliverable_data ? JSON.parse(t.deliverable_data) : null,
+      confirmNo: t.confirm_no,
       deadline: t.deadline, companyName: t.company_name,
       attachments: taskAttachments(t.id)
     }))
   })
 })
 
-// 交付（可携带附件）
+// 取本工单适用的结构化交付模板（零工端进交付页时动态渲染表单）
+router.get('/orders/:id/deliver-spec', (req, res, next) => {
+  try {
+    const t = db.prepare(`SELECT id, category, trade, standard FROM tasks WHERE id = ? AND worker_id = ?`).get(req.params.id, req.user.id)
+    if (!t) throw notFound('工单不存在')
+    res.json({ category: t.category, trade: t.trade ?? null, standard: t.standard || '', spec: resolveSpec(t.category, t.trade) })
+  } catch (err) {
+    next(err)
+  }
+})
+
+// 交付：支持「按工种结构化」(fields/uploads) 与「旧版自由说明+附件」(note/attachmentIds) 两种入参
 router.post('/orders/:id/deliver', (req, res, next) => {
   try {
-    const { note, attachmentIds } = z.object({
-      note: readableText('交付说明', z.string().min(1, '请填写交付说明').max(500)),
-      attachmentIds: z.array(z.string().uuid()).max(10).optional().default([])
-    }).parse(req.body)
     const t = db.prepare(`SELECT t.*, c.id AS cid, c.company_name FROM tasks t JOIN companies c ON c.id = t.company_id WHERE t.id = ? AND t.worker_id = ?`)
       .get(req.params.id, req.user.id)
     if (!t) throw notFound('工单不存在')
     if (t.status !== 'working') throw conflict('BAD_STATUS', '当前状态不可交付')
 
+    const ownsUpload = id => !!db.prepare(`SELECT 1 FROM uploads WHERE id = ? AND owner_id = ?`).get(id, req.user.id)
+
+    let deliverable, deliverableData, uploadIds
+    if (req.body && req.body.fields !== undefined) {
+      // —— 结构化交付（按工种模板校验 + 快照）——
+      const payload = z.object({
+        fields: z.record(z.union([z.string(), z.number()])).default({}),
+        uploads: z.record(z.array(z.string()).max(20)).default({})
+      }).parse(req.body)
+      const spec = resolveSpec(t.category, t.trade)
+      const { snapshot, uploadIds: ids } = validateAndSnapshot(spec, payload, ownsUpload, { category: t.category, trade: t.trade })
+      deliverable = summarize(snapshot)
+      deliverableData = JSON.stringify(snapshot)
+      uploadIds = ids
+    } else {
+      // —— 兼容旧版：自由说明 + 不分类附件 ——
+      const { note, attachmentIds } = z.object({
+        note: readableText('交付说明', z.string().min(1, '请填写交付说明').max(500)),
+        attachmentIds: z.array(z.string().uuid()).max(10).optional().default([])
+      }).parse(req.body)
+      for (const uid of attachmentIds) {
+        if (!ownsUpload(uid)) throw badRequest('BAD_ATTACHMENT', '附件不存在或不属于当前用户')
+      }
+      deliverable = note
+      deliverableData = null
+      uploadIds = attachmentIds
+    }
+
     db.transaction(() => {
       db.prepare(`
-        UPDATE tasks SET status = 'delivered', deliverable = ?, delivered_at = datetime('now','localtime') WHERE id = ?
-      `).run(note, t.id)
+        UPDATE tasks SET status = 'delivered', deliverable = ?, deliverable_data = ?, delivered_at = datetime('now','localtime') WHERE id = ?
+      `).run(deliverable, deliverableData, t.id)
       const link = db.prepare(`INSERT INTO task_attachments (task_id, upload_id, kind) VALUES (?, ?, 'deliverable')`)
-      for (const uid of attachmentIds) {
-        const owned = db.prepare(`SELECT 1 FROM uploads WHERE id = ? AND owner_id = ?`).get(uid, req.user.id)
-        if (!owned) throw badRequest('BAD_ATTACHMENT', '附件不存在或不属于当前用户')
-        link.run(t.id, uid)
-      }
+      for (const uid of uploadIds) link.run(t.id, uid)
     })()
 
     notifyCompany(t.cid, 'deliver', '交付物待验收', `「${t.title}」零工已上传交付物，请及时验收。`)

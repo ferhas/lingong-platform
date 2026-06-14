@@ -1,0 +1,57 @@
+<page-meta page-style="{{pageStyle}}"></page-meta>
+<view class="theme-root {{themeClass}}">
+  <view class="deliver-hero">
+    <view class="hero-kicker">按工种交付</view>
+    <view class="hero-title">{{title || '上传交付物'}}</view>
+    <view class="hero-meta">{{category}}{{trade ? ' · ' + trade : ''}}</view>
+  </view>
+
+  <view wx:if="{{loading}}" class="loading">加载交付模板中…</view>
+
+  <view wx:else class="card form-card">
+    <view wx:if="{{standard}}" class="standard-tip"><text class="tip-mark">交付标准</text>{{standard}}</view>
+
+    <!-- 动态字段 -->
+    <view wx:for="{{fields}}" wx:key="key" class="field">
+      <view class="field-label">{{item.label}}<text wx:if="{{item.required}}" class="req">*</text><text wx:if="{{item.unit}}" class="unit">（{{item.unit}}）</text></view>
+
+      <textarea wx:if="{{item.type === 'textarea'}}" class="field-textarea" maxlength="{{item.max || 500}}" cursor-spacing="40" show-confirm-bar="{{true}}" placeholder="{{item.placeholder || '请输入'}}" value="{{item.value}}" data-index="{{index}}" bindinput="onFieldInput" />
+
+      <picker wx:elif="{{item.type === 'select'}}" mode="selector" range="{{item.options}}" value="{{item.optionIndex}}" data-index="{{index}}" bindchange="onSelectChange">
+        <view class="picker-box">{{item.value || '请选择'}} ▾</view>
+      </picker>
+
+      <view wx:elif="{{item.type === 'datetime'}}" class="dt-row">
+        <picker mode="date" value="{{item.date}}" data-index="{{index}}" bindchange="onDateChange">
+          <view class="picker-box">{{item.date || '选择日期'}}</view>
+        </picker>
+        <picker mode="time" value="{{item.time}}" data-index="{{index}}" bindchange="onTimeChange">
+          <view class="picker-box">{{item.time || '选择时间'}}</view>
+        </picker>
+      </view>
+
+      <picker wx:elif="{{item.type === 'date'}}" mode="date" value="{{item.value}}" data-index="{{index}}" bindchange="onFieldDate">
+        <view class="picker-box">{{item.value || '选择日期'}}</view>
+      </picker>
+
+      <input wx:else class="field-input" type="{{item.type === 'number' ? 'digit' : (item.type === 'tel' ? 'number' : 'text')}}" maxlength="{{item.max || 200}}" cursor-spacing="40" placeholder="{{item.placeholder || '请输入'}}" value="{{item.value}}" data-index="{{index}}" bindinput="onFieldInput" />
+    </view>
+
+    <!-- 动态上传项 -->
+    <view wx:for="{{uploads}}" wx:key="key" class="field">
+      <view class="field-label">{{item.label}}<text wx:if="{{item.required}}" class="req">*</text><text class="up-hint">（{{item.accept === 'image' ? '图片' : item.accept === 'video' ? '视频' : '文件'}}·最多{{item.max}}）</text></view>
+      <view wx:if="{{item.hint}}" class="up-tip">{{item.hint}}</view>
+      <view class="file-chips">
+        <view wx:for="{{item.files}}" wx:for-item="f" wx:for-index="j" wx:key="id" class="file-chip2">
+          <text class="fc-name">{{f.name}}</text>
+          <text class="fc-del" data-index="{{index}}" data-file-index="{{j}}" bindtap="onRemoveFile">✕</text>
+        </view>
+        <view class="file-add" data-index="{{index}}" bindtap="onChooseUpload">＋ 添加</view>
+      </view>
+    </view>
+  </view>
+
+  <view wx:if="{{!loading}}" class="submit-bar">
+    <button class="btn-primary submit-btn" disabled="{{submitting}}" bindtap="onSubmit">提交交付</button>
+  </view>
+</view>

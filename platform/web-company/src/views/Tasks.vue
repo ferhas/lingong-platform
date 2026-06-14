@@ -194,11 +194,44 @@
           <el-empty v-else description="暂无零工报名" :image-size="72" />
 
           <!-- 交付物与验收 -->
-          <template v-if="detail.status === 'delivered'">
+          <template v-if="detail.status === 'delivered' || (detail.status === 'settled' && (detail.deliverableData || detail.deliverable))">
             <div class="section-title">交付物</div>
-            <el-alert type="info" :closable="false" class="deliverable-box">
+            <!-- 结构化交付：按工种模板逐项展示 -->
+            <el-alert
+              v-if="detail.deliverableData"
+              :type="detail.status === 'settled' ? 'success' : 'info'"
+              :closable="false"
+              class="deliverable-box"
+            >
+              <el-descriptions :column="1" size="small" border class="deliver-fields">
+                <el-descriptions-item v-for="fd in detail.deliverableData.fields" :key="fd.key" :label="fd.label">
+                  {{ fd.value }}
+                </el-descriptions-item>
+              </el-descriptions>
+              <div v-for="g in structuredUploadGroups" :key="g.label" class="deliver-group">
+                <div class="deliver-group-label">{{ g.label }}（{{ g.files.length }}）</div>
+                <div class="attach-list">
+                  <div v-for="f in g.files" :key="f.id" class="attach-item">
+                    <el-icon class="attach-icon"><Document /></el-icon>
+                    <div class="attach-meta">
+                      <div class="attach-name">{{ f.name }}</div>
+                      <div class="attach-size">{{ fmtSize(f.size) }}</div>
+                    </div>
+                    <el-button type="primary" link size="small" :loading="downloadingId === f.id" @click="onDownload(f)">下载</el-button>
+                  </div>
+                </div>
+              </div>
+              <div class="deliver-time">{{ detail.status === 'settled' ? '结算时间：' + fmtDateTime(detail.settledAt) : '交付时间：' + fmtDateTime(detail.deliveredAt) }}</div>
+            </el-alert>
+            <!-- 旧版自由说明 -->
+            <el-alert
+              v-else
+              :type="detail.status === 'settled' ? 'success' : 'info'"
+              :closable="false"
+              class="deliverable-box"
+            >
               <div class="pre-wrap">{{ detail.deliverable || '（零工未填写交付说明）' }}</div>
-              <div class="deliver-time">交付时间：{{ fmtDateTime(detail.deliveredAt) }}</div>
+              <div class="deliver-time">{{ detail.status === 'settled' ? '结算时间：' + fmtDateTime(detail.settledAt) : '交付时间：' + fmtDateTime(detail.deliveredAt) }}</div>
             </el-alert>
             <!-- B线发票流硬校验前置提示 -->
             <el-alert
@@ -211,19 +244,11 @@
             />
           </template>
 
-          <template v-if="detail.status === 'settled' && detail.deliverable">
-            <div class="section-title">交付物</div>
-            <el-alert type="success" :closable="false" class="deliverable-box">
-              <div class="pre-wrap">{{ detail.deliverable }}</div>
-              <div class="deliver-time">结算时间：{{ fmtDateTime(detail.settledAt) }}</div>
-            </el-alert>
-          </template>
-
-          <!-- 交付附件（鉴权下载） -->
-          <template v-if="detail.attachments?.length">
-            <div class="section-title">交付附件（{{ detail.attachments.length }}）</div>
+          <!-- 交付附件（鉴权下载）：结构化分组外的附件（如进项发票、旧版附件） -->
+          <template v-if="extraAttachments.length">
+            <div class="section-title">{{ detail.deliverableData ? '其他附件' : '交付附件' }}（{{ extraAttachments.length }}）</div>
             <div class="attach-list">
-              <div v-for="f in detail.attachments" :key="f.id" class="attach-item">
+              <div v-for="f in extraAttachments" :key="f.id" class="attach-item">
                 <el-icon class="attach-icon"><Document /></el-icon>
                 <div class="attach-meta">
                   <div class="attach-name">{{ f.name }}</div>
@@ -639,6 +664,25 @@ const invoiceMissing = computed(() => {
   return !(d.attachments || []).some(f => f.kind === 'invoice')
 })
 
+// 结构化交付：按上传项分组，关联快照里的 uploadIds 与已鉴权附件元数据，便于企业逐项核对下载
+const structuredUploadGroups = computed(() => {
+  const d = detail.value
+  if (!d?.deliverableData?.uploads?.length) return []
+  const byId = new Map((d.attachments || []).map(f => [f.id, f]))
+  return d.deliverableData.uploads.map(u => ({
+    label: u.label,
+    files: (u.uploadIds || []).map(id => byId.get(id)).filter(Boolean)
+  }))
+})
+
+// 已被结构化分组展示的附件 id（用于把「交付附件」通用区收敛为剩余项，如进项发票，避免重复列出）
+const structuredAttachIds = computed(() => {
+  const ids = new Set()
+  for (const g of structuredUploadGroups.value) for (const f of g.files) ids.add(f.id)
+  return ids
+})
+const extraAttachments = computed(() => (detail.value?.attachments || []).filter(f => !structuredAttachIds.value.has(f.id)))
+
 function fmtSize(n) {
   if (!n && n !== 0) return ''
   if (n < 1024) return `${n} B`
@@ -919,6 +963,19 @@ onMounted(fetchList)
   margin-top: 8px;
   font-size: 12px;
   color: var(--text-3);
+}
+
+.deliver-fields {
+  margin-bottom: 4px;
+}
+.deliver-group {
+  margin-top: 10px;
+}
+.deliver-group-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-2);
+  margin-bottom: 6px;
 }
 
 .action-bar {
