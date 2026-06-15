@@ -224,7 +224,7 @@
 .modal-box .field:last-of-type { margin-bottom: 4rpx; }
 
 .t-dark .orders-hero {
-  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  background: linear-gradient(135deg, #0F5650 -20%, #103B43 50%, #15284A 120%);
   box-shadow: none;
 }
 
@@ -241,6 +241,15 @@
 .t-dark .status-settled {
   background: rgba(16, 185, 129, 0.16);
   color: #6EE7B7;
+}
+
+/* 派单邀约：标题提亮、待接受徽章改低饱和琥珀（原 #FFF7ED 浅底深色下露白） */
+.t-dark .dispatch-head {
+  color: #5EEAD4;
+}
+.t-dark .dispatch-badge {
+  background: rgba(249, 115, 22, 0.16);
+  color: #FDBA74;
 }
 
 .t-dark .card-meta,

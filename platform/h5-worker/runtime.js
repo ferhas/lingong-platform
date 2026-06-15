@@ -542,6 +542,9 @@
       patchChildren(inst.__el, inst.__vtree || [], tree)
       inst.__vtree = tree
       inst.__el.style.setProperty('--fs', inst.data.fsScale != null ? inst.data.fsScale : 1)
+      // 小程序里页面底色/文字色由 <page-meta page-style> 注入页面根；H5 落到 .wx-page 容器，
+      // 否则深色模式下 page 默认浅色底/深色字会透出来（与 .t-dark 卡片撞色）。
+      applyPageStyle(inst.__el, inst.data.pageStyle)
     }
     inst.getTabBar = function () { return TAB_PAGES.indexOf(route) !== -1 ? tabBarInst : undefined }
     inst.selectComponent = function () { return null }
@@ -675,6 +678,17 @@
   }
   function cssRpx(css) {
     return String(css).replace(/(-?\d*\.?\d+)rpx/g, function (_, n) { return 'calc(' + n + ' * var(--rpx))' })
+  }
+  // 把页面 page-style（形如 "--fs:1; background:<grad>; color:<c>;"）逐条落到 .wx-page 根容器，
+  // rpx→calc；逐条 setProperty 而非整体 cssText，保留 showTop 设置的 display 等内联样式。
+  function applyPageStyle(el, style) {
+    if (!el || !style) return
+    cssRpx(style).split(';').forEach(function (decl) {
+      var i = decl.indexOf(':')
+      if (i === -1) return
+      var prop = decl.slice(0, i).trim()
+      if (prop) el.style.setProperty(prop, decl.slice(i + 1).trim())
+    })
   }
   function transformWxss(css) {
     if (FORCE_LIGHT) css = stripDarkMedia(css)
@@ -981,7 +995,19 @@
 
     // —— 导航栏 / tabBar ——
     setNavigationBarTitle: function (o) { Chrome.setTitle(o.title); o.success && o.success() },
-    setNavigationBarColor: function (o) { o && o.success && o.success() },
+    setNavigationBarColor: function (o) {
+      // 小程序原生导航栏对应 H5 宿主的 #wx-navbar。honor 颜色让 theme.applyChrome() 的深/浅色生效
+      // （深色 navBg=#0F172A、浅色 #0F766E），否则顶栏恒为亮青、与深色 hero 撞色。
+      if (o && o.backgroundColor) {
+        var nav = document.getElementById('wx-navbar')
+        if (nav) {
+          nav.style.background = o.backgroundColor
+          nav.style.color = o.frontColor || '#fff'
+          var back = nav.querySelector('.nav-back'); if (back) back.style.color = o.frontColor || '#fff'
+        }
+      }
+      o && o.success && o.success()
+    },
     showNavigationBarLoading: function () {},
     hideNavigationBarLoading: function () {},
     startPullDownRefresh: function (o) { var t = pageStack[pageStack.length - 1]; if (t && t.onPullDownRefresh) triggerPull(t); o && o.success && o.success() },
@@ -1035,11 +1061,14 @@
   }
 
   function boot() {
+    // 必须先注入基础样式（含 #wx-app 的 max-width:480 手机框）再算 --rpx：
+    // 否则 DOMContentLoaded 时 #wx-app 仍是 body 全宽，桌面浏览器下 --rpx 会按 ~1300/750 算，
+    // 导致整页 rpx 尺寸放大约 2.7×、文字逐字换行、布局崩坏（移动端视口本就≤480 故侥幸正常）。
+    injectBaseCss()
     setRpx()
     window.addEventListener('resize', setRpx)
 
-    // 注入全局样式（app.wxss + 自定义 tabBar wxss + 基础 reset）
-    injectBaseCss()
+    // 注入全局样式（app.wxss + 自定义 tabBar wxss）
     injectStyle('app', MP['app.wxss'] || '')
 
     // 执行 app.js（注册 App、包装全局 Page 注入字体缩放/登录守卫）
@@ -1065,7 +1094,9 @@
     var css =
       'html{color-scheme:light;}' +
       'html,body{margin:0;padding:0;height:100%;background:#e7ecf1;}' +
-      '#wx-app{position:relative;width:100%;max-width:480px;height:100vh;margin:0 auto;background:#F3F7F6;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 50px rgba(15,23,42,.18);}' +
+      // transform 让 #wx-app 成为 position:fixed 后代的包含块，否则自定义 tabBar 的 .tab-shell(fixed)
+      // 与各页 .modal-mask(fixed) 会相对视口定位、在桌面宽屏铺满全宽（底部导航比内容宽）。
+      '#wx-app{position:relative;width:100%;max-width:480px;height:100vh;margin:0 auto;background:#F3F7F6;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 0 50px rgba(15,23,42,.18);transform:translateZ(0);}' +
       // 隐藏所有滚动条（贴合 App 观感：横向类目条、纵向页面、底部弹层均无滚动条）
       '.wx-page,scroll-view,.wx-sheet,.wx-dialog-content{scrollbar-width:none;-ms-overflow-style:none;}' +
       '.wx-page::-webkit-scrollbar,scroll-view::-webkit-scrollbar,.wx-sheet::-webkit-scrollbar,.wx-dialog-content::-webkit-scrollbar{width:0;height:0;display:none;}' +

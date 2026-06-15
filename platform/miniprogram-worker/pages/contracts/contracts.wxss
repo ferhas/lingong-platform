@@ -75,7 +75,7 @@
 .sheet-close { margin-top: 24rpx; }
 
 .t-dark .tip {
-  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  background: linear-gradient(135deg, #0F5650 -20%, #103B43 50%, #15284A 120%);
   color: #FFFFFF;
   box-shadow: none;
 }

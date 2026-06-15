@@ -128,7 +128,7 @@ page { padding: 24rpx; }
 .face-cancel { color: #8A99A8; font-size: calc(26rpx * var(--fs, 1)); margin-top: 24rpx; }
 
 .t-dark .verify-hero {
-  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  background: linear-gradient(135deg, #0F5650 -20%, #103B43 50%, #15284A 120%);
   box-shadow: none;
 }
 
@@ -156,7 +156,7 @@ page { padding: 24rpx; }
 }
 
 .t-dark .done-card {
-  background: linear-gradient(130deg, #134E4A -10%, #0F766E 40%, #1D4ED8 130%);
+  background: linear-gradient(135deg, #0F5650 -20%, #103B43 50%, #15284A 120%);
   box-shadow: none;
 }
 
