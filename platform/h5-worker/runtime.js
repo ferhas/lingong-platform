@@ -679,6 +679,14 @@
   function cssRpx(css) {
     return String(css).replace(/(-?\d*\.?\d+)rpx/g, function (_, n) { return 'calc(' + n + ' * var(--rpx))' })
   }
+  // 判断颜色是否偏暗（用于由顶栏背景推断当前主题明暗）。支持 #rrggbb 与 rgb()。
+  function isDarkColor(c) {
+    c = String(c || '').trim()
+    var r, g, b, m = c.match(/^#([0-9a-fA-F]{6})$/)
+    if (m) { var n = parseInt(m[1], 16); r = (n >> 16) & 255; g = (n >> 8) & 255; b = n & 255 }
+    else { var rm = c.match(/(\d+)[,\s]+(\d+)[,\s]+(\d+)/); if (!rm) return false; r = +rm[1]; g = +rm[2]; b = +rm[3] }
+    return (0.299 * r + 0.587 * g + 0.114 * b) < 128
+  }
   // 把页面 page-style（形如 "--fs:1; background:<grad>; color:<c>;"）逐条落到 .wx-page 根容器，
   // rpx→calc；逐条 setProperty 而非整体 cssText，保留 showTop 设置的 display 等内联样式。
   function applyPageStyle(el, style) {
@@ -1005,6 +1013,10 @@
           nav.style.color = o.frontColor || '#fff'
           var back = nav.querySelector('.nav-back'); if (back) back.style.color = o.frontColor || '#fff'
         }
+        // 顶栏背景明暗 == 当前主题明暗：同步到 #wx-app 的 wx-dark 类，让宿主浮层
+        // （wx.showModal/showActionSheet/picker）也跟随深色，避免深色页弹出白底框。
+        var app = document.getElementById('wx-app')
+        if (app) app.classList.toggle('wx-dark', isDarkColor(o.backgroundColor))
       }
       o && o.success && o.success()
     },
@@ -1137,7 +1149,20 @@
       '.wx-sheet{background:#f7f7f7;width:100%;border-radius:14px 14px 0 0;overflow:hidden;padding-bottom:env(safe-area-inset-bottom);max-height:60vh;overflow-y:auto;}' +
       '.wx-sheet-item{display:block;width:100%;height:52px;font-size:16px;background:#fff;border:none;border-bottom:1px solid #f0f0f0;cursor:pointer;color:#111;}' +
       '.wx-sheet-cancel{margin-top:8px;color:#666;font-weight:600;}' +
-      '.wx-picker-on{color:#0F766E;font-weight:600;}'
+      '.wx-picker-on{color:#0F766E;font-weight:600;}' +
+      // 深色主题（#wx-app.wx-dark）下宿主浮层跟随，避免深色页弹出白底框/选择面板
+      '.wx-dark .wx-dialog{background:#16202E;}' +
+      '.wx-dark .wx-dialog-title{color:#E5E7EB;}' +
+      '.wx-dark .wx-dialog-content{color:#94A3B8;}' +
+      '.wx-dark .wx-dialog-input{background:#0F172A;border-color:#233149;color:#E5E7EB;}' +
+      '.wx-dark .wx-dialog-btns{border-top-color:#233149;}' +
+      '.wx-dark .wx-dialog-btn{background:#16202E;}' +
+      '.wx-dark .wx-dialog-cancel{color:#94A3B8;border-right-color:#233149;}' +
+      '.wx-dark .wx-dialog-ok{color:#5EEAD4;}' +
+      '.wx-dark .wx-sheet{background:#0F172A;}' +
+      '.wx-dark .wx-sheet-item{background:#16202E;color:#E5E7EB;border-bottom-color:#233149;}' +
+      '.wx-dark .wx-sheet-cancel{background:#16202E;color:#94A3B8;}' +
+      '.wx-dark .wx-picker-on{color:#5EEAD4;}'
     var s = document.createElement('style')
     s.setAttribute('data-wxss', 'base')
     s.textContent = css
