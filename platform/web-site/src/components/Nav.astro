@@ -1,0 +1,130 @@
+---
+import Logo from './Logo.astro';
+
+const path = Astro.url.pathname.replace(/\/$/, '') || '/';
+const links: { href: string; label: string }[] = [
+  { href: '/solutions', label: '解决方案' },
+  { href: '/pricing', label: '报价' },
+  { href: '/docs', label: '帮助文档' },
+  { href: '/about', label: '关于我们' },
+];
+const isActive = (href: string) => path === href || (href !== '/' && path.startsWith(href));
+const companyUrl = 'https://lingong-company.eexb.com';
+---
+
+<header class="nav">
+  <div class="nav-inner wrap">
+    <a href="/" class="nav-brand" aria-label="灵工云 · 返回首页"><Logo /></a>
+
+    <input type="checkbox" id="navtoggle" class="nav-toggle" aria-label="展开导航菜单" />
+    <label for="navtoggle" class="nav-burger" aria-hidden="true">
+      <span></span><span></span><span></span>
+    </label>
+
+    <nav class="nav-menu" aria-label="主导航">
+      {links.map((l) => (
+        <a href={l.href} class={isActive(l.href) ? 'active' : ''}>{l.label}</a>
+      ))}
+      <div class="nav-cta">
+        <a href={companyUrl} class="nav-login" rel="noopener">企业登录</a>
+        <a href="/about#contact" class="btn btn-primary btn-sm">申请试用</a>
+      </div>
+    </nav>
+  </div>
+</header>
+
+<style>
+  .nav {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: color-mix(in srgb, var(--paper) 82%, transparent);
+    backdrop-filter: blur(16px) saturate(1.5);
+    -webkit-backdrop-filter: blur(16px) saturate(1.5);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 68px;
+    gap: 1.5rem;
+  }
+  .nav-brand { flex: none; }
+  .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: clamp(1rem, 2.5vw, 2.25rem);
+  }
+  .nav-menu > a {
+    font-size: var(--fs-sm);
+    font-weight: 500;
+    color: var(--ink-2);
+    position: relative;
+    padding: 0.3em 0;
+    transition: color 0.2s var(--ease);
+  }
+  .nav-menu > a:hover,
+  .nav-menu > a.active { color: var(--ink); }
+  .nav-menu > a.active::after {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; bottom: -3px;
+    height: 2px;
+    background: var(--indigo);
+    border-radius: 2px;
+  }
+  .nav-cta { display: flex; align-items: center; gap: 0.85rem; margin-left: 0.4rem; }
+  .nav-login { font-size: var(--fs-sm); font-weight: 600; color: var(--ink); }
+  .nav-login:hover { color: var(--indigo); }
+
+  .nav-toggle { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+  .nav-burger { display: none; }
+
+  @media (max-width: 880px) {
+    .nav-burger {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 5px;
+      width: 44px; height: 44px;
+      margin: -6px;
+      cursor: pointer;
+      z-index: 2;
+    }
+    .nav-burger span {
+      width: 22px; height: 2px;
+      background: var(--ink);
+      border-radius: 2px;
+      transition: transform 0.3s var(--ease), opacity 0.2s var(--ease);
+    }
+    .nav-menu {
+      position: fixed;
+      inset: 68px 0 auto 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      background: var(--paper);
+      border-bottom: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      padding: 0.5rem var(--pad) 1.6rem;
+      transform: translateY(-14px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.3s var(--ease), opacity 0.3s var(--ease);
+    }
+    .nav-menu > a {
+      padding: 0.95em 0;
+      border-bottom: 1px solid var(--line);
+      font-size: var(--fs-body);
+    }
+    .nav-menu > a.active::after { display: none; }
+    .nav-cta { margin: 1.1rem 0 0; }
+    .nav-cta .btn { flex: 1; }
+    #navtoggle:checked ~ .nav-menu { transform: none; opacity: 1; pointer-events: auto; }
+    #navtoggle:checked ~ .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    #navtoggle:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
+    #navtoggle:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+  }
+</style>

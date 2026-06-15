@@ -1,0 +1,131 @@
+---
+import Logo from './Logo.astro';
+const year = 2026;
+const ext = [
+  { href: 'https://lingong-company.eexb.com', label: '企业端登录' },
+  { href: 'https://lingong-worker.eexb.com', label: '零工端 · H5' },
+];
+---
+
+<footer class="ft">
+  <div class="wrap ft-grid">
+    <div class="ft-brand">
+      <Logo tone="light" />
+      <p>承揽后分包模式的灵活用工合规平台。四流合一、银行资金存管、税务自动代扣代缴，为企业构建可经得起稽查的用工合规底座。</p>
+      <div class="ft-badges">
+        <span class="ft-badge">银行资金存管</span>
+        <span class="ft-badge">6% 数电专票</span>
+        <span class="ft-badge">累计预扣 · 16 号公告</span>
+      </div>
+    </div>
+
+    <nav class="ft-col" aria-label="产品">
+      <h4>产品</h4>
+      <a href="/solutions">解决方案</a>
+      <a href="/pricing">报价方案</a>
+      <a href="/docs">帮助文档</a>
+      <a href="/docs/open-api">开放 API</a>
+    </nav>
+
+    <nav class="ft-col" aria-label="平台入口">
+      <h4>平台入口</h4>
+      {ext.map((e) => (
+        <a href={e.href} rel="noopener">{e.label}</a>
+      ))}
+      <a href="/about">关于我们</a>
+      <a href="/about#contact">申请试用</a>
+    </nav>
+
+    <nav class="ft-col" aria-label="合规与资源">
+      <h4>合规 · 资源</h4>
+      <a href="/docs/tax-policy">税务政策解读</a>
+      <a href="/docs/fund-escrow">资金存管说明</a>
+      <a href="/docs/compliance">合规与四流</a>
+      <a href="/docs/faq">常见问题</a>
+    </nav>
+
+    <div class="ft-col ft-contact">
+      <h4>联系我们</h4>
+      <a href="mailto:lingong@eexb.com">lingong@eexb.com</a>
+      <span>商务合作 · 解决方案咨询</span>
+      <a href="/about#contact" class="btn btn-on-dark btn-sm">预约演示</a>
+    </div>
+  </div>
+
+  <div class="wrap ft-bottom">
+    <p>© {year} 灵工云 · 灵活用工合规平台</p>
+    <p class="ft-note">本平台外部对接的实名核验、资金存管、电子签、数电发票、税务申报等能力由持牌机构与服务商提供。</p>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    background:
+      radial-gradient(900px 380px at 85% -20%, rgba(79, 70, 229, 0.22), transparent 60%),
+      radial-gradient(700px 320px at 5% 120%, rgba(15, 118, 110, 0.18), transparent 60%),
+      var(--indigo-ink);
+    color: rgba(251, 250, 248, 0.7);
+    padding-top: clamp(3rem, 6vw, 5rem);
+    margin-top: 2rem;
+  }
+  .ft-grid {
+    display: grid;
+    grid-template-columns: 1.7fr repeat(3, 1fr) 1.2fr;
+    gap: clamp(1.5rem, 3vw, 2.5rem) 2rem;
+    padding-bottom: 3rem;
+  }
+  .ft-brand p {
+    margin-top: 1rem;
+    font-size: var(--fs-sm);
+    line-height: 1.7;
+    max-width: 34ch;
+    color: rgba(251, 250, 248, 0.6);
+  }
+  .ft-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.2rem; }
+  .ft-badge {
+    font-family: var(--font-mono);
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    color: rgba(251, 250, 248, 0.85);
+    border: 1px solid rgba(251, 250, 248, 0.18);
+    border-radius: var(--r-pill);
+    padding: 0.35em 0.8em;
+  }
+  .ft-col { display: flex; flex-direction: column; gap: 0.7rem; }
+  .ft-col h4 {
+    font-family: var(--font-mono);
+    font-size: var(--fs-xs);
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(251, 250, 248, 0.45);
+    margin-bottom: 0.3rem;
+  }
+  .ft-col a, .ft-col span {
+    font-size: var(--fs-sm);
+    color: rgba(251, 250, 248, 0.72);
+    transition: color 0.2s var(--ease);
+  }
+  .ft-col a:hover { color: #fff; }
+  .ft-contact .btn { margin-top: 0.5rem; align-self: start; }
+  .ft-bottom {
+    border-top: 1px solid rgba(251, 250, 248, 0.12);
+    padding-block: 1.6rem 2.4rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    font-size: var(--fs-xs);
+    color: rgba(251, 250, 248, 0.45);
+  }
+  .ft-note { max-width: 54ch; }
+
+  @media (max-width: 880px) {
+    .ft-grid { grid-template-columns: 1fr 1fr; }
+    .ft-brand { grid-column: 1 / -1; }
+  }
+  @media (max-width: 520px) {
+    .ft-grid { grid-template-columns: 1fr; }
+  }
+</style>

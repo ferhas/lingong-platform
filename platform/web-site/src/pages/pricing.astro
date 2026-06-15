@@ -1,0 +1,270 @@
+---
+import Base from '../layouts/Base.astro';
+import CtaBand from '../components/CtaBand.astro';
+
+const plans = [
+  {
+    key: '标准版',
+    en: 'STANDARD',
+    price: '8%',
+    unit: '综合服务费起',
+    note: '按实际成交结算金额计费，无成交不收费',
+    cta: { label: '申请试用', href: '/about#contact' },
+    featured: false,
+    feats: [
+      '承揽分包全流程闭环',
+      '自然人 + 个体户双线计税',
+      '6% 数电专票全额开具',
+      '按单投保 · 线下高保额',
+      '站内信 + 帮助中心',
+      '集中度 / 防员转零风控',
+    ],
+  },
+  {
+    key: '企业版',
+    en: 'ENTERPRISE',
+    price: '规模优惠',
+    unit: '阶梯费率 · 面议',
+    note: '为规模化用工设计，量大费率更优',
+    cta: { label: '预约演示', href: '/about#contact' },
+    featured: true,
+    feats: [
+      '含「标准版」全部能力',
+      '批量发单 · 逐行校验',
+      '子账号与角色权限',
+      '月结单 + 财务报表',
+      '模板短信多通道触达',
+      '专属解决方案顾问',
+    ],
+  },
+  {
+    key: '旗舰版',
+    en: 'FLAGSHIP',
+    price: '定制',
+    unit: '私有化 / 直连方案',
+    note: '面向平台型与集团客户的深度集成',
+    cta: { label: '联系商务', href: '/about#contact' },
+    featured: false,
+    feats: [
+      '含「企业版」全部能力',
+      '开放 API 系统直连',
+      '独立存管 / 专属通道',
+      '定制风控与对账规则',
+      'SLA 保障 + 客户成功',
+      '私有化部署评估',
+    ],
+  },
+];
+
+const faqs = [
+  { q: '平台服务费怎么收？', a: '按每一笔任务实际验收结算的承揽金额计取，结算时从承揽价中列支。没有成交就不产生服务费，也没有最低消费。' },
+  { q: '8% 里包含哪些服务？', a: '包含承揽分包合规通道、银行资金存管、数电专票开具、风控合规、保险撮合与系统能力等。零工的个人所得税、增值税据实代扣代缴，不计入平台服务费。' },
+  { q: '零工需要交多少税？', a: '自然人走劳务报酬累计预扣法，全年多笔小额的预缴税负显著低于按次预扣；完成个体工商户登记后转入经营所得线，平台不代扣。具体以当年累计收入与减除费用为准。' },
+  { q: '发票什么时候开、开什么票？', a: '企业验收生成《业务交易确认单》后，平台按承揽价全额开具 6% 增值税数电专用发票并推送企业，可作进项抵扣与税前列支；支持红字发票红冲与关联重开。' },
+  { q: '资金安全如何保障？', a: '企业充值进入银行存管虚拟户，平台本地余额是银行子账户的镜像，出金凭存管协议号执行、不留存卡号明文；T+1 逐笔对账核销，差异自动落账并预警。' },
+  { q: '最少多少起，能先试吗？', a: '无最低门槛，单笔即可完整跑通承揽分包、结算与开票。可先申请试用，用真实小额任务验证全链路后再放量。' },
+];
+---
+
+<Base
+  title="报价方案"
+  description="灵工云按成交计费：综合服务费 8% 起，无成交不收费。提供标准版 / 企业版 / 旗舰版，含承揽分包、双线计税、数电专票、银行存管与开放 API。内置费用速算器。"
+>
+  <!-- Hero -->
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow" data-reveal>PRICING · 报价方案</span>
+      <h1 data-reveal>按成交计费，<br />把每一分都花在合规上</h1>
+      <p class="lead" data-reveal>综合服务费 <strong>8% 起</strong>，无成交不收费、无最低消费。承揽价里清清楚楚分成三段：零工分包款、应代缴税费、平台服务费。</p>
+    </div>
+  </section>
+
+  <!-- 费率构成 + 速算器 -->
+  <section class="section">
+    <div class="wrap calc-wrap">
+      <div class="calc-intro" data-reveal>
+        <span class="eyebrow">CALCULATOR · 费用速算</span>
+        <h2>拖一拖，算清一笔任务的账</h2>
+        <p class="muted">输入企业为这笔任务支付的承揽价（含税），即时看到分账结构与可抵扣进项。结果为示意，以实际开票与申报为准。</p>
+        <div class="ratio-bar" aria-hidden="true">
+          <i class="ratio-pay" style="flex:92"><span>零工分包款 92%</span></i>
+          <i class="ratio-fee" style="flex:8"><span>服务费 8%</span></i>
+        </div>
+      </div>
+
+      <div class="calc card" data-reveal>
+        <label class="calc-label" for="calc-amt">企业承揽价（含税）</label>
+        <output class="calc-amt mono" id="calc-out">¥20,000</output>
+        <input id="calc-amt" type="range" min="1000" max="200000" step="500" value="20000" aria-label="企业承揽价" />
+        <div class="calc-presets">
+          <button type="button" data-v="5000">¥5,000</button>
+          <button type="button" data-v="20000">¥20,000</button>
+          <button type="button" data-v="100000">¥100,000</button>
+        </div>
+        <div class="calc-results">
+          <div class="cr cr-pay">
+            <span class="cr-k">零工分包款（税前）</span>
+            <span class="cr-v mono" id="r-pay">¥18,400</span>
+          </div>
+          <div class="cr cr-fee">
+            <span class="cr-k">平台服务费 · 8%</span>
+            <span class="cr-v mono" id="r-fee">¥1,600</span>
+          </div>
+          <div class="cr cr-vat">
+            <span class="cr-k">可抵扣进项税额 · 6%</span>
+            <span class="cr-v mono" id="r-vat">¥1,132</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 套餐 -->
+  <section class="section section-tint">
+    <div class="wrap">
+      <div class="sec-head center" data-reveal>
+        <span class="eyebrow center-line">PLANS · 套餐</span>
+        <h2>从单笔验证到规模直连</h2>
+      </div>
+      <div class="plan-grid">
+        {plans.map((p) => (
+          <article class={`plan card ${p.featured ? 'plan-featured' : ''}`} data-reveal>
+            {p.featured && <span class="plan-flag mono">最受欢迎</span>}
+            <span class="plan-en mono">{p.en}</span>
+            <h3 class="plan-name">{p.key}</h3>
+            <div class="plan-price"><span class="figure">{p.price}</span></div>
+            <div class="plan-unit">{p.unit}</div>
+            <p class="plan-note">{p.note}</p>
+            <ul class="plan-feats">
+              {p.feats.map((f) => <li>{f}</li>)}
+            </ul>
+            <a href={p.cta.href} class={`btn ${p.featured ? 'btn-primary' : 'btn-ghost'} plan-cta`}>{p.cta.label}</a>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ -->
+  <section class="section">
+    <div class="wrap narrow">
+      <div class="sec-head center" data-reveal>
+        <span class="eyebrow center-line">FAQ · 计费常见问题</span>
+        <h2>关于费用，你可能想问</h2>
+      </div>
+      <div class="faq" data-reveal>
+        {faqs.map((f) => (
+          <details class="faq-item">
+            <summary>{f.q}<span class="faq-ico" aria-hidden="true"></span></summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <CtaBand title="想要一份贴合你用工规模的报价？" text="把你的月度用工金额与场景告诉我们，给你一版可落地的费率与方案。" />
+</Base>
+
+<script>
+  const amt = document.getElementById('calc-amt');
+  const out = document.getElementById('calc-out');
+  const rPay = document.getElementById('r-pay');
+  const rFee = document.getElementById('r-fee');
+  const rVat = document.getElementById('r-vat');
+  const fmt = (n) => '¥' + Math.round(n).toLocaleString('zh-CN');
+  function update() {
+    const v = Number(amt.value) || 0;
+    out.textContent = fmt(v);
+    rPay.textContent = fmt(v * 0.92);
+    rFee.textContent = fmt(v * 0.08);
+    rVat.textContent = fmt((v / 1.06) * 0.06);
+  }
+  amt.addEventListener('input', update);
+  document.querySelectorAll('.calc-presets button').forEach((b) => {
+    b.addEventListener('click', () => {
+      amt.value = b.getAttribute('data-v');
+      update();
+    });
+  });
+  update();
+</script>
+
+<style>
+  .page-hero { padding-block: clamp(3rem, 7vw, 5.5rem) clamp(1rem, 3vw, 2rem); position: relative; }
+  .page-hero::after {
+    content: ""; position: absolute; top: -20%; right: -5%; width: 50vw; height: 50vw; max-width: 620px; max-height: 620px;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.12), transparent 62%); z-index: -1; pointer-events: none;
+  }
+  .page-hero h1 { font-size: var(--fs-h1); margin: 1rem 0 1.2rem; }
+  .page-hero .lead { max-width: 50ch; }
+  .page-hero .lead strong { color: var(--indigo); }
+
+  /* 速算器 */
+  .calc-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.5rem, 4vw, 3rem); align-items: center; }
+  .calc-intro h2 { margin: 0.7rem 0 0.8rem; }
+  .ratio-bar { display: flex; height: 46px; border-radius: var(--r-sm); overflow: hidden; margin-top: 1.6rem; gap: 3px; }
+  .ratio-bar i { display: grid; place-items: center; color: #fff; }
+  .ratio-bar i span { font-family: var(--font-mono); font-size: 0.72rem; opacity: 0.95; padding: 0 0.4rem; text-align: center; }
+  .ratio-pay { background: var(--indigo); }
+  .ratio-fee { background: var(--teal); }
+
+  .calc { padding: 2rem; }
+  .calc-label { font-size: var(--fs-sm); color: var(--ink-2); }
+  .calc-amt { display: block; font-size: clamp(2.2rem, 1.5rem + 2vw, 3rem); color: var(--ink); font-weight: 500; letter-spacing: -0.02em; margin: 0.3rem 0 1.2rem; }
+  .calc input[type="range"] { width: 100%; accent-color: var(--indigo); height: 6px; cursor: pointer; }
+  .calc-presets { display: flex; gap: 0.5rem; margin: 1rem 0 1.6rem; }
+  .calc-presets button {
+    font-family: var(--font-mono); font-size: 0.76rem; color: var(--ink-2); background: var(--paper-2);
+    border: 1px solid var(--line); border-radius: var(--r-pill); padding: 0.4em 0.9em; cursor: pointer; transition: all 0.2s var(--ease);
+  }
+  .calc-presets button:hover { border-color: var(--indigo); color: var(--indigo); }
+  .calc-results { display: grid; gap: 0.6rem; }
+  .cr { display: flex; align-items: center; justify-content: space-between; padding: 0.9rem 1.1rem; border-radius: var(--r-sm); background: var(--paper-2); border-left: 3px solid var(--line-2); }
+  .cr-k { font-size: var(--fs-sm); color: var(--ink-2); }
+  .cr-v { font-size: 1.1rem; color: var(--ink); font-weight: 500; }
+  .cr-pay { border-left-color: var(--indigo); }
+  .cr-fee { border-left-color: var(--teal); }
+  .cr-vat { border-left-color: var(--gold); }
+
+  /* 套餐 */
+  .plan-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-top: 3rem; align-items: start; }
+  .plan { padding: 2rem; position: relative; display: flex; flex-direction: column; }
+  .plan-featured { border-color: var(--indigo); box-shadow: 0 24px 60px -30px rgba(79, 70, 229, 0.5); transform: translateY(-6px); }
+  .plan-flag { position: absolute; top: -0.8rem; left: 2rem; background: var(--indigo); color: #fff; font-size: 0.68rem; letter-spacing: 0.08em; padding: 0.35em 0.8em; border-radius: var(--r-pill); }
+  .plan-en { font-size: 0.7rem; letter-spacing: 0.14em; color: var(--ink-3); }
+  .plan-name { margin: 0.4rem 0 1rem; }
+  .plan-price { color: var(--indigo); }
+  .plan-price .figure { font-size: clamp(2.4rem, 2rem + 1.5vw, 3.2rem); }
+  .plan-unit { font-size: var(--fs-sm); color: var(--ink-2); margin-top: 0.2rem; }
+  .plan-note { font-size: var(--fs-xs); color: var(--ink-3); margin: 0.5rem 0 1.4rem; min-height: 2.4em; }
+  .plan-feats { display: grid; gap: 0.65rem; margin-bottom: 1.8rem; }
+  .plan-feats li { position: relative; padding-left: 1.6rem; font-size: var(--fs-sm); color: var(--ink-2); }
+  .plan-feats li::before {
+    content: ""; position: absolute; left: 0; top: 0.45em; width: 0.85em; height: 0.5em;
+    border-left: 2px solid var(--teal); border-bottom: 2px solid var(--teal); transform: rotate(-45deg);
+  }
+  .plan-cta { margin-top: auto; width: 100%; }
+
+  /* FAQ */
+  .faq { margin-top: 2.5rem; display: grid; gap: 0.8rem; }
+  .faq-item { background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 0 1.4rem; transition: border-color 0.2s var(--ease); }
+  .faq-item[open] { border-color: var(--line-2); }
+  .faq-item summary {
+    list-style: none; cursor: pointer; padding: 1.2rem 0; font-weight: 600; color: var(--ink);
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  }
+  .faq-item summary::-webkit-details-marker { display: none; }
+  .faq-ico { position: relative; width: 16px; height: 16px; flex: none; }
+  .faq-ico::before, .faq-ico::after { content: ""; position: absolute; background: var(--indigo); border-radius: 2px; transition: transform 0.25s var(--ease); }
+  .faq-ico::before { top: 7px; left: 0; width: 16px; height: 2px; }
+  .faq-ico::after { left: 7px; top: 0; width: 2px; height: 16px; }
+  .faq-item[open] .faq-ico::after { transform: scaleY(0); }
+  .faq-item p { padding: 0 0 1.3rem; color: var(--ink-2); font-size: var(--fs-sm); margin-top: -0.3rem; }
+
+  @media (max-width: 860px) {
+    .calc-wrap { grid-template-columns: 1fr; }
+    .plan-grid { grid-template-columns: 1fr; max-width: 460px; margin-inline: auto; }
+    .plan-featured { transform: none; }
+  }
+</style>

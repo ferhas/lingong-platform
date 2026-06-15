@@ -1,0 +1,494 @@
+---
+import Base from '../layouts/Base.astro';
+import CtaBand from '../components/CtaBand.astro';
+
+const stats = [
+  { fig: '4', unit: '流', label: '合同 · 业务 · 资金 · 发票，链路硬校验' },
+  { fig: '16', unit: '号公告', label: '自然人劳务报酬累计预扣口径' },
+  { fig: 'T+1', unit: '', label: '银行存管回执逐笔对账核销' },
+  { fig: '6', unit: '%', label: '数电专票全额开具并推送企业' },
+];
+
+const risks = [
+  {
+    tag: 'RISK 01',
+    title: '伪劳务 · 以包代劳',
+    problem: '把本应签劳动合同的岗位包装成零工，被认定事实劳动关系、补缴社保。',
+    solve: '以「承揽后分包」确立承揽关系，发布即过违禁词风控，全节点合同正文留痕，从源头切断「以包代劳」。',
+  },
+  {
+    tag: 'RISK 02',
+    title: '税务 · 票据不合规',
+    problem: '个人代开困难、虚开风险高，无法取得合规进项，企业所得税前无法列支。',
+    solve: '平台为法定扣缴义务人，自然人累计预扣、个体户经营所得双线路由，验收即全额开具 6% 数电专票。',
+  },
+  {
+    tag: 'RISK 03',
+    title: '资金 · 不可追溯',
+    problem: '资金过私人账户、流向不清，发生争议时缺乏可稽查的证据链。',
+    solve: '企业资金进银行存管虚拟户，本地余额是子账户镜像；四流硬校验 + T+1 逐笔对账，每一分钱可溯可查。',
+  },
+];
+
+const caps = [
+  {
+    icon: '<path d="M12 3l7 3v5c0 4.4-3 7.2-7 8-4-.8-7-3.6-7-8V6l7-3z"/><path d="M9 12l2 2 4-4"/>',
+    title: '实名核验 · 电子签',
+    desc: '公安三要素 + 银行卡四要素 + 人脸核身；总承揽框架、分包协议、任务/分包工单全节点正文快照留痕。',
+  },
+  {
+    icon: '<path d="M3 9l9-5 9 5"/><path d="M5 9v9m14-9v9M9 9v9m6-9v9M3 19h18"/>',
+    title: '银行资金存管',
+    desc: '企业充值入存管虚拟户，本地余额为银行子账户镜像；出金凭协议号执行，平台不留存卡号明文。',
+  },
+  {
+    icon: '<rect x="6" y="3" width="12" height="18" rx="1.5"/><path d="M9 7h6M8 11h.01M12 11h.01M16 11h.01M8 15h.01M12 15h4"/>',
+    title: '算税引擎 · 双线',
+    desc: '自然人劳务报酬累计预扣（16 号公告）、个体户经营所得不代扣；税率/阈值入库，运营端在线可调。',
+  },
+  {
+    icon: '<path d="M5 3h14v18l-2.5-1.6L14 21l-2-1.6L10 21l-2.5-1.6L5 21z"/><path d="M9 8h6M9 12h6"/>',
+    title: '6% 数电专票',
+    desc: '验收生成业务确认单后全额开具数电专票并推送企业；支持红字发票红冲留痕、关联重开。',
+  },
+  {
+    icon: '<path d="M12 3c4 2.5 7 3 7 3v6c0 4-3 6.5-7 9-4-2.5-7-5-7-9V6s3-.5 7-3z"/><path d="M12 8v5"/>',
+    title: '按单保险保障',
+    desc: '录用即按单投保，配送/安装/施工等线下作业自动适配高保额；零工小程序一键报案、理赔到账通知。',
+  },
+  {
+    icon: '<path d="M12 3v18M5 21h14"/><path d="M5 8l7-2 7 2"/><path d="M5 8l-2 5a3 3 0 0 0 6 0L5 8zm14 0l-2 5a3 3 0 0 0 6 0l-4-5z"/>',
+    title: '争议仲裁 · 风控',
+    desc: '争议即冻结结算，平台限时举证仲裁、按裁决部分结算；集中度、防员转零、反洗钱规则实时预警。',
+  },
+];
+
+const flows = [
+  { no: '01', name: '合同流', chips: ['总承揽框架合同', '分包协议（框架）', '任务工单', '分包工单'] },
+  { no: '02', name: '业务流', chips: ['发布任务', '报名 / 派单', '企业录用', '交付 · 验收'] },
+  { no: '03', name: '资金流', chips: ['充值存管', '冻结预算', '分账：实发 / 税费 / 服务费', 'T+1 提现'] },
+  { no: '04', name: '发票流', chips: ['业务交易确认单', '6% 数电专票', 'B 线进项发票台账'] },
+];
+
+const steps = [
+  { no: '01', t: '企业入驻审核', d: '负面清单评级，通过即电子签《总承揽框架合同》。' },
+  { no: '02', t: '充值 · 发布任务', d: '资金入存管户，发布过违禁词风控并冻结预算。' },
+  { no: '03', t: '实名 · 录用投保', d: '零工实名签分包协议，报名或派单，录用即按单投保。' },
+  { no: '04', t: '交付 · 验收', d: '四流硬校验：无工单不结算、无交付物不验收。' },
+  { no: '05', t: '算税 · 分账', d: '算税引擎按主体路由，存管行分账实发 / 税费 / 服务费。' },
+  { no: '06', t: '全额开票', d: '生成业务确认单并开具 6% 数电专票推送企业。' },
+  { no: '07', t: '申报 · 归档', d: '月度批量申报、季度分类报送、四流凭证归档存证。' },
+];
+
+const industries = [
+  '即时配送', '安装维修', '建筑施工', '家政服务', '设计创意', '咨询服务',
+  '翻译审稿', '直播营销', '技术开发', '市场推广', '文体演出', '教育培训',
+];
+---
+
+<Base
+  title="灵工云 · 灵活用工合规平台"
+  description="灵工云以「承揽后分包」模式成为企业与零工之间的承揽方：四流合一、银行资金存管、税款自动代扣代缴，把用工合规沉淀为经得起稽查的证据链。"
+>
+  <!-- ===================== HERO ===================== -->
+  <section class="hero">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <span class="eyebrow" data-rise style="animation-delay:.05s">承揽后分包 · COMPLIANCE&nbsp;FIRST</span>
+        <h1 data-rise style="animation-delay:.12s">灵活用工的<br />合规底座</h1>
+        <p class="lead" data-rise style="animation-delay:.2s">
+          灵工云以「承揽后分包」模式，成为企业与零工之间的<strong>承揽方</strong>——
+          四流合一、银行资金存管、税款自动代扣代缴，把每一笔用工都沉淀为经得起稽查的证据链。
+        </p>
+        <div class="hero-actions" data-rise style="animation-delay:.28s">
+          <a href="/about#contact" class="btn btn-primary btn-lg">申请试用</a>
+          <a href="/solutions" class="btn btn-ghost btn-lg">查看解决方案</a>
+        </div>
+        <div class="hero-chips" data-rise style="animation-delay:.36s">
+          <span>银行资金存管</span>
+          <span>四流硬校验</span>
+          <span>自然人 / 个体户双线</span>
+          <span>6% 数电专票</span>
+        </div>
+      </div>
+
+      <!-- 结算凭证卡 -->
+      <aside class="receipt" data-rise style="animation-delay:.24s" aria-label="结算凭证示意">
+        <div class="receipt-head">
+          <div>
+            <div class="receipt-kicker mono">业务交易确认单</div>
+            <div class="receipt-no mono">No. LG-2026-0617-2048</div>
+          </div>
+          <span class="receipt-seal">已结算</span>
+        </div>
+        <ul class="receipt-flows">
+          <li><span class="ck">✓</span> 合同流 · 分包工单已签</li>
+          <li><span class="ck">✓</span> 业务流 · 交付已验收</li>
+          <li><span class="ck">✓</span> 资金流 · 存管已分账</li>
+          <li><span class="ck">✓</span> 发票流 · 数电专票已开</li>
+        </ul>
+        <div class="receipt-split">
+          <div class="split-row split-total">
+            <span>承揽价（企业付）</span><span class="mono">¥1,000.00</span>
+          </div>
+          <div class="split-bar" aria-hidden="true">
+            <i style="flex:92" class="seg-pay"></i><i style="flex:8" class="seg-fee"></i>
+          </div>
+          <div class="split-legend">
+            <span><i class="dot dot-pay"></i>零工实发 <b class="mono">¥920</b></span>
+            <span><i class="dot dot-fee"></i>平台服务费 <b class="mono">¥80 · 8%</b></span>
+          </div>
+        </div>
+        <div class="receipt-foot mono">6% 数电专票 · 已推送企业 · 链上存证</div>
+      </aside>
+    </div>
+
+    <div class="wrap stat-strip" data-reveal>
+      {stats.map((s) => (
+        <div class="stat">
+          <div class="stat-fig"><span class="figure">{s.fig}</span><span class="stat-unit">{s.unit}</span></div>
+          <div class="stat-label">{s.label}</div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- ===================== 痛点 → 解法 ===================== -->
+  <section class="section">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow">WHY · 为什么需要合规底座</span>
+        <h2>灵活用工的三道坎，逐一拆掉</h2>
+        <p class="lead">企业用工的风险不在「用没用零工」，而在「关系、票据、资金」是否经得起稽查。灵工云把这三件事做成制度。</p>
+      </div>
+      <div class="risk-grid">
+        {risks.map((r) => (
+          <article class="card card-hover risk" data-reveal>
+            <span class="risk-tag mono">{r.tag}</span>
+            <h3>{r.title}</h3>
+            <p class="risk-problem">{r.problem}</p>
+            <div class="risk-divider"><span>灵工云</span></div>
+            <p class="risk-solve">{r.solve}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 四流合一（深色） ===================== -->
+  <section class="flows-section">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow" style="color:var(--teal-bright)">EVIDENCE CHAIN · 四流合一</span>
+        <h2>四条流，拧成一根经得起稽查的证据链</h2>
+        <p class="lead" style="color:rgba(251,250,248,.66)">合同、业务、资金、发票四流环环相扣，由代码强制硬校验——不是事后审计，而是发生时就合规。</p>
+      </div>
+      <div class="flows">
+        {flows.map((f) => (
+          <div class="flow-row" data-reveal>
+            <div class="flow-id">
+              <span class="mono flow-no">{f.no}</span>
+              <span class="flow-name">{f.name}</span>
+            </div>
+            <div class="flow-chips">
+              {f.chips.map((c, i) => (
+                <>
+                  {i > 0 && <span class="flow-arrow" aria-hidden="true">→</span>}
+                  <span class="flow-chip">{c}</span>
+                </>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      <p class="flow-rule" data-reveal>
+        <span class="mono">HARD&nbsp;CHECK</span>
+        无签署工单不可结算 · 无交付物不可验收 · 无验收不可开票 · 无发票依据不可分账
+      </p>
+    </div>
+  </section>
+
+  <!-- ===================== 核心能力 ===================== -->
+  <section class="section">
+    <div class="wrap">
+      <div class="sec-head center" data-reveal>
+        <span class="eyebrow center-line">CAPABILITIES · 核心能力</span>
+        <h2>一套系统，覆盖用工合规的每一环</h2>
+      </div>
+      <div class="cap-grid">
+        {caps.map((c) => (
+          <article class="card card-hover cap" data-reveal>
+            <span class="cap-ico"><svg viewBox="0 0 24 24" set:html={c.icon}></svg></span>
+            <h3>{c.title}</h3>
+            <p>{c.desc}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 双线税务模型 ===================== -->
+  <section class="section section-tint">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow">TAX ROUTING · 双线计税</span>
+        <h2>同一平台，两条合规计税路径</h2>
+        <p class="lead">算税引擎按零工主体类型自动路由，A 线自然人与 B 线个体户各走各的合规口径。</p>
+      </div>
+      <div class="lane-grid">
+        <article class="card lane lane-a" data-reveal>
+          <header><span class="lane-key mono">A 线</span><h3>自然人 · 劳务报酬</h3></header>
+          <p>平台为<strong>法定扣缴义务人</strong>，按累计预扣预缴：</p>
+          <div class="formula mono">应纳税所得 =（累计收入 × 80%）− 5000 × 连续月份</div>
+          <ul class="lane-list">
+            <li>七级年度累进预扣率，断月自动重置连续月份</li>
+            <li>增值税月免征额（10 万）实时监控预警</li>
+            <li>年度凭证标注劳务报酬 · 累计预扣法</li>
+          </ul>
+        </article>
+        <article class="card lane lane-b" data-reveal>
+          <header><span class="lane-key mono">B 线</span><h3>个体工商户 · 经营所得</h3></header>
+          <p>零工完成个体户登记后转入经营所得线：</p>
+          <div class="formula mono">平台不代扣 · 凭进项发票合规列支</div>
+          <ul class="lane-list">
+            <li>结算前进项发票硬校验，补全四流发票流</li>
+            <li>转线即解除接单锁定，改善平台进项税负</li>
+            <li>进项优化看板量化引导收益</li>
+          </ul>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== 业务闭环 ===================== -->
+  <section class="section">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow">LIFECYCLE · 业务闭环</span>
+        <h2>从入驻到归档，七步形成闭环</h2>
+      </div>
+      <ol class="steps">
+        {steps.map((s) => (
+          <li class="step" data-reveal>
+            <span class="step-no mono">{s.no}</span>
+            <h3 class="step-t">{s.t}</h3>
+            <p class="step-d">{s.d}</p>
+          </li>
+        ))}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ===================== 适用行业 ===================== -->
+  <section class="section-sm">
+    <div class="wrap industries" data-reveal>
+      <div class="ind-head">
+        <span class="eyebrow">SCENARIOS · 适用场景</span>
+        <h3>覆盖线上线下的灵活用工场景</h3>
+      </div>
+      <div class="ind-chips">
+        {industries.map((i) => <span class="ind-chip">{i}</span>)}
+      </div>
+    </div>
+  </section>
+
+  <CtaBand />
+</Base>
+
+<style>
+  /* ---------- HERO ---------- */
+  .hero { position: relative; padding-top: clamp(2.5rem, 6vw, 5rem); padding-bottom: 1rem; overflow: hidden; }
+  .hero-glow {
+    position: absolute; top: -30%; right: -10%; width: 60vw; height: 60vw; max-width: 760px; max-height: 760px;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.14), transparent 62%);
+    pointer-events: none; z-index: -1;
+  }
+  .hero-grid {
+    display: grid; grid-template-columns: 1.15fr 0.85fr; gap: clamp(2rem, 5vw, 4.5rem); align-items: center;
+  }
+  .hero-copy h1 { font-size: var(--fs-display); margin: 1rem 0 1.25rem; font-weight: 600; }
+  .hero-copy .lead { max-width: 40ch; }
+  .hero-copy .lead strong { color: var(--indigo); }
+  .hero-actions { display: flex; gap: 0.85rem; margin-top: 2rem; flex-wrap: wrap; }
+  .hero-chips { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 2rem; }
+  .hero-chips span {
+    font-family: var(--font-mono); font-size: 0.76rem; letter-spacing: 0.02em; color: var(--ink-2);
+    background: #fff; border: 1px solid var(--line); border-radius: var(--r-pill); padding: 0.4em 0.85em;
+  }
+
+  /* 入场动画 */
+  [data-rise] { opacity: 0; animation: rise 0.9s var(--ease) forwards; }
+  @keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { [data-rise] { opacity: 1; animation: none; } }
+
+  /* 结算凭证卡 */
+  .receipt {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg);
+    box-shadow: var(--shadow-lg); padding: 1.6rem; position: relative;
+  }
+  .receipt::before {
+    content: ""; position: absolute; inset: 0 0 auto 0; height: 5px;
+    background: linear-gradient(90deg, var(--indigo), var(--teal)); border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  .receipt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
+  .receipt-kicker { font-size: 0.72rem; color: var(--ink-3); letter-spacing: 0.08em; }
+  .receipt-no { font-size: 0.92rem; color: var(--ink); margin-top: 0.25rem; font-weight: 500; }
+  .receipt-seal {
+    font-family: var(--font-mono); font-size: 0.74rem; color: var(--ok); letter-spacing: 0.06em;
+    border: 1.5px solid color-mix(in srgb, var(--ok) 50%, transparent); border-radius: var(--r-sm);
+    padding: 0.3em 0.6em; transform: rotate(-3deg); white-space: nowrap;
+  }
+  .receipt-flows { margin: 1.3rem 0; display: grid; gap: 0.55rem; }
+  .receipt-flows li { display: flex; align-items: center; gap: 0.6rem; font-size: var(--fs-sm); color: var(--ink-2); }
+  .receipt-flows .ck {
+    width: 1.35em; height: 1.35em; flex: none; display: grid; place-items: center; border-radius: 50%;
+    background: color-mix(in srgb, var(--ok) 14%, transparent); color: var(--ok); font-size: 0.7em; font-weight: 700;
+  }
+  .receipt-split { border-top: 1px dashed var(--line-2); padding-top: 1.1rem; }
+  .split-row { display: flex; justify-content: space-between; font-size: var(--fs-sm); }
+  .split-total { font-weight: 600; color: var(--ink); }
+  .split-total .mono { font-size: 1.05rem; }
+  .split-bar { display: flex; height: 12px; border-radius: 999px; overflow: hidden; margin: 0.7rem 0 0.6rem; gap: 2px; }
+  .seg-pay { background: var(--indigo); }
+  .seg-fee { background: var(--teal); }
+  .split-legend { display: flex; justify-content: space-between; font-size: var(--fs-xs); color: var(--ink-2); flex-wrap: wrap; gap: 0.4rem; }
+  .split-legend b { color: var(--ink); }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.4em; }
+  .dot-pay { background: var(--indigo); }
+  .dot-fee { background: var(--teal); }
+  .receipt-foot {
+    margin-top: 1.2rem; padding-top: 1rem; border-top: 1px solid var(--line);
+    font-size: 0.74rem; color: var(--ink-3); letter-spacing: 0.03em;
+  }
+
+  /* 数据条 */
+  .stat-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem;
+    margin-top: clamp(2.5rem, 5vw, 4rem); padding-top: 2.2rem; border-top: 1px solid var(--line);
+  }
+  .stat-fig { display: flex; align-items: baseline; gap: 0.15em; color: var(--indigo); }
+  .stat-fig .figure { font-size: clamp(2.2rem, 1.5rem + 2vw, 3.2rem); }
+  .stat-unit { font-family: var(--font-display); font-size: 1.1rem; color: var(--ink-2); }
+  .stat-label { font-size: var(--fs-sm); color: var(--ink-2); margin-top: 0.4rem; max-width: 24ch; }
+
+  /* ---------- 痛点 ---------- */
+  .risk-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-top: 3rem; }
+  .risk { padding: 1.8rem; display: flex; flex-direction: column; }
+  .risk-tag { font-size: 0.72rem; color: var(--gold); letter-spacing: 0.1em; }
+  .risk h3 { margin: 0.7rem 0 0.8rem; }
+  .risk-problem { font-size: var(--fs-sm); color: var(--ink-2); }
+  .risk-divider { display: flex; align-items: center; gap: 0.7rem; margin: 1.1rem 0; }
+  .risk-divider::before, .risk-divider::after { content: ""; height: 1px; flex: 1; background: var(--line); }
+  .risk-divider span { font-family: var(--font-mono); font-size: 0.7rem; color: var(--teal); letter-spacing: 0.08em; }
+  .risk-solve { font-size: var(--fs-sm); color: var(--ink); }
+
+  /* ---------- 四流（深色） ---------- */
+  .flows-section {
+    background:
+      radial-gradient(800px 400px at 92% 0%, rgba(20, 184, 166, 0.16), transparent 60%),
+      var(--indigo-ink);
+    color: rgba(251, 250, 248, 0.82);
+    padding-block: clamp(4rem, 8vw, 7rem);
+  }
+  .flows-section h2 { color: #fff; }
+  .flows { margin-top: 3rem; display: grid; gap: 0.9rem; }
+  .flow-row {
+    display: grid; grid-template-columns: 200px 1fr; gap: 1.5rem; align-items: center;
+    background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--r); padding: 1.1rem 1.4rem;
+    transition: border-color 0.3s var(--ease), background 0.3s var(--ease);
+  }
+  .flow-row:hover { border-color: rgba(20, 184, 166, 0.5); background: rgba(255, 255, 255, 0.05); }
+  .flow-id { display: flex; align-items: baseline; gap: 0.7rem; }
+  .flow-no { font-size: 1.4rem; color: var(--teal-bright); font-weight: 600; }
+  .flow-name { font-family: var(--font-serif-cn); font-size: 1.2rem; font-weight: 600; color: #fff; }
+  .flow-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; }
+  .flow-chip {
+    font-size: var(--fs-sm); color: rgba(251, 250, 248, 0.9);
+    background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: var(--r-pill); padding: 0.35em 0.85em;
+  }
+  .flow-arrow { color: rgba(20, 184, 166, 0.7); font-size: 0.9rem; }
+  .flow-rule {
+    margin-top: 2rem; display: flex; align-items: center; gap: 0.9rem; flex-wrap: wrap;
+    font-size: var(--fs-sm); color: rgba(251, 250, 248, 0.7); line-height: 1.9;
+  }
+  .flow-rule .mono {
+    color: var(--gold); border: 1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+    padding: 0.25em 0.6em; border-radius: var(--r-sm); font-size: 0.72rem; letter-spacing: 0.1em;
+  }
+
+  /* ---------- 能力 ---------- */
+  .cap-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-top: 3rem; }
+  .cap { padding: 1.8rem; }
+  .cap-ico {
+    display: inline-grid; place-items: center; width: 48px; height: 48px; border-radius: 14px;
+    background: linear-gradient(135deg, color-mix(in srgb, var(--indigo) 14%, #fff), color-mix(in srgb, var(--teal) 12%, #fff));
+    color: var(--indigo); margin-bottom: 1.1rem;
+  }
+  .cap-ico svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .cap h3 { font-size: var(--fs-h3); margin-bottom: 0.6rem; }
+  .cap p { font-size: var(--fs-sm); color: var(--ink-2); }
+
+  /* ---------- 双线 ---------- */
+  .section-tint { background: var(--paper-2); }
+  .lane-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; margin-top: 3rem; }
+  .lane { padding: 2rem; }
+  .lane header { display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.1rem; }
+  .lane-key {
+    font-size: 0.78rem; font-weight: 600; color: #fff; padding: 0.3em 0.7em; border-radius: var(--r-sm); letter-spacing: 0.05em;
+  }
+  .lane-a .lane-key { background: var(--indigo); }
+  .lane-b .lane-key { background: var(--teal); }
+  .lane p { font-size: var(--fs-sm); color: var(--ink-2); }
+  .lane p strong { color: var(--ink); }
+  .formula {
+    background: var(--ink); color: #eaf1ff; font-size: 0.86rem; padding: 0.9em 1.1em;
+    border-radius: var(--r-sm); margin: 1rem 0 1.2rem; overflow-x: auto; white-space: nowrap;
+  }
+  .lane-list { display: grid; gap: 0.6rem; }
+  .lane-list li { position: relative; padding-left: 1.5rem; font-size: var(--fs-sm); color: var(--ink-2); }
+  .lane-list li::before {
+    content: ""; position: absolute; left: 0; top: 0.62em; width: 7px; height: 7px; border-radius: 50%;
+  }
+  .lane-a .lane-list li::before { background: var(--indigo); }
+  .lane-b .lane-list li::before { background: var(--teal); }
+
+  /* ---------- 闭环 ---------- */
+  .steps {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.1rem; margin-top: 3rem; counter-reset: step;
+  }
+  .step {
+    background: #fff; border: 1px solid var(--line); border-radius: var(--r); padding: 1.4rem;
+    position: relative; transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+  }
+  .step:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+  .step-no { font-size: 1.5rem; color: var(--indigo); font-weight: 600; }
+  .step-t { font-size: 1.05rem; margin: 0.5rem 0 0.4rem; }
+  .step-d { font-size: var(--fs-xs); color: var(--ink-2); line-height: 1.6; }
+
+  /* ---------- 行业 ---------- */
+  .industries { display: grid; grid-template-columns: 0.8fr 1.2fr; gap: 2rem; align-items: center; }
+  .ind-head h3 { margin-top: 0.7rem; }
+  .ind-chips { display: flex; flex-wrap: wrap; gap: 0.65rem; }
+  .ind-chip {
+    font-size: var(--fs-sm); color: var(--ink); background: #fff; border: 1px solid var(--line);
+    border-radius: var(--r-pill); padding: 0.55em 1.1em; transition: all 0.2s var(--ease);
+  }
+  .ind-chip:hover { border-color: var(--indigo); color: var(--indigo); transform: translateY(-2px); }
+
+  /* ---------- 响应式 ---------- */
+  @media (max-width: 960px) {
+    .hero-grid { grid-template-columns: 1fr; }
+    .receipt { max-width: 460px; }
+    .risk-grid, .cap-grid { grid-template-columns: 1fr 1fr; }
+    .steps { grid-template-columns: repeat(2, 1fr); }
+    .flow-row { grid-template-columns: 1fr; gap: 0.8rem; }
+  }
+  @media (max-width: 640px) {
+    .stat-strip { grid-template-columns: 1fr 1fr; gap: 1.6rem 1rem; }
+    .risk-grid, .cap-grid, .lane-grid, .steps { grid-template-columns: 1fr; }
+    .industries { grid-template-columns: 1fr; }
+  }
+</style>

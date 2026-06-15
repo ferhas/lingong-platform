@@ -1,0 +1,220 @@
+---
+import Base from '../layouts/Base.astro';
+import CtaBand from '../components/CtaBand.astro';
+
+const company = [
+  '用工成本与税负可测、可控、可列支',
+  '票据合规：验收即取得 6% 数电专票',
+  '批量发单 / 子账号 / 月结单，规模化管理',
+  '集中度、防员转零、反洗钱实时风控预警',
+];
+const worker = [
+  '实名即可接单，报酬 T+1 到账',
+  '税费透明：自然人累计预扣，断月重置',
+  '接单即按单投保，线下作业高保额',
+  '完单积累信用分，优先获得派单',
+];
+
+const scenarios = [
+  {
+    no: '01',
+    name: '即时配送 · 众包物流',
+    pain: '高频小额、人员流动大，逐单签约与开票成本极高。',
+    plan: '批量发单逐行校验、自然人累计预扣降低全年预缴、按单高保额投保。',
+    tags: ['批量发单', '高保额', '累计预扣'],
+  },
+  {
+    no: '02',
+    name: '安装维修 · 建筑施工',
+    pain: '线下重作业工伤风险高，承揽关系与责任边界须清晰。',
+    plan: '分包工单正文留痕、配送/安装/施工自动高保额、验收四流硬校验。',
+    tags: ['分包工单', '工伤保障', '四流留痕'],
+  },
+  {
+    no: '03',
+    name: '设计 · 咨询 · 翻译',
+    pain: '持续接单的连续性劳务，按次预扣税负偏高、凭证不规范。',
+    plan: '连续性劳务累计预扣、年度凭证标注计税方式、专票合规列支。',
+    tags: ['连续性劳务', '年度凭证', '16 号公告'],
+  },
+  {
+    no: '04',
+    name: '直播营销 · MCN',
+    pain: '主播分成笔数多、金额波动大，税务与资金合规敏感。',
+    plan: '自然人 / 个体户双线路由、反洗钱规则监控、全额合规开票。',
+    tags: ['双线计税', '反洗钱', '合规开票'],
+  },
+  {
+    no: '05',
+    name: '家政 · 生活服务',
+    pain: '个人对个人难以取得发票，平台责任与保障难落地。',
+    plan: '平台承揽统一开票、实名核验、服务过程争议平台仲裁。',
+    tags: ['统一开票', '实名核验', '争议仲裁'],
+  },
+  {
+    no: '06',
+    name: '技术开发 · 众包',
+    pain: '项目制、里程碑结算，交付物与验收凭据需可追溯。',
+    plan: '结构化交付物快照、里程碑验收、四流凭证一键导出。',
+    tags: ['结构化交付', '里程碑', '证据包'],
+  },
+];
+---
+
+<Base
+  title="解决方案"
+  description="灵工云面向即时配送、安装施工、设计咨询、直播营销、家政、技术众包等场景，提供承揽分包合规、双线计税、按单保险与开放 API 直连的一体化灵活用工解决方案。"
+>
+  <!-- Hero -->
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow" data-reveal>SOLUTIONS · 解决方案</span>
+      <h1 data-reveal>一套合规底座，<br />适配每一种灵活用工场景</h1>
+      <p class="lead" data-reveal>不论线上众包还是线下作业，灵工云都以「承揽后分包」统一承接，按主体与场景自动适配计税、保险与票据口径。</p>
+    </div>
+  </section>
+
+  <!-- 双角色 -->
+  <section class="section">
+    <div class="wrap role-grid">
+      <article class="role-card card" data-reveal>
+        <span class="role-key mono">FOR ENTERPRISE</span>
+        <h2>对企业</h2>
+        <p class="muted">把不可控的用工风险，变成可入账、可稽查的合规成本。</p>
+        <ul class="checklist">
+          {company.map((c) => <li>{c}</li>)}
+        </ul>
+        <a href="/pricing" class="link-arrow">查看报价方案
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </article>
+      <article class="role-card card" data-reveal>
+        <span class="role-key mono">FOR WORKER</span>
+        <h2>对零工</h2>
+        <p class="muted">接单、到账、纳税、保障，全程透明，少操一份心。</p>
+        <ul class="checklist checklist-teal">
+          {worker.map((w) => <li>{w}</li>)}
+        </ul>
+        <a href="https://lingong-worker.eexb.com" rel="noopener" class="link-arrow">体验零工端
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        </a>
+      </article>
+    </div>
+  </section>
+
+  <!-- 行业场景 -->
+  <section class="section section-tint">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow">SCENARIOS · 行业场景</span>
+        <h2>六类典型场景，各有各的合规口径</h2>
+        <p class="lead">点开任一场景，都是「痛点 → 灵工云方案」的对应拆解。</p>
+      </div>
+      <div class="scn-grid">
+        {scenarios.map((s) => (
+          <article class="card card-hover scn" data-reveal>
+            <div class="scn-top">
+              <span class="scn-no mono">{s.no}</span>
+              <h3>{s.name}</h3>
+            </div>
+            <p class="scn-pain"><span class="scn-label">痛点</span>{s.pain}</p>
+            <p class="scn-plan"><span class="scn-label scn-label-ok">方案</span>{s.plan}</p>
+            <div class="scn-tags">
+              {s.tags.map((t) => <span class="scn-tag mono">{t}</span>)}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 保险分级 + 开放API -->
+  <section class="section">
+    <div class="wrap feat-grid">
+      <article class="feat card" data-reveal>
+        <span class="eyebrow">INSURANCE · 保险分级</span>
+        <h3>线下重作业，自动切高保额</h3>
+        <p class="muted">类目种子内置配送 / 安装 / 施工等线下场景，录用即按单投保并自动适配高保额方案，与算税、结算口径一致；零工小程序可一键报案、查看保单与理赔进度。</p>
+        <div class="ins-levels">
+          <div class="ins-level"><span class="mono">线上轻作业</span><div class="ins-bar"><i style="width:42%"></i></div><span class="ins-val mono">基础保额</span></div>
+          <div class="ins-level"><span class="mono">线下重作业</span><div class="ins-bar"><i style="width:100%" class="hi"></i></div><span class="ins-val mono">高保额</span></div>
+        </div>
+      </article>
+      <article class="feat card" data-reveal>
+        <span class="eyebrow">OPEN API · 大客户直连</span>
+        <h3>系统对系统，发单即合规</h3>
+        <p class="muted">开放 API（HMAC 签名 + 时间窗 + 限流）让大客户业务系统直连发单、查单、回单，全程走标准承揽分包合规链路；凭据在运营端管理，密钥仅展示一次。</p>
+        <pre class="api-snippet mono"><code>POST /api/open/v1/tasks
+X-Signature: hmac-sha256(...)
+X-Timestamp: 1750000000
+
+&#123; "title": "门店设备巡检",
+  "subPrice": 80000,
+  "trade": "安装维修" &#125;</code></pre>
+      </article>
+    </div>
+  </section>
+
+  <CtaBand title="先选一个场景，跑通一笔真实结算" text="告诉我们你的用工场景，我们给出对应的合规、计税与保险方案。" />
+</Base>
+
+<style>
+  .page-hero { padding-block: clamp(3rem, 7vw, 5.5rem) clamp(1rem, 3vw, 2rem); position: relative; }
+  .page-hero::after {
+    content: ""; position: absolute; top: -20%; right: -5%; width: 50vw; height: 50vw; max-width: 620px; max-height: 620px;
+    background: radial-gradient(circle, rgba(15, 118, 110, 0.12), transparent 62%); z-index: -1; pointer-events: none;
+  }
+  .page-hero h1 { font-size: var(--fs-h1); margin: 1rem 0 1.2rem; }
+  .page-hero .lead { max-width: 52ch; }
+
+  .role-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+  .role-card { padding: 2.2rem; }
+  .role-key { font-size: 0.72rem; letter-spacing: 0.12em; color: var(--indigo); }
+  .role-card h2 { margin: 0.6rem 0 0.5rem; }
+  .checklist { display: grid; gap: 0.7rem; margin: 1.4rem 0 1.6rem; }
+  .checklist li { position: relative; padding-left: 1.9rem; color: var(--ink-2); font-size: var(--fs-sm); }
+  .checklist li::before {
+    content: ""; position: absolute; left: 0; top: 0.15em; width: 1.25em; height: 1.25em; border-radius: 50%;
+    background: color-mix(in srgb, var(--indigo) 14%, transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%234f46e5' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l4 4 10-10'/%3E%3C/svg%3E") center / 0.78em no-repeat;
+  }
+  .checklist-teal li::before {
+    background: color-mix(in srgb, var(--teal) 14%, transparent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%230f766e' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12l4 4 10-10'/%3E%3C/svg%3E") center / 0.78em no-repeat;
+  }
+
+  .scn-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.4rem; margin-top: 3rem; }
+  .scn { padding: 1.8rem; display: flex; flex-direction: column; }
+  .scn-top { display: flex; align-items: baseline; gap: 0.7rem; margin-bottom: 1rem; }
+  .scn-no { font-size: 1.05rem; color: var(--gold); font-weight: 600; }
+  .scn h3 { font-size: 1.15rem; }
+  .scn-pain, .scn-plan { font-size: var(--fs-sm); margin-bottom: 0.8rem; }
+  .scn-pain { color: var(--ink-2); }
+  .scn-plan { color: var(--ink); }
+  .scn-label {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.66rem; letter-spacing: 0.08em;
+    color: var(--ink-3); border: 1px solid var(--line-2); border-radius: 4px; padding: 0.1em 0.4em; margin-right: 0.5em;
+    vertical-align: middle;
+  }
+  .scn-label-ok { color: var(--teal); border-color: color-mix(in srgb, var(--teal) 40%, transparent); }
+  .scn-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: auto; padding-top: 0.6rem; }
+  .scn-tag { font-size: 0.68rem; color: var(--ink-2); background: var(--paper-2); border-radius: var(--r-pill); padding: 0.3em 0.7em; }
+
+  .feat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+  .feat { padding: 2rem; }
+  .feat h3 { margin: 0.7rem 0 0.7rem; }
+  .ins-levels { margin-top: 1.4rem; display: grid; gap: 0.9rem; }
+  .ins-level { display: grid; grid-template-columns: 6rem 1fr 4.5rem; align-items: center; gap: 0.8rem; font-size: 0.76rem; color: var(--ink-2); }
+  .ins-bar { height: 10px; background: var(--paper-2); border-radius: 999px; overflow: hidden; }
+  .ins-bar i { display: block; height: 100%; background: var(--indigo); border-radius: 999px; }
+  .ins-bar i.hi { background: linear-gradient(90deg, var(--teal), var(--teal-bright)); }
+  .ins-val { text-align: right; color: var(--ink); }
+  .api-snippet {
+    margin-top: 1.3rem; background: var(--ink); color: #d7e0ff; border-radius: var(--r-sm);
+    padding: 1.1rem 1.2rem; font-size: 0.8rem; line-height: 1.7; overflow-x: auto;
+  }
+  .api-snippet code { white-space: pre; }
+
+  @media (max-width: 960px) { .scn-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 720px) {
+    .role-grid, .feat-grid, .scn-grid { grid-template-columns: 1fr; }
+  }
+</style>

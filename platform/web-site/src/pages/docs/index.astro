@@ -1,0 +1,67 @@
+---
+import Base from '../../layouts/Base.astro';
+import { getCollection } from 'astro:content';
+
+const docs = await getCollection('docs');
+const catOrder = ['入门', '企业指南', '零工指南', '合规与税务', '开发者', '其他'];
+const sorted = [...docs].sort((a, b) => (a.data.order ?? 99) - (b.data.order ?? 99));
+const grouped = catOrder
+  .map((cat) => ({ cat, items: sorted.filter((d) => d.data.category === cat) }))
+  .filter((g) => g.items.length);
+---
+
+<Base
+  title="帮助文档"
+  description="灵工云帮助文档：平台介绍、企业入驻、零工接单、资金存管、税务政策、合规四流、争议处理与开放 API。"
+>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow" data-reveal>DOCS · 帮助文档</span>
+      <h1 data-reveal>把平台讲清楚，<br />从一篇文档开始</h1>
+      <p class="lead" data-reveal>无论你是要入驻的企业、接单的零工，还是要对接的开发者，都能在这里找到需要的说明。</p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap docs-cats">
+      {grouped.map((g) => (
+        <div class="docs-cat" data-reveal>
+          <h2 class="cat-title"><span class="mono cat-tag">{g.cat}</span></h2>
+          <div class="doc-cards">
+            {g.items.map((d) => (
+              <a href={`/docs/${d.id}`} class="card card-hover doc-card">
+                <h3>{d.data.title}</h3>
+                <p>{d.data.description}</p>
+                <span class="doc-more link-arrow">阅读
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+</Base>
+
+<style>
+  .page-hero { padding-block: clamp(3rem, 7vw, 5.5rem) clamp(0.5rem, 3vw, 1.5rem); position: relative; }
+  .page-hero h1 { font-size: var(--fs-h1); margin: 1rem 0 1.2rem; }
+  .page-hero .lead { max-width: 48ch; }
+
+  .docs-cats { display: grid; gap: 3rem; }
+  .cat-title { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.4rem; }
+  .cat-title::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+  .cat-tag {
+    font-size: 0.78rem; letter-spacing: 0.1em; color: var(--teal); font-weight: 500;
+    background: color-mix(in srgb, var(--teal) 10%, transparent); padding: 0.3em 0.8em; border-radius: var(--r-pill);
+  }
+  .doc-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+  .doc-card { padding: 1.6rem; display: flex; flex-direction: column; gap: 0.6rem; }
+  .doc-card h3 { font-size: 1.12rem; }
+  .doc-card p { font-size: var(--fs-sm); color: var(--ink-2); flex: 1; }
+  .doc-more { margin-top: 0.4rem; font-size: var(--fs-sm); }
+
+  @media (max-width: 900px) { .doc-cards { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 560px) { .doc-cards { grid-template-columns: 1fr; } }
+</style>

@@ -1,0 +1,49 @@
+---
+interface Props {
+  tone?: 'dark' | 'light'; // dark = 浅背景用深字；light = 深背景用浅字
+  size?: number;
+}
+const { tone = 'dark', size = 32 } = Astro.props;
+const wordColor = tone === 'light' ? '#fbfaf8' : '#1a1b2e';
+const uid = 'lg' + Math.random().toString(36).slice(2, 8);
+---
+
+<span class="logo" style={`--logo-size:${size}px`}>
+  <svg class="logo-mark" width={size} height={size} viewBox="0 0 34 34" fill="none" aria-hidden="true">
+    <defs>
+      <linearGradient id={uid} x1="2" y1="2" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#4f46e5" />
+        <stop offset="0.55" stop-color="#3f3fb8" />
+        <stop offset="1" stop-color="#0f766e" />
+      </linearGradient>
+    </defs>
+    <rect x="0.5" y="0.5" width="33" height="33" rx="9.5" fill={`url(#${uid})`} />
+    <!-- 几何「工」字 = 灵工 -->
+    <rect x="9" y="9.4" width="16" height="3.3" rx="1.5" fill="#fff" />
+    <rect x="9" y="21.3" width="16" height="3.3" rx="1.5" fill="#fff" />
+    <rect x="15.35" y="9.4" width="3.3" height="15.2" rx="1.4" fill="#fff" />
+    <!-- 顶部节点：连接 / 人 -->
+    <circle cx="17" cy="7.1" r="1.7" fill="#fff" opacity="0.92" />
+  </svg>
+  <span class="logo-word" style={`color:${wordColor}`}>灵工云</span>
+</span>
+
+<style>
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55em;
+  }
+  .logo-mark {
+    flex: none;
+    border-radius: 9.5px;
+    box-shadow: 0 4px 12px -4px rgba(79, 70, 229, 0.5);
+  }
+  .logo-word {
+    font-family: var(--font-serif-cn);
+    font-weight: 700;
+    font-size: calc(var(--logo-size, 32px) * 0.62);
+    letter-spacing: 0.04em;
+    line-height: 1;
+  }
+</style>

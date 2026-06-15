@@ -1,0 +1,203 @@
+---
+import Base from '../layouts/Base.astro';
+
+const principles = [
+  { k: '合规优先', en: 'COMPLIANCE FIRST', d: '不做撮合中介，做合同链上的承揽方，把四流硬校验写进代码——发生时就合规，而非事后补救。' },
+  { k: '资金透明', en: 'FUNDS IN ESCROW', d: '企业与零工的钱在银行存管账户，平台余额只是子账户镜像，出金凭协议号、每日逐笔对账。' },
+  { k: '政策跟随', en: 'POLICY ALIGNED', d: '算税口径跟随最新政策：自然人累计预扣（16 号公告）、分类报送（15 号公告），参数入库可调。' },
+  { k: '技术驱动', en: 'BUILT TO LAST', d: '两阶段结算、幂等分账、十余个定时任务与数百项回归断言，保障每一笔资金与凭证的一致性。' },
+];
+
+const abilities = [
+  '公安实名核验', '银行资金存管', '数电发票（数电票）', '电子签约',
+  '税务申报对接', '商业保险投保', '短信 / 订阅消息', '区块链存证',
+];
+
+const facts = [
+  { f: '4', u: '端', t: '企业 / 零工 / 运营 / API 独立部署' },
+  { f: '4', u: '流', t: '合同·业务·资金·发票硬校验' },
+  { f: '2', u: '线', t: '自然人累计预扣 / 个体户经营所得' },
+  { f: 'T+1', u: '', t: '逐笔对账与出金' },
+];
+const scenes = ['即时配送', '安装施工', '设计咨询', '直播营销', '家政服务', '技术开发', '其他'];
+---
+
+<Base
+  title="关于我们"
+  description="灵工云：以承揽后分包模式，为企业构建经得起稽查的灵活用工合规底座。了解我们的使命、原则与对接能力，预约一次产品演示。"
+>
+  <section class="page-hero">
+    <div class="wrap">
+      <span class="eyebrow" data-reveal>ABOUT · 关于我们</span>
+      <h1 data-reveal>把灵活用工，<br />做成经得起稽查的生意</h1>
+      <p class="lead" data-reveal>灵工云相信，灵活用工的价值不该被合规风险抵消。我们用「承揽后分包」这一真实的合同关系，加上四流证据链、银行存管与依法代扣代缴，让企业敢用、零工安心。</p>
+    </div>
+  </section>
+
+  <!-- 数据事实 -->
+  <section class="section-sm">
+    <div class="wrap fact-strip" data-reveal>
+      {facts.map((x) => (
+        <div class="fact">
+          <div class="fact-fig"><span class="figure">{x.f}</span><span class="fact-u">{x.u}</span></div>
+          <p>{x.t}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- 原则 -->
+  <section class="section">
+    <div class="wrap">
+      <div class="sec-head" data-reveal>
+        <span class="eyebrow">PRINCIPLES · 我们坚持什么</span>
+        <h2>四条原则，写进产品的每个决定</h2>
+      </div>
+      <div class="prin-grid">
+        {principles.map((p, i) => (
+          <article class="prin" data-reveal>
+            <span class="prin-no mono">0{i + 1}</span>
+            <span class="prin-en mono">{p.en}</span>
+            <h3>{p.k}</h3>
+            <p>{p.d}</p>
+          </article>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- 对接能力 -->
+  <section class="section section-tint">
+    <div class="wrap">
+      <div class="sec-head center" data-reveal>
+        <span class="eyebrow center-line">INTEGRATIONS · 对接能力</span>
+        <h2>合规链路上的每一环，都有持牌机构与服务商支撑</h2>
+        <p class="lead">平台以统一适配层对接外部能力，接口签名稳定、生产可平滑替换为真实服务商。</p>
+      </div>
+      <div class="abil-grid" data-reveal>
+        {abilities.map((a) => <span class="abil">{a}</span>)}
+      </div>
+    </div>
+  </section>
+
+  <!-- 联系 / 试用 -->
+  <section class="section" id="contact">
+    <div class="wrap contact-grid">
+      <div class="contact-copy" data-reveal>
+        <span class="eyebrow">CONTACT · 申请试用</span>
+        <h2>留个联系方式，<br />我们带着方案找你</h2>
+        <p class="muted">告诉我们你的用工场景与规模，我们会给出对应的合规、计税与报价方案，并安排一次产品演示。</p>
+        <ul class="contact-list">
+          <li><span class="cl-k mono">邮箱</span><a href="mailto:lingong@eexb.com">lingong@eexb.com</a></li>
+          <li><span class="cl-k mono">企业端</span><a href="https://lingong-company.eexb.com" rel="noopener">lingong-company.eexb.com</a></li>
+          <li><span class="cl-k mono">零工端</span><a href="https://lingong-worker.eexb.com" rel="noopener">lingong-worker.eexb.com</a></li>
+        </ul>
+      </div>
+
+      <form class="contact-form card" id="lead" data-reveal>
+        <div class="field">
+          <label for="f-company">公司名称</label>
+          <input id="f-company" name="company" type="text" placeholder="请输入公司全称" required />
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-name">联系人</label>
+            <input id="f-name" name="name" type="text" placeholder="您的称呼" required />
+          </div>
+          <div class="field">
+            <label for="f-phone">联系电话</label>
+            <input id="f-phone" name="phone" type="tel" placeholder="手机号" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="f-scene">用工场景</label>
+          <select id="f-scene" name="scene">
+            {scenes.map((s) => <option value={s}>{s}</option>)}
+          </select>
+        </div>
+        <div class="field">
+          <label for="f-msg">需求说明</label>
+          <textarea id="f-msg" name="message" rows="3" placeholder="大致的用工规模、月度金额或想解决的问题"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary btn-lg">发送试用申请</button>
+        <p class="form-hint">点击后将打开你的邮件客户端，向 lingong@eexb.com 发送需求；也可直接致电或注册企业端。</p>
+      </form>
+    </div>
+  </section>
+</Base>
+
+<script>
+  const f = document.getElementById('lead');
+  f?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const d = new FormData(f);
+    const subject = `【灵工云·试用申请】${d.get('company') || ''}`;
+    const body =
+      `公司：${d.get('company') || ''}\n` +
+      `联系人：${d.get('name') || ''}\n` +
+      `电话：${d.get('phone') || ''}\n` +
+      `场景：${d.get('scene') || ''}\n` +
+      `需求：${d.get('message') || ''}`;
+    window.location.href = `mailto:lingong@eexb.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  });
+</script>
+
+<style>
+  .page-hero { padding-block: clamp(3rem, 7vw, 5.5rem) clamp(1rem, 3vw, 2rem); position: relative; }
+  .page-hero::after {
+    content: ""; position: absolute; top: -20%; left: -5%; width: 50vw; height: 50vw; max-width: 600px; max-height: 600px;
+    background: radial-gradient(circle, rgba(79, 70, 229, 0.1), transparent 62%); z-index: -1; pointer-events: none;
+  }
+  .page-hero h1 { font-size: var(--fs-h1); margin: 1rem 0 1.2rem; }
+  .page-hero .lead { max-width: 56ch; }
+
+  .fact-strip { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; padding: 1.8rem 0; border-block: 1px solid var(--line); }
+  .fact-fig { display: flex; align-items: baseline; gap: 0.15em; color: var(--indigo); }
+  .fact-fig .figure { font-size: clamp(2rem, 1.5rem + 1.5vw, 2.8rem); }
+  .fact-u { font-family: var(--font-display); color: var(--ink-2); }
+  .fact p { font-size: var(--fs-sm); color: var(--ink-2); margin-top: 0.3rem; }
+
+  .prin-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.4rem; margin-top: 2.6rem; }
+  .prin { background: #fff; border: 1px solid var(--line); border-radius: var(--r-lg); padding: 2rem; position: relative; overflow: hidden; }
+  .prin::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: linear-gradient(var(--indigo), var(--teal)); }
+  .prin-no { font-size: 0.8rem; color: var(--gold); }
+  .prin-en { display: block; font-size: 0.68rem; letter-spacing: 0.14em; color: var(--ink-3); margin: 0.4rem 0; }
+  .prin h3 { margin-bottom: 0.5rem; }
+  .prin p { font-size: var(--fs-sm); color: var(--ink-2); }
+
+  .abil-grid { display: flex; flex-wrap: wrap; gap: 0.7rem; justify-content: center; margin-top: 2.4rem; }
+  .abil {
+    font-size: var(--fs-sm); color: var(--ink); background: #fff; border: 1px solid var(--line);
+    border-radius: var(--r-pill); padding: 0.6em 1.2em; box-shadow: var(--shadow-sm); transition: all 0.2s var(--ease);
+  }
+  .abil:hover { transform: translateY(-2px); border-color: var(--teal); color: var(--teal); }
+
+  .contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2rem, 4vw, 3.5rem); align-items: start; scroll-margin-top: 90px; }
+  #contact { scroll-margin-top: 80px; }
+  .contact-copy h2 { margin: 0.8rem 0 0.8rem; }
+  .contact-list { margin-top: 1.8rem; display: grid; gap: 0.8rem; }
+  .contact-list li { display: flex; align-items: center; gap: 1rem; font-size: var(--fs-sm); }
+  .cl-k { font-size: 0.7rem; color: var(--ink-3); width: 3.5rem; flex: none; letter-spacing: 0.08em; }
+  .contact-list a { color: var(--indigo); }
+
+  .contact-form { padding: 2rem; display: grid; gap: 1.1rem; }
+  .field { display: grid; gap: 0.4rem; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .field label { font-size: var(--fs-sm); color: var(--ink-2); font-weight: 500; }
+  .field input, .field select, .field textarea {
+    width: 100%; background: var(--paper); border: 1px solid var(--line-2); border-radius: var(--r-sm);
+    padding: 0.7em 0.9em; font-size: var(--fs-sm); color: var(--ink); transition: border-color 0.2s var(--ease), box-shadow 0.2s var(--ease);
+  }
+  .field input:focus, .field select:focus, .field textarea:focus {
+    outline: none; border-color: var(--indigo); box-shadow: 0 0 0 3px color-mix(in srgb, var(--indigo) 14%, transparent);
+  }
+  .field textarea { resize: vertical; font-family: inherit; }
+  .contact-form .btn { width: 100%; margin-top: 0.3rem; }
+  .form-hint { font-size: var(--fs-xs); color: var(--ink-3); line-height: 1.6; }
+
+  @media (max-width: 820px) {
+    .fact-strip { grid-template-columns: 1fr 1fr; gap: 1.4rem; }
+    .prin-grid { grid-template-columns: 1fr; }
+    .contact-grid { grid-template-columns: 1fr; }
+  }
+</style>

@@ -1,0 +1,244 @@
+/* ============================================================
+   灵工云官网 · 全局设计系统
+   方向：政策权威 × 金融科技 × 编辑纸感
+   ============================================================ */
+
+:root {
+  /* —— 纸感背景与墨色 —— */
+  --paper: #fbfaf8;        /* 暖白纸 */
+  --paper-2: #f4f1ea;      /* 次级纸 / 区块底 */
+  --paper-3: #efebe1;      /* 更深的纸 */
+  --ink: #1a1b2e;          /* 主文字 · 深靛黑 */
+  --ink-2: #4a4b61;        /* 次文字 */
+  --ink-3: #7c7d90;        /* 弱文字 */
+  --line: #e7e3d8;         /* 分隔线 · 暖灰 */
+  --line-2: #d8d2c4;       /* 重分隔线 */
+
+  /* —— 品牌色 —— */
+  --indigo: #4f46e5;       /* 主色 · 靛蓝 */
+  --indigo-600: #4338ca;
+  --indigo-deep: #1e1b4b;  /* 深靛 · 权威 */
+  --indigo-ink: #161430;   /* Hero 深底 */
+  --teal: #0f766e;         /* 强调 · 青绿 */
+  --teal-bright: #14b8a6;
+  --gold: #b3863a;         /* 印章金 · 凭证点缀 */
+
+  /* —— 语义色 —— */
+  --ok: #0f766e;
+  --warn: #b3863a;
+  --danger: #c0392b;
+
+  /* —— 字体 —— */
+  --font-serif-cn: 'Noto Serif SC', 'Songti SC', 'STSong', 'Source Han Serif SC', 'SimSun', serif;
+  --font-display: 'Fraunces', 'Noto Serif SC', Georgia, 'Songti SC', serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei',
+    'Noto Sans SC', 'Source Han Sans SC', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Cascadia Code', Consolas, ui-monospace, monospace;
+
+  /* —— 字号（流式）—— */
+  --fs-display: clamp(2.6rem, 1.4rem + 5.2vw, 5rem);
+  --fs-h1: clamp(2rem, 1.2rem + 3vw, 3.2rem);
+  --fs-h2: clamp(1.65rem, 1.15rem + 1.9vw, 2.5rem);
+  --fs-h3: clamp(1.25rem, 1.05rem + 0.9vw, 1.6rem);
+  --fs-lead: clamp(1.06rem, 1rem + 0.5vw, 1.3rem);
+  --fs-body: 1.0625rem;
+  --fs-sm: 0.9rem;
+  --fs-xs: 0.785rem;
+
+  /* —— 间距 / 几何 —— */
+  --maxw: 1200px;
+  --maxw-narrow: 760px;
+  --pad: clamp(1.25rem, 5vw, 4rem);
+  --r-xs: 6px;
+  --r-sm: 10px;
+  --r: 16px;
+  --r-lg: 24px;
+  --r-pill: 999px;
+
+  /* —— 阴影 —— */
+  --shadow-sm: 0 1px 2px rgba(26, 27, 46, 0.05);
+  --shadow: 0 2px 10px -3px rgba(26, 27, 46, 0.08), 0 18px 44px -24px rgba(26, 27, 46, 0.22);
+  --shadow-lg: 0 36px 80px -34px rgba(30, 27, 75, 0.4);
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* ——— Reset ——— */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+* { margin: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}
+body {
+  font-family: var(--font-sans);
+  font-size: var(--fs-body);
+  line-height: 1.75;
+  color: var(--ink);
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(1100px 540px at 78% -8%, rgba(79, 70, 229, 0.06), transparent 60%),
+    radial-gradient(900px 480px at 0% 4%, rgba(15, 118, 110, 0.05), transparent 55%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: hidden;
+}
+img, svg, video { display: block; max-width: 100%; }
+a { color: inherit; text-decoration: none; }
+button, input, select, textarea { font: inherit; color: inherit; }
+ul, ol { list-style: none; padding: 0; }
+
+::selection { background: rgba(79, 70, 229, 0.18); color: var(--ink); }
+
+/* 滚动条 */
+* { scrollbar-width: thin; scrollbar-color: var(--line-2) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: var(--line-2); border-radius: 999px; border: 3px solid var(--paper); }
+
+/* ——— 排版 ——— */
+h1, h2, h3, h4 {
+  font-family: var(--font-serif-cn);
+  font-weight: 600;
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+h1 { font-size: var(--fs-h1); }
+h2 { font-size: var(--fs-h2); }
+h3 { font-size: var(--fs-h3); }
+p { text-wrap: pretty; }
+strong { font-weight: 600; }
+
+/* ——— 布局工具 ——— */
+.wrap { width: 100%; max-width: var(--maxw); margin-inline: auto; padding-inline: var(--pad); }
+.narrow { max-width: var(--maxw-narrow); }
+.section { padding-block: clamp(4rem, 8vw, 7.5rem); position: relative; }
+.section-sm { padding-block: clamp(2.5rem, 5vw, 4rem); }
+.center { text-align: center; }
+.muted { color: var(--ink-2); }
+.lead { font-size: var(--fs-lead); line-height: 1.7; color: var(--ink-2); }
+
+/* 小标签 / eyebrow（等宽，系统硬核感） */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55em;
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.eyebrow::before {
+  content: "";
+  width: 1.6em; height: 1px;
+  background: currentColor;
+  opacity: 0.6;
+}
+.eyebrow.center-line { justify-content: center; }
+
+/* 章节标题块 */
+.sec-head { max-width: 720px; }
+.sec-head.center { margin-inline: auto; }
+.sec-head h2 { margin-top: 0.7rem; }
+.sec-head p { margin-top: 1rem; }
+
+/* ——— 按钮 ——— */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5em;
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  padding: 0.85em 1.6em;
+  border-radius: var(--r-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: transform 0.25s var(--ease), box-shadow 0.25s var(--ease),
+    background 0.2s var(--ease), border-color 0.2s var(--ease), color 0.2s var(--ease);
+  white-space: nowrap;
+}
+.btn svg { width: 1.1em; height: 1.1em; }
+.btn-sm { padding: 0.6em 1.15em; }
+.btn-lg { padding: 1em 2em; font-size: var(--fs-body); }
+.btn-primary {
+  background: linear-gradient(135deg, var(--indigo) 0%, var(--indigo-600) 100%);
+  color: #fff;
+  box-shadow: 0 10px 24px -10px rgba(79, 70, 229, 0.6);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 34px -12px rgba(79, 70, 229, 0.7); }
+.btn-ghost { background: transparent; border-color: var(--line-2); color: var(--ink); }
+.btn-ghost:hover { border-color: var(--ink); background: rgba(26, 27, 46, 0.03); transform: translateY(-2px); }
+.btn-on-dark { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.24); color: #fff; }
+.btn-on-dark:hover { background: rgba(255, 255, 255, 0.18); transform: translateY(-2px); }
+.btn-light { background: var(--paper); color: var(--ink); }
+.btn-light:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+
+/* 文字链接箭头 */
+.link-arrow {
+  display: inline-flex; align-items: center; gap: 0.4em;
+  font-weight: 600; color: var(--indigo);
+}
+.link-arrow svg { transition: transform 0.25s var(--ease); }
+.link-arrow:hover svg { transform: translateX(4px); }
+
+/* ——— 卡片 ——— */
+.card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.card-hover:hover { transform: translateY(-4px); box-shadow: var(--shadow); border-color: var(--line-2); }
+
+/* 数字 / 金额 / 编号统一用等宽 */
+.mono { font-family: var(--font-mono); font-feature-settings: "tnum" 1; }
+.figure { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; line-height: 1; }
+
+/* ——— 滚动渐显 ——— */
+/* 默认可见（无 JS / SEO / 降级）；仅在 JS 启用后才隐藏并由滚动触发渐显 */
+[data-reveal] { transition: opacity 0.7s var(--ease), transform 0.7s var(--ease); }
+.js [data-reveal] { opacity: 0; transform: translateY(20px); will-change: opacity, transform; }
+.js [data-reveal].in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .js [data-reveal] { opacity: 1 !important; transform: none !important; }
+}
+
+/* 跳转链接（无障碍） */
+.skip-link {
+  position: fixed; top: -100px; left: 1rem; z-index: 1000;
+  background: var(--ink); color: #fff;
+  padding: 0.7em 1.2em; border-radius: var(--r-sm);
+  transition: top 0.2s var(--ease);
+}
+.skip-link:focus { top: 1rem; }
+
+/* 焦点可见性 */
+:focus-visible { outline: 2.5px solid var(--indigo); outline-offset: 3px; border-radius: 2px; }
+
+/* 印记 / 盖章装饰 */
+.stamp {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  letter-spacing: 0.12em;
+  color: var(--gold);
+  border: 1.5px solid color-mix(in srgb, var(--gold) 55%, transparent);
+  border-radius: var(--r-sm);
+  padding: 0.35em 0.7em;
+  display: inline-flex; align-items: center; gap: 0.4em;
+  transform: rotate(-2deg);
+  text-transform: uppercase;
+}
+
+/* 网格线背景（装饰） */
+.gridlines {
+  background-image:
+    linear-gradient(to right, var(--line) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line) 1px, transparent 1px);
+  background-size: 56px 56px;
+}
