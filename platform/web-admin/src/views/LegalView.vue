@@ -229,6 +229,18 @@ async function save(doc) {
       return
     }
   }
+  // 待填项防呆：模板含「【待填写：…】」（平台运营主体工商信息）时，发布前显式确认，避免占位原样上线
+  if (doc.draft.includes('【待填写')) {
+    try {
+      await ElMessageBox.confirm(
+        '正文中仍有「【待填写：…】」未补全（通常是平台运营主体的注册全称、统一社会信用代码、注册地址等）。这些内容平台无法代填，发布后会原样出现在对外协议中。确认仍要发布吗？',
+        '存在未填写的待填项',
+        { type: 'warning', confirmButtonText: '仍要发布', cancelButtonText: '返回填写' }
+      )
+    } catch {
+      return
+    }
+  }
   // 变更摘要：字数变化 + 大幅缩短提醒（对法律文本尤为重要）
   const oldLen = doc.content.length
   const newLen = doc.draft.length
