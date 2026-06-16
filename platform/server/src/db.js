@@ -1069,6 +1069,34 @@ const DELIVERY_SPECS = {
     家政服务: {
       fields: [{ key: 'hours', label: '服务时长', type: 'number', required: true, min: 0, unit: '小时' }, { key: 'confirm', label: '客户确认', type: 'select', required: true, options: ['已确认', '未确认'] }],
       uploads: [{ key: 'before', label: '服务前照片', accept: 'image', required: true, min: 1, max: 3 }, { key: 'after', label: '服务后照片', accept: 'image', required: true, min: 1, max: 3 }]
+    },
+    摄影摄像: {
+      fields: [{ key: 'note', label: '成片/成图说明', type: 'textarea', required: true, max: 500 }, { key: 'shootTime', label: '拍摄时间', type: 'datetime', required: false }, { key: 'deliverUrl', label: '成果链接', type: 'url', required: false, max: 300, placeholder: '网盘/在线相册链接' }],
+      uploads: [{ key: 'preview', label: '成片预览/精修图', accept: 'image', required: true, min: 1, max: 9 }, { key: 'raw', label: '原片/工程文件', accept: 'file', required: false, min: 0, max: 3, hint: 'RAW/剪辑工程等' }]
+    },
+    电商运营: {
+      fields: [{ key: 'period', label: '运营周期', type: 'text', required: true, max: 100, placeholder: '如 2026-06-01 ~ 06-30' }, { key: 'metrics', label: '关键指标说明', type: 'textarea', required: false, max: 500, placeholder: '上架数/转化率/GMV 等' }],
+      uploads: [{ key: 'screenshot', label: '后台数据截图', accept: 'image', required: true, min: 1, max: 5 }]
+    },
+    营销推广: {
+      fields: [{ key: 'channel', label: '推广渠道', type: 'text', required: true, max: 100, placeholder: '如 抖音/朋友圈/搜索投放' }, { key: 'metrics', label: '投放数据说明', type: 'textarea', required: false, max: 500, placeholder: '曝光/点击/转化等' }, { key: 'deliverUrl', label: '成果链接', type: 'url', required: false, max: 300 }],
+      uploads: [{ key: 'screenshot', label: '数据/投放截图', accept: 'image', required: true, min: 1, max: 5 }]
+    },
+    客服: {
+      fields: [{ key: 'period', label: '服务时段', type: 'text', required: true, max: 100, placeholder: '如 6/1-6/30 9:00-18:00' }, { key: 'volume', label: '接待量/工单数', type: 'number', required: false, min: 0, unit: '单' }, { key: 'quality', label: '满意度/质检说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'screenshot', label: '后台/会话记录截图', accept: 'image', required: true, min: 1, max: 5 }]
+    },
+    教育培训: {
+      fields: [{ key: 'classTime', label: '授课时间', type: 'datetime', required: true }, { key: 'hours', label: '课时数', type: 'number', required: false, min: 0, unit: '课时' }, { key: 'recordUrl', label: '录课链接', type: 'url', required: false, max: 300, placeholder: '回放/网盘链接' }],
+      uploads: [{ key: 'material', label: '课件或录屏截图', accept: 'file', required: true, min: 1, max: 5, hint: '课件文件或上课录屏截图' }]
+    },
+    咨询: {
+      fields: [{ key: 'topic', label: '咨询主题', type: 'text', required: true, max: 100 }, { key: 'summary', label: '成果摘要', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'report', label: '咨询/方案报告', accept: 'file', required: true, min: 1, max: 3, hint: '研究报告/方案文档' }]
+    },
+    数据标注: {
+      fields: [{ key: 'count', label: '标注数量', type: 'number', required: true, min: 0, unit: '条' }, { key: 'quality', label: '准确率/质检说明', type: 'textarea', required: false, max: 500 }],
+      uploads: [{ key: 'result', label: '标注成果文件', accept: 'file', required: true, min: 1, max: 5, hint: '标注结果数据包' }]
     }
   },
   byTrade: {

@@ -64,7 +64,7 @@ try {
   const tHome = makeTask(cId, wId, '家政服务', null)
   const tVidTrade = makeTask(cId, wId, '视频', '短视频剪辑')
   const tVid = makeTask(cId, wId, '视频', null)
-  const tOther = makeTask(cId, wId, '咨询', null)
+  const tOther = makeTask(cId, wId, '其他', null)
 
   console.log('— 模板解析优先级（byTrade > byCategory > default）—')
   let r = await api('GET', `/worker/orders/${tVidTrade}/deliver-spec`, { token: workerToken })
@@ -72,8 +72,11 @@ try {
   r = await api('GET', `/worker/orders/${tVid}/deliver-spec`, { token: workerToken })
   ok('大类基础：视频(无工种覆盖) 不含 duration', r.data.spec.fields.every(f => f.key !== 'duration') && r.data.spec.fields.some(f => f.key === 'videoUrl'))
   r = await api('GET', `/worker/orders/${tOther}/deliver-spec`, { token: workerToken })
-  ok('默认兜底：未登记类目(咨询) 命中 default 模板(note)', r.data.spec.fields.length === 1 && r.data.spec.fields[0].key === 'note')
+  ok('默认兜底：未登记类目(其他) 命中 default 模板(note)', r.data.spec.fields.length === 1 && r.data.spec.fields[0].key === 'note')
   ok('deliver-spec 返回交付标准 standard 字段', typeof r.data.standard === 'string')
+  const tAnno = makeTask(cId, wId, '数据标注', null)
+  r = await api('GET', `/worker/orders/${tAnno}/deliver-spec`, { token: workerToken })
+  ok('新增定制：数据标注含「标注数量」字段与必传「标注成果文件」', r.status === 200 && r.data.spec.fields.some(f => f.key === 'count') && r.data.spec.uploads.some(u => u.key === 'result' && u.required))
 
   console.log('— 结构化交付校验（家政服务）—')
   const before = fakeUpload(wId), after = fakeUpload(wId)
