@@ -87,6 +87,7 @@
           </div>
           <div class="foot-actions">
             <el-tag effect="dark" type="primary" size="small">区块链存证·保存10年</el-tag>
+            <el-button size="small" :icon="Tickets" @click="openEvidence(item)">证据链时间轴</el-button>
             <el-button type="primary" plain size="small" :icon="Printer" @click="printVoucher(item)">
               打印凭证包
             </el-button>
@@ -107,14 +108,52 @@
         @size-change="onSizeChange"
       />
     </div>
+
+    <!-- 单笔工单证据链时间轴（操作留痕 + 终端证据 + 防篡改）-->
+    <el-drawer v-model="evidenceDrawer" :title="`证据链时间轴 · ${evidence?.task?.title || ''}`" size="600px" destroy-on-close>
+      <div v-loading="evidenceLoading">
+        <template v-if="evidence">
+          <div class="ev-flags">
+            <el-tag :type="evidence.completeness.contract ? 'success' : 'info'" size="small" effect="plain">合同流 {{ evidence.completeness.contract ? '✓' : '—' }}</el-tag>
+            <el-tag :type="evidence.completeness.business ? 'success' : 'info'" size="small" effect="plain">业务流 {{ evidence.completeness.business ? '✓' : '—' }}</el-tag>
+            <el-tag :type="evidence.completeness.fund ? 'success' : 'info'" size="small" effect="plain">资金流 {{ evidence.completeness.fund ? '✓' : '—' }}</el-tag>
+            <el-tag :type="evidence.completeness.invoice ? 'success' : 'info'" size="small" effect="plain">票据流 {{ evidence.completeness.invoice ? '✓' : '—' }}</el-tag>
+            <el-tag :type="evidence.chain?.ok ? 'success' : 'danger'" size="small" effect="dark">{{ evidence.chain?.ok ? '审计链完好' : '审计链异常' }}</el-tag>
+          </div>
+
+          <el-timeline v-if="evidence.timeline.length" class="ev-timeline">
+            <el-timeline-item
+              v-for="e in evidence.timeline"
+              :key="e.id"
+              :timestamp="fmtTime(e.at)"
+              placement="top"
+              :type="STAGE_TYPE[e.stage] || 'primary'"
+            >
+              <div class="ev-node">
+                <el-tag size="small" :type="STAGE_TYPE[e.stage] || 'primary'" effect="light">{{ e.stage }}</el-tag>
+                <span class="ev-label">{{ e.label }}</span>
+              </div>
+              <div class="ev-meta">
+                <span>操作人：{{ e.actor.name }}<template v-if="e.actor.role">（{{ ROLE_CN[e.actor.role] || e.actor.role }}）</template></span>
+                <span v-if="e.ip" class="mono">IP {{ e.ip }}</span>
+                <a v-if="e.geo" class="ev-geo" :href="geoMapUrl(e.geo)" target="_blank" rel="noopener" title="点击在高德地图查看操作现场">📍 现场 {{ fmtGeo(e.geo) }}</a>
+              </div>
+              <div v-if="e.userAgent" class="ev-ua" :title="e.userAgent">设备：{{ e.userAgent }}</div>
+              <div class="ev-hashline mono" :title="e.hash">存证 {{ shortHash(e.hash) }}</div>
+            </el-timeline-item>
+          </el-timeline>
+          <el-empty v-else description="该工单暂无操作留痕" :image-size="80" />
+        </template>
+      </div>
+    </el-drawer>
   </div>
 </template>
 
 <script setup>
 import { onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Refresh, Printer } from '@element-plus/icons-vue'
-import { getArchives } from '../api/admin'
+import { Refresh, Printer, Tickets } from '@element-plus/icons-vue'
+import { getArchives, getTaskEvidence } from '../api/admin'
 import { fmtMoney, fmtTime } from '../utils/format'
 
 const loading = ref(false)
@@ -122,6 +161,29 @@ const list = ref([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+
+// 证据链时间轴抽屉
+const evidenceDrawer = ref(false)
+const evidence = ref(null)
+const evidenceLoading = ref(false)
+const STAGE_TYPE = { 派单: 'warning', 抢单: 'primary', 单据管理: 'info', 单据验收: 'success', 其他: 'info' }
+const ROLE_CN = { company: '企业', worker: '零工', admin: '平台' }
+const shortHash = h => (h ? String(h).replace('sha256:', '').slice(0, 12) + '…' : '—')
+const fmtGeo = g => { if (!g) return ''; const [a, b] = String(g).split(','); return a && b ? `${a.trim()}, ${b.trim()}` : g }
+const geoMapUrl = g => { if (!g) return ''; const [lat, lng] = String(g).split(',').map(s => s.trim()); return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent('操作现场')}&coordinate=gaode` }
+
+async function openEvidence(item) {
+  evidenceDrawer.value = true
+  evidence.value = null
+  evidenceLoading.value = true
+  try {
+    evidence.value = await getTaskEvidence(item.taskId)
+  } catch {
+    evidence.value = null
+  } finally {
+    evidenceLoading.value = false
+  }
+}
 
 async function load() {
   loading.value = true
@@ -352,5 +414,54 @@ onMounted(load)
   .flow-col {
     margin-bottom: 12px;
   }
+}
+
+/* —— 证据链时间轴抽屉 —— */
+.ev-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ev-timeline {
+  padding-left: 4px;
+}
+.ev-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ev-label {
+  font-weight: 600;
+  color: var(--text-1);
+}
+.ev-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.ev-geo {
+  color: var(--success, #67c23a);
+  text-decoration: none;
+}
+.ev-geo:hover {
+  text-decoration: underline;
+}
+.ev-ua {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.ev-hashline {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-3);
 }
 </style>

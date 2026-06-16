@@ -399,6 +399,7 @@ router.post('/tasks/:id/apply', (req, res, next) => {
     } else {
       db.prepare(`INSERT INTO applications (task_id, worker_id) VALUES (?, ?)`).run(t.id, req.user.id)
     }
+    logAction(req.user.id, 'task_apply', `task#${t.id}`, { json: { taskId: t.id, source: 'apply' } })
     res.status(201).json({ applied: true })
   } catch (err) {
     next(err)
@@ -412,6 +413,7 @@ router.post('/tasks/:id/withdraw-apply', (req, res, next) => {
     if (!app || app.status === 'withdrawn') throw notFound('未报名该任务')
     if (app.status === 'hired') throw conflict('ALREADY_HIRED', '已被录用，不可取消报名')
     db.prepare(`UPDATE applications SET status = 'withdrawn' WHERE id = ?`).run(app.id)
+    logAction(req.user.id, 'task_withdraw_apply', `task#${app.task_id}`, { json: { taskId: app.task_id } })
     res.json({ withdrawn: true })
   } catch (err) {
     next(err)
@@ -496,7 +498,7 @@ router.post('/dispatches/:id/accept', async (req, res, next) => {
 
     const result = await hireWorker(t, c, req.user.id)
     db.prepare(`UPDATE dispatches SET status = 'accepted', responded_at = datetime('now','localtime') WHERE id = ?`).run(d.id)
-    logAction(req.user.id, 'dispatch_accept', `dispatch#${d.id} task#${t.id}`)
+    logAction(req.user.id, 'dispatch_accept', `dispatch#${d.id} task#${t.id}`, { json: { taskId: t.id, dispatchId: d.id } })
     notifyCompany(c.id, 'hired', '派单已被接受', `零工已接受「${t.title}」的派单，分包工单 ${result.workOrderNo} 已电子签，任务进入进行中。`)
     res.json({ accepted: true, ...result })
   } catch (err) {
@@ -515,7 +517,7 @@ router.post('/dispatches/:id/reject', (req, res, next) => {
     if (d.status !== 'invited') throw conflict('BAD_STATUS', '该派单邀约已处理或已失效')
     db.prepare(`UPDATE dispatches SET status = 'rejected', reject_reason = ?, responded_at = datetime('now','localtime') WHERE id = ?`).run(reason, d.id)
     const t = db.prepare(`SELECT title FROM tasks WHERE id = ?`).get(d.task_id)
-    logAction(req.user.id, 'dispatch_reject', `dispatch#${d.id} task#${d.task_id}`)
+    logAction(req.user.id, 'dispatch_reject', `dispatch#${d.id} task#${d.task_id}`, { json: { taskId: d.task_id, dispatchId: d.id } })
     notifyCompany(d.company_id, 'cancelled', '派单被拒绝', `零工拒绝了「${t?.title || ''}」的派单${reason ? `：${reason}` : ''}。可改派其他零工或等待报名。`)
     res.json({ rejected: true })
   } catch (err) {
@@ -618,6 +620,9 @@ router.post('/orders/:id/deliver', (req, res, next) => {
       for (const uid of uploadIds) link.run(t.id, uid)
     })()
 
+    logAction(req.user.id, 'task_deliver', `task#${t.id}`, {
+      json: { taskId: t.id, structured: !!deliverableData, attachments: uploadIds.length }
+    })
     notifyCompany(t.cid, 'deliver', '交付物待验收', `「${t.title}」零工已上传交付物，请及时验收。`)
     res.json({ status: 'delivered' })
   } catch (err) {
@@ -651,7 +656,7 @@ router.post('/orders/:id/invoice', (req, res, next) => {
         body.amount ? yuanToCents(body.amount) : t.sub_price,
         body.taxAmount ? yuanToCents(body.taxAmount) : 0, body.invoiceType)
     })()
-    logAction(req.user.id, 'upload_input_invoice', `task#${t.id} ${body.invoiceNo ?? ''}`)
+    logAction(req.user.id, 'upload_input_invoice', `task#${t.id} ${body.invoiceNo ?? ''}`, { json: { taskId: t.id } })
     res.status(201).json({ ok: true })
   } catch (err) {
     next(err)
@@ -692,7 +697,7 @@ router.post('/orders/:id/dispute', (req, res, next) => {
       task: t, type: body.type, initiatorRole: 'worker', initiatorId: req.user.id,
       claim: body.claim, claimAmount: yuanToCents(body.claimAmount), attachmentIds: body.attachmentIds
     })
-    logAction(req.user.id, 'dispute_create', `${r.no} task#${t.id}`)
+    logAction(req.user.id, 'dispute_create', `${r.no} task#${t.id}`, { json: { taskId: t.id, disputeNo: r.no } })
     res.status(201).json(r)
   } catch (err) {
     next(err)
@@ -711,7 +716,7 @@ router.post('/orders/:id/review', (req, res, next) => {
       taskId: Number(req.params.id), reviewerRole: 'worker', reviewerId: req.user.id,
       score: body.score, tags: body.tags, comment: body.comment
     })
-    logAction(req.user.id, 'review_submit', `task#${req.params.id} score=${body.score}`)
+    logAction(req.user.id, 'review_submit', `task#${req.params.id} score=${body.score}`, { json: { taskId: Number(req.params.id) } })
     res.status(201).json({ ok: true })
   } catch (err) {
     next(err)

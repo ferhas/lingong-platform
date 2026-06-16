@@ -173,6 +173,7 @@
       <a href="#flows">业务流程</a>
       <a href="#delivery">结构化交付</a>
       <a href="#enums">状态机</a>
+      <a href="#evidence">证据链</a>
       <a href="#risk">风控通知</a>
       <a href="#ops">后台集成</a>
       <a href="#config">配置项</a>
@@ -697,6 +698,61 @@
       <div class="enum"><div class="et">export_requests.status <span>数据导出申请</span></div><div class="chips"><span class="vchip"><code>pending</code> 待审批</span><span class="vchip"><code>approved</code> 已批准</span><span class="vchip"><code>rejected</code> 已拒绝</span><span class="vchip"><code>downloaded</code> 已下载</span><span class="vchip"><code>expired</code> 已过期</span></div></div>
       <div class="enum"><div class="et">webhook_events.status <span>回调事件</span></div><div class="chips"><span class="vchip"><code>received</code> 已接收</span><span class="vchip"><code>processed</code> 已处理</span><span class="vchip"><code>failed</code> 失败</span><span class="vchip"><code>ignored</code> 已忽略(死信)</span></div></div>
       <div class="enum"><div class="et">escrow_members.status / integration_calls / api_credentials / help_articles <span>其它</span></div><div class="chips"><span class="vchip"><code>opened</code>/<code>card_bound</code>/<code>closed</code> 存管开户</span><span class="vchip"><code>ok</code>/<code>fail</code> 集成调用</span><span class="vchip"><code>active</code>/<code>disabled</code> API凭据</span><span class="vchip"><code>published</code>/<code>draft</code> 帮助文章</span><span class="vchip"><code>worker</code>/<code>company</code>/<code>all</code> 文章受众</span></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ EVIDENCE ============ -->
+<section id="evidence">
+  <div class="wrap">
+    <div class="sec-head reveal">
+      <span class="sec-tag">全程留痕</span>
+      <h2>证据链：四环节操作留痕 + 终端证据 + 防篡改 + 可导出</h2>
+      <p>在「四流合一」合规凭证之外，平台把<b>派单、抢单、单据管理、单据验收</b>每一步操作同步沉淀为可追溯、可校验的<b>操作证据链</b>：谁、何时、从哪个 IP/设备、在什么现场位置做了什么，全部留痕；审计日志以<b>哈希链固化防篡改</b>，并可在企业端/运营端按单查看与<b>一键导出</b>，直接用于争议举证与税务核查。</p>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>① 每一步都留痕：终端证据自动捕获</h3>
+    <div class="grid g3">
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 20a8 8 0 0 1 16 0"/></svg></div>
+        <span class="role">谁 · 何时</span>
+        <h4>操作人与时间</h4>
+        <p>派单/抢单/录用/交付/验收等动作均记录操作人（角色）与精确时间，全量写操作审计无遗漏。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic teal"><svg viewBox="0 0 24 24"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>
+        <span class="role">从哪 · 何设备</span>
+        <h4>IP · 设备 · 现场定位</h4>
+        <p>自动捕获发起方 IP 与设备 UA；零工报名/接单/交付经授权记录现场 GPS 定位，作为「本人在现场完成」的佐证。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 4.4-3.2 7.6-8 9-4.8-1.4-8-4.6-8-9V7l8-4Z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <span class="role">防篡改</span>
+        <h4>哈希链固化</h4>
+        <p>每条审计记录以前后哈希串联成链，任意改、删、插入都会令其后记录对不上；运营端可<b>一键校验</b>链完整性并定位断点。</p>
+      </div>
+    </div>
+
+    <h3 class="blk reveal"><span class="bar"></span>② 按单证据链：时间轴 + 四流凭证 + 一键导出</h3>
+    <div class="grid g3">
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M12 8v5l3 2"/><circle cx="12" cy="12" r="9"/></svg></div>
+        <span class="role">企业端 / 运营端</span>
+        <h4>操作留痕时间轴</h4>
+        <p>单笔工单从发布到结算的全流程操作按时间轴呈现，含环节、操作人、IP（企业端脱敏）、现场定位（可点开地图）。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic teal"><svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h6"/></svg></div>
+        <span class="role">四流凭证</span>
+        <h4>合同哈希 · 交付物 SHA256</h4>
+        <p>四级合同电子签内容哈希、交付物文件 SHA256、业务交易确认单、发票号、完税与保单凭证一并聚合，并给出四流完整性结论。</p>
+      </div>
+      <div class="card reveal">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 9V3h12v6"/><path d="M6 18H4v-7h16v7h-2"/><path d="M8 14h8v7H8z"/></svg></div>
+        <span class="role">举证 · 稽查</span>
+        <h4>一键导出 / 打印</h4>
+        <p>任意状态工单（含争议中）均可生成含完整时间轴与四流凭证的证据链报告，附证据包指纹，直接用于争议举证与税务核查。</p>
+      </div>
     </div>
   </div>
 </section>

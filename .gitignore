@@ -32,3 +32,6 @@ Thumbs.db
 
 # WeChat DevTools local project preferences
 project.private.config.json
+
+# 交付/账号说明文档（含生产凭据，禁止提交）
+交付说明_法律文书与账号.md

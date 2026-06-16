@@ -141,7 +141,7 @@ Page({
     }
     this.setData({ submitting: true })
     try {
-      await api.post(`/worker/orders/${this.data.orderId}/deliver`, payload)
+      await api.postGeo(`/worker/orders/${this.data.orderId}/deliver`, payload)
       wx.showToast({ title: '已提交，等待企业验收', icon: 'success' })
       setTimeout(() => wx.navigateBack(), 600)
     } catch (err) {

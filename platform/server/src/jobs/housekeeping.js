@@ -16,8 +16,8 @@ export function runHousekeeping() {
   // 审计日志 > 180 天归档
   const n2 = db.transaction(() => {
     const moved = db.prepare(`
-      INSERT INTO audit_logs_archive (id, user_id, action, detail, created_at)
-      SELECT id, user_id, action, detail, created_at FROM audit_logs
+      INSERT INTO audit_logs_archive (id, user_id, action, detail, detail_json, ip, user_agent, geo, prev_hash, hash, created_at)
+      SELECT id, user_id, action, detail, detail_json, ip, user_agent, geo, prev_hash, hash, created_at FROM audit_logs
       WHERE created_at < datetime('now', 'localtime', '-180 days')
     `).run().changes
     db.prepare(`DELETE FROM audit_logs WHERE created_at < datetime('now', 'localtime', '-180 days')`).run()

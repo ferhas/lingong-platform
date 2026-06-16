@@ -82,6 +82,10 @@ export const getIpGraph = () => client.get('/admin/risk/ip-graph')
 // —— 审计日志 ——
 export const getAuditLogs = params => client.get('/admin/audit-logs', { params })
 export const getAuditActions = () => client.get('/admin/audit-logs/actions')
+// 审计哈希链完整性自检
+export const verifyAuditChain = () => client.get('/admin/audit-logs/verify')
+// 单笔工单完整证据链（运营视角，IP/UA 不脱敏）
+export const getTaskEvidence = id => client.get(`/admin/tasks/${id}/evidence`)
 
 // —— 风控预警 ——
 export const getRiskAlerts = (status = 'all') =>

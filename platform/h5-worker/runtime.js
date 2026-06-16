@@ -1033,6 +1033,16 @@
     checkSession: function (o) { o && o.fail && o.fail({}) },
     requestSubscribeMessage: function (o) { o && o.complete && o.complete({}); o && o.success && o.success({}) },
     getUserProfile: function (o) { o && o.fail && o.fail({ errMsg: 'getUserProfile:fail' }) },
+    // 现场定位：H5 走浏览器 Geolocation（用户授权/CDP 注入坐标），失败静默——证据链终端佐证 best-effort
+    getLocation: function (o) {
+      o = o || {}
+      if (!navigator.geolocation) { o.fail && o.fail({ errMsg: 'getLocation:fail no geolocation' }); o.complete && o.complete(); return }
+      navigator.geolocation.getCurrentPosition(
+        function (p) { o.success && o.success({ latitude: p.coords.latitude, longitude: p.coords.longitude, errMsg: 'getLocation:ok' }); o.complete && o.complete() },
+        function () { o.fail && o.fail({ errMsg: 'getLocation:fail' }); o.complete && o.complete() },
+        { enableHighAccuracy: false, timeout: 4000, maximumAge: 60000 }
+      )
+    },
     getSetting: function (o) { o && o.success && o.success({ authSetting: {} }) },
 
     // —— 杂项 ——

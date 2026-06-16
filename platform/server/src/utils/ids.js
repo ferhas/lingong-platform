@@ -29,6 +29,14 @@ export function currentDate() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+// 本地时区 'YYYY-MM-DD HH:MM:SS'，与各表 created_at 的 datetime('now','localtime') 同格式。
+// 审计日志显式落 created_at（而非用 SQL 默认），以便把同一时间值绑进哈希链。
+export function currentDateTime() {
+  const d = new Date()
+  const p = n => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`
+}
+
 export function currentQuarter() {
   const d = new Date()
   return `${d.getFullYear()}Q${Math.ceil((d.getMonth() + 1) / 3)}`

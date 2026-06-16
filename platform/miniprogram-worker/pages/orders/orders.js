@@ -132,7 +132,7 @@ Page({
       success: async res => {
         if (!res.confirm) return
         try {
-          const r = await api.post(`/worker/dispatches/${d.id}/accept`)
+          const r = await api.postGeo(`/worker/dispatches/${d.id}/accept`)
           wx.showModal({
             title: '已接受派单',
             content: `分包工单 ${r.workOrderNo} 已电子签，意外险已生效。请按交付标准完成并上传成果。`,

@@ -35,7 +35,7 @@ Page({
     getApp().requestSubscribe()
     this.setData({ applying: true })
     try {
-      await api.post(`/worker/tasks/${this.taskId}/apply`)
+      await api.postGeo(`/worker/tasks/${this.taskId}/apply`)
       wx.showToast({ title: '报名成功，等待企业确认', icon: 'success' })
       this.fetch()
     } catch (e) {

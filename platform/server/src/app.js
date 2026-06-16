@@ -17,6 +17,7 @@ import adminOpsRoutes from './routes/adminOps.js'
 import openApiRoutes from './routes/openapi.js'
 import metricsRoutes from './routes/metrics.js'
 import { errorHandler, notFoundHandler } from './middleware/error.js'
+import { runWithContext } from './services/requestContext.js'
 
 const app = express()
 const isTest = process.env.NODE_ENV === 'test'
@@ -28,6 +29,16 @@ app.use(cors({ origin: config.corsOrigins.includes('*') ? true : config.corsOrig
 app.use('/api/v1/webhooks', webhookRoutes)
 // 保留原始请求字节（开放 API HMAC 按原文验签，避免 JSON.stringify 重排键序导致签名不稳定）
 app.use(express.json({ limit: '1mb', verify: (req, _res, buf) => { req.rawBody = buf } }))
+
+// 请求级终端证据上下文：把发起方 IP / UA / 地理位置塞进 AsyncLocalStorage，
+// 使整条异步链路上的全量 logAction 自动带终端留痕（无需逐处传参），强化四环节证据链。
+app.use((req, _res, next) => {
+  const xff = req.headers['x-forwarded-for']
+  const ip = ((typeof xff === 'string' && xff.split(',')[0].trim()) || req.socket?.remoteAddress || '').replace(/^::ffff:/, '')
+  const ua = String(req.headers['user-agent'] || '').slice(0, 300)
+  const geo = String(req.headers['x-geo'] || '').slice(0, 200)
+  runWithContext({ ip: ip || null, userAgent: ua || null, geo: geo || null }, next)
+})
 
 // 结构化请求日志（测试静默）
 app.use(pinoHttp({

@@ -42,6 +42,12 @@
       { "pagePath": "pages/mine/mine", "text": "我的" }
     ]
   },
+  "permission": {
+    "scope.userLocation": {
+      "desc": "用于在报名/接单/交付时记录现场位置，作为四流证据链的终端佐证"
+    }
+  },
+  "requiredPrivateInfos": ["getLocation"],
   "darkmode": true,
   "themeLocation": "theme.json",
   "sitemapLocation": "sitemap.json"

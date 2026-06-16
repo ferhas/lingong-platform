@@ -51,6 +51,9 @@ export const createDispute = (id, data) => client.post(`/company/tasks/${id}/dis
 export const reviewTask = (id, data) => client.post(`/company/tasks/${id}/review`, data)
 export const getTaskReviews = id => client.get(`/company/tasks/${id}/reviews`)
 
+// 单笔工单证据链（操作留痕时间轴 + 四流凭证 + 完整性结论）
+export const getTaskEvidence = id => client.get(`/company/tasks/${id}/evidence`)
+
 // 统计（仪表盘图表）
 export const getStatsTrend = (days = 30) =>
   client.get('/company/stats/trend', { params: { days } })

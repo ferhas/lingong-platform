@@ -1,7 +1,7 @@
 // API 客户端：自动附带 token、统一错误提示、401 透明刷新（单飞）、刷新失败跳登录
 let refreshing = null
 
-function rawRequest(method, path, data) {
+function rawRequest(method, path, data, extraHeaders) {
   const app = getApp()
   return new Promise((resolve, reject) => {
     wx.request({
@@ -10,10 +10,23 @@ function rawRequest(method, path, data) {
       data,
       header: {
         'content-type': 'application/json',
-        Authorization: 'Bearer ' + (wx.getStorageSync('token') || '')
+        Authorization: 'Bearer ' + (wx.getStorageSync('token') || ''),
+        ...(extraHeaders || {})
       },
       success: res => resolve(res),
       fail: () => reject(new Error('network'))
+    })
+  })
+}
+
+// 现场地理位置（证据链终端佐证）：best-effort 取定位，失败/拒授权静默返回 null，绝不阻断业务。
+function captureGeo() {
+  return new Promise(resolve => {
+    if (!wx.getLocation) return resolve(null)
+    wx.getLocation({
+      type: 'gcj02',
+      success: r => resolve(`${r.latitude.toFixed(5)},${r.longitude.toFixed(5)}`),
+      fail: () => resolve(null)
     })
   })
 }
@@ -43,10 +56,10 @@ function refreshSession() {
   return refreshing
 }
 
-async function request(method, path, data, retried) {
+async function request(method, path, data, retried, extraHeaders) {
   let res
   try {
-    res = await rawRequest(method, path, data)
+    res = await rawRequest(method, path, data, extraHeaders)
   } catch (e) {
     wx.showToast({ title: '网络异常，请检查服务是否启动', icon: 'none' })
     throw e
@@ -56,7 +69,7 @@ async function request(method, path, data, retried) {
   // 401：先尝试用 refreshToken 换新会话并重放一次
   if (res.statusCode === 401 && !retried && !path.startsWith('/auth/')) {
     const ok = await refreshSession()
-    if (ok) return request(method, path, data, true)
+    if (ok) return request(method, path, data, true, extraHeaders)
     logoutToLogin()
   } else if (res.statusCode === 401) {
     logoutToLogin()
@@ -147,8 +160,14 @@ module.exports = {
     return request('GET', path)
   },
   post: (path, data) => request('POST', path, data),
+  // 带现场定位的 POST（证据链终端佐证）：先 best-effort 取定位，作为 X-Geo 头随该请求上报。
+  postGeo: async (path, data) => {
+    const geo = await captureGeo()
+    return request('POST', path, data, false, geo ? { 'X-Geo': geo } : undefined)
+  },
   patch: (path, data) => request('PATCH', path, data),
   del: (path) => request('DELETE', path),
+  captureGeo,
   meta,
   metaSync,
   upload,

@@ -6,6 +6,16 @@
         <p class="page-sub">全平台关键操作留痕,可按动作类型筛选追溯</p>
       </div>
       <div class="page-actions">
+        <el-tag
+          v-if="chainStatus"
+          :type="chainStatus.ok ? 'success' : 'danger'"
+          effect="dark"
+          size="large"
+          class="chain-tag"
+        >
+          {{ chainStatus.ok ? `防篡改链完好 · 共 ${chainStatus.count} 条` : `链异常 · 断点 #${chainStatus.brokenAt}` }}
+        </el-tag>
+        <el-button :loading="verifying" @click="onVerifyChain">校验哈希链</el-button>
         <el-select
           v-model="action"
           placeholder="按动作筛选(可手输)"
@@ -48,8 +58,25 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="detail" label="详情" min-width="320" show-overflow-tooltip>
+        <el-table-column prop="detail" label="详情" min-width="240" show-overflow-tooltip>
           <template #default="{ row }">{{ row.detail || '—' }}</template>
+        </el-table-column>
+        <el-table-column label="终端证据" min-width="200">
+          <template #default="{ row }">
+            <div class="term-evidence">
+              <span v-if="row.ip" class="mono">IP {{ row.ip }}</span>
+              <span v-if="row.geo" class="mono geo">📍 {{ fmtGeo(row.geo) }}</span>
+              <span v-if="!row.ip && !row.geo" class="muted">—</span>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column label="存证哈希" width="130">
+          <template #default="{ row }">
+            <el-tooltip v-if="row.hash" :content="row.hash" placement="top">
+              <span class="mono hash-cell">{{ shortHash(row.hash) }}</span>
+            </el-tooltip>
+            <span v-else class="muted">—</span>
+          </template>
         </el-table-column>
         <template #empty>
           <el-empty description="暂无审计日志" :image-size="90" />
@@ -74,8 +101,9 @@
 
 <script setup>
 import { onMounted, ref } from 'vue'
+import { ElMessage } from 'element-plus'
 import { Refresh } from '@element-plus/icons-vue'
-import { getAuditLogs, getAuditActions } from '../api/admin'
+import { getAuditLogs, getAuditActions, verifyAuditChain } from '../api/admin'
 import { fmtTime } from '../utils/format'
 
 const loading = ref(false)
@@ -84,6 +112,10 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const action = ref('')
+const chainStatus = ref(null)
+const verifying = ref(false)
+const shortHash = h => (h ? String(h).replace('sha256:', '').slice(0, 10) + '…' : '—')
+const fmtGeo = g => { if (!g) return ''; const [a, b] = String(g).split(','); return a && b ? `${a.trim()}, ${b.trim()}` : g }
 // 筛选下拉的动作清单从后端实时拉取（库中实际出现过的动作），与写死清单解耦
 const actionOptions = ref([])
 
@@ -93,6 +125,7 @@ const ACTION_TEXT = {
   '2fa_enable': '绑定动态码', '2fa_disable': '解绑动态码',
   task_publish: '发布任务', task_batch_publish: '批量发单', task_accept: '验收任务', task_reject: '驳回交付',
   task_cancel: '取消任务', task_hire: '录用零工', task_dispatch: '定向派单', openapi_task_publish: '开放API发单',
+  task_apply: '零工报名', task_withdraw_apply: '取消报名', task_deliver: '上传交付物',
   dispatch_accept: '接受派单', dispatch_reject: '拒绝派单', review_submit: '提交互评',
   review_company: '企业准入审核', skill_apply: '申请技能认证', skill_review: '技能认证审核',
   worker_verify: '零工实名', worker_verify_face: '零工人脸核身', worker_lock: '锁定零工接单',
@@ -179,8 +212,47 @@ async function loadActions() {
   }
 }
 
+async function onVerifyChain() {
+  verifying.value = true
+  try {
+    chainStatus.value = await verifyAuditChain()
+    if (chainStatus.value.ok) {
+      ElMessage.success(`防篡改链完整，共校验 ${chainStatus.value.count} 条审计记录`)
+    } else {
+      ElMessage.error(`审计链异常：第 #${chainStatus.value.brokenAt} 条记录被篡改（${chainStatus.value.reason}）`)
+    }
+  } catch {
+    /* 错误已统一提示 */
+  } finally {
+    verifying.value = false
+  }
+}
+
 onMounted(() => {
   loadActions()
   load()
+  onVerifyChain()
 })
 </script>
+
+<style scoped>
+.chain-tag {
+  margin-right: 4px;
+}
+.term-evidence {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.mono {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+}
+.hash-cell {
+  color: var(--el-text-color-secondary);
+  cursor: help;
+}
+.muted {
+  color: var(--el-text-color-placeholder);
+}
+</style>

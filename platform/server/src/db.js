@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import config from './config.js'
 import { LEGAL_SEEDS } from './services/legalSeeds.js'
+import { auditRowHash, GENESIS } from './utils/auditHash.js'
 
 const dbDir = path.dirname(config.dbPath)
 fs.mkdirSync(dbDir, { recursive: true })
@@ -247,6 +248,12 @@ CREATE TABLE IF NOT EXISTS audit_logs (
   user_id INTEGER,
   action TEXT NOT NULL,
   detail TEXT NOT NULL DEFAULT '',
+  detail_json TEXT,                  -- 结构化明细（含 taskId/before/after 等，供证据链时间轴精确归属）
+  ip TEXT,                           -- 发起方 IP（终端证据）
+  user_agent TEXT,                   -- 发起方设备/UA（终端证据）
+  geo TEXT,                          -- 发起方地理位置（前端 X-Geo 上报，交付/接单取现场佐证）
+  prev_hash TEXT,                    -- 防篡改哈希链：上一行 hash
+  hash TEXT,                         -- 本行 hash = sha256(prev_hash + 关键字段)
   created_at TEXT NOT NULL DEFAULT (datetime('now','localtime'))
 );
 CREATE INDEX IF NOT EXISTS idx_audit_user ON audit_logs(user_id, id DESC);
@@ -435,6 +442,12 @@ CREATE TABLE IF NOT EXISTS audit_logs_archive (
   user_id INTEGER,
   action TEXT NOT NULL,
   detail TEXT NOT NULL DEFAULT '',
+  detail_json TEXT,
+  ip TEXT,
+  user_agent TEXT,
+  geo TEXT,
+  prev_hash TEXT,
+  hash TEXT,
   created_at TEXT NOT NULL
 );
 
@@ -861,6 +874,35 @@ if (!hasColumn('tasks', 'deliverable_data')) {
   db.exec(`ALTER TABLE tasks ADD COLUMN deliverable_data TEXT`)
 }
 
+// —— 证据链强化：审计日志补终端证据列（IP/UA/geo）+ 结构化明细 + 防篡改哈希链 ——
+if (!hasColumn('audit_logs', 'detail_json')) {
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN detail_json TEXT`)
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN ip TEXT`)
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN user_agent TEXT`)
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN geo TEXT`)
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN prev_hash TEXT`)
+  db.exec(`ALTER TABLE audit_logs ADD COLUMN hash TEXT`)
+}
+for (const col of ['detail_json', 'ip', 'user_agent', 'geo', 'prev_hash', 'hash']) {
+  if (!hasColumn('audit_logs_archive', col)) {
+    db.exec(`ALTER TABLE audit_logs_archive ADD COLUMN ${col} TEXT`)
+  }
+}
+// 升级回填：为既有未上链的历史审计行按 id 顺序计算哈希链，使全表从首行起可验。
+if (db.prepare(`SELECT 1 FROM audit_logs WHERE hash IS NULL LIMIT 1`).get()) {
+  const rows = db.prepare(`SELECT * FROM audit_logs ORDER BY id ASC`).all()
+  const upd = db.prepare(`UPDATE audit_logs SET prev_hash = ?, hash = ? WHERE id = ?`)
+  db.transaction(() => {
+    let prev = GENESIS
+    for (const r of rows) {
+      if (r.hash) { prev = r.hash; continue }
+      const h = auditRowHash(prev, { ...r, prev_hash: prev })
+      upd.run(prev, h, r.id)
+      prev = h
+    }
+  })()
+}
+
 // 旧库 tasks.status CHECK 不含 cancelled / applications 不含 withdrawn → 重建表
 function rebuildIfCheckMissing(table, marker, createSql) {
   const row = db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name=?`).get(table)
@@ -1125,9 +1167,15 @@ const HELP_SEEDS = [
   ['company', '资金', '充值如何到账', '请通过"资金管理-充值"获取专属存管账户并转账，银行入金确认后自动入账（通常分钟级）。平台不收取充值手续费，资金由持牌银行存管。'],
   ['company', '合规', '为什么不能发布"打卡/月薪"类任务', '平台采用承揽模式：按成果计酬、不约定固定工时、不进行考勤管理。约定固定月薪或打卡考勤的用工属于劳动关系范畴，不适用灵活用工结算，平台依法予以拦截。'],
   ['all', '争议', '争议处理规则简介', '任一方可对验收、酬劳、失联等发起争议：先进入48小时协商期，未和解转平台仲裁（双方72小时内举证），平台3个工作日内裁决（全额结算/部分结算/不予结算/限期重交付）。对裁决不服可向平台所在地仲裁委或法院提起，平台提供完整证据包。'],
-  ['all', '账户', '如何注销账号与删除个人信息', '请通过客服工单提交注销申请，平台将在15个工作日内响应。依据税收征管要求，交易与凭证类数据须保存10年，其余个人信息将依法删除。']
+  ['all', '账户', '如何注销账号与删除个人信息', '请通过客服工单提交注销申请，平台将在15个工作日内响应。依据税收征管要求，交易与凭证类数据须保存10年，其余个人信息将依法删除。'],
+  ['company', '合规', '如何查看与导出工单证据链', '在"任务管理"打开任意工单详情，底部"证据链"可展开查看：①全流程操作留痕时间轴（派单/抢单/签约/交付/验收每一步的操作人、时间、IP、现场定位）；②合同/业务/资金/票据四流凭证（含合同内容哈希、交付物SHA256、业务交易确认单、发票号）；③四流完整性与防篡改校验结论。点"打印/导出"可一键生成完整证据链报告，用于争议举证与税务核查。'],
+  ['worker', '接单', '报名/交付时为什么要授权定位', '接单与交付时，平台会在征得你授权后记录一次现场定位，作为"本人在现场完成"的证据链佐证，发生争议时更好地保护你的权益。拒绝授权不影响正常接单，仅相应留痕会缺少现场位置信息。']
 ]
-const insertHelp = db.prepare(`INSERT OR IGNORE INTO help_articles (id, audience, category, title, content) VALUES (?, ?, ?, ?, ?)`)
-HELP_SEEDS.forEach(([audience, category, title, content], i) => insertHelp.run(i + 1, audience, category, title, content))
+// 按标题幂等播种：兼容已有库（运营可能已手工新增文章占用了自增 id），新文章按标题判重补齐，避免固定 id 冲突致漏插。
+const insertHelp = db.prepare(`INSERT INTO help_articles (audience, category, title, content) VALUES (?, ?, ?, ?)`)
+const helpTitleExists = db.prepare(`SELECT 1 FROM help_articles WHERE title = ?`)
+HELP_SEEDS.forEach(([audience, category, title, content]) => {
+  if (!helpTitleExists.get(title)) insertHelp.run(audience, category, title, content)
+})
 
 export default db

@@ -11,7 +11,8 @@ import { genNo, sha256, currentPeriod, currentQuarter, currentDate, genTempPassw
 import { pageParams } from '../utils/pagination.js'
 import { getAllConfigs, setConfig, getConfig } from '../services/configStore.js'
 import { notifyCompany, notify } from '../services/notify.js'
-import { logAction, listAuditLogs } from '../services/audit.js'
+import { logAction, listAuditLogs, verifyChain } from '../services/audit.js'
+import { buildTaskEvidence } from '../services/evidence.js'
 import { esign, taxbureau, healthCheck } from '../integrations/index.js'
 import { renderContract, listLegalDocs, bumpLegalDoc } from '../services/contractText.js'
 import { readableText } from '../utils/textQuality.js'
@@ -607,7 +608,9 @@ router.get('/audit-logs', requirePermission('audit:read'), (req, res) => {
     total,
     list: list.map(a => ({
       id: a.id, userId: a.user_id, userName: a.user_name, userRole: a.user_role,
-      action: a.action, detail: a.detail, createdAt: a.created_at
+      action: a.action, detail: a.detail, detailJson: a.detail_json || null,
+      ip: a.ip || null, userAgent: a.user_agent || null, geo: a.geo || null,
+      hash: a.hash || null, createdAt: a.created_at
     }))
   })
 })
@@ -616,6 +619,22 @@ router.get('/audit-logs', requirePermission('audit:read'), (req, res) => {
 router.get('/audit-logs/actions', requirePermission('audit:read'), (_req, res) => {
   const rows = db.prepare(`SELECT DISTINCT action FROM audit_logs ORDER BY action`).all()
   res.json({ actions: rows.map(r => r.action) })
+})
+
+// 审计哈希链完整性自检：校验全表防篡改链是否完好（任意改/删/插会被检出）
+router.get('/audit-logs/verify', requirePermission('audit:read'), (_req, res) => {
+  res.json(verifyChain())
+})
+
+// 单笔工单完整证据链（运营视角，IP/UA 不脱敏）
+router.get('/tasks/:id/evidence', requirePermission('archive:read'), (req, res, next) => {
+  try {
+    const evidence = buildTaskEvidence(Number(req.params.id), { full: true })
+    if (!evidence) throw notFound('任务不存在')
+    res.json(evidence)
+  } catch (err) {
+    next(err)
+  }
 })
 
 // —— 外部接口健康 ——

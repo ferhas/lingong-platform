@@ -23,6 +23,7 @@ import { handleRechargePaid } from '../services/escrowEvents.js'
 import { createDispute } from '../services/disputes.js'
 import { submitReview, getTaskReviews, workerCreditProfile } from '../services/credit.js'
 import { companyStatement } from '../services/finance.js'
+import { buildTaskEvidence } from '../services/evidence.js'
 
 const router = Router()
 router.use(authenticate, requireRole('company'))
@@ -452,7 +453,7 @@ async function publishTask(c, userId, body) {
       `企业「${c.company_name}」任务「${body.title}」承揽价 ¥${body.price}，平台净毛利率 ${(estimate.netMarginRate * 100).toFixed(2)}% 低于安全线 ${(getConfig('safeMarginRate') * 100).toFixed(1)}%，请关注定价`, 'company', c.id)
   }
 
-  logAction(userId, 'task_publish', `task#${taskId} ¥${body.price}`)
+  logAction(userId, 'task_publish', `task#${taskId} ¥${body.price}`, { json: { taskId, workOrderNo: taskOrderNo, price: body.price } })
   return { id: taskId, workOrderNo: taskOrderNo, frozen: body.price }
 }
 
@@ -561,7 +562,7 @@ router.post('/tasks/:id/hire', requireCompanyRole('owner', 'operator'), async (r
     if (!app) throw badRequest('NO_APPLICATION', '该零工未报名此任务')
 
     const result = await hireWorker(t, c, workerId)
-    logAction(req.user.id, 'task_hire', `task#${t.id} worker#${workerId}`)
+    logAction(req.user.id, 'task_hire', `task#${t.id} worker#${workerId}`, { json: { taskId: t.id, workerId, workOrderNo: result.workOrderNo } })
     res.json(result)
   } catch (err) {
     next(err)
@@ -634,7 +635,7 @@ router.post('/tasks/:id/dispatch', requireCompanyRole('owner', 'operator'), (req
       }
     })()
 
-    logAction(req.user.id, 'task_dispatch', `task#${t.id} worker#${workerId}`)
+    logAction(req.user.id, 'task_dispatch', `task#${t.id} worker#${workerId}`, { json: { taskId: t.id, workerId, note } })
     notify(workerId, 'dispatch', '收到派单邀约', `企业「${c.company_name}」向您定向派单「${t.title}」，分包报酬 ¥${centsToYuan(t.sub_price)}${note ? `。留言：${note}` : ''}。请在接单中心确认接受或拒绝。`)
     res.status(201).json({ dispatched: true })
   } catch (err) {
@@ -648,7 +649,7 @@ router.post('/tasks/:id/accept', requireCompanyRole('owner', 'operator'), async 
     const t = db.prepare(`SELECT * FROM tasks WHERE id = ? AND company_id = ?`).get(req.params.id, c.id)
     if (!t) throw notFound('任务不存在')
     const result = await acceptAndSettle(t, c)
-    logAction(req.user.id, 'task_accept', `task#${t.id} ${result.confirmNo}`)
+    logAction(req.user.id, 'task_accept', `task#${t.id} ${result.confirmNo}`, { json: { taskId: t.id, confirmNo: result.confirmNo } })
     res.json({
       confirmNo: result.confirmNo,
       invoice: { ...result.invoice, amount: centsToYuan(result.invoice.amount) },
@@ -675,7 +676,7 @@ router.post('/tasks/:id/reject', requireCompanyRole('owner', 'operator'), (req, 
       db.prepare(`UPDATE tasks SET status = 'working', deliverable = NULL, deliverable_data = NULL, delivered_at = NULL WHERE id = ?`).run(t.id)
       db.prepare(`DELETE FROM task_attachments WHERE task_id = ? AND kind = 'deliverable'`).run(t.id)
     })()
-    logAction(req.user.id, 'task_reject', `task#${t.id}：${reason}`)
+    logAction(req.user.id, 'task_reject', `task#${t.id}：${reason}`, { json: { taskId: t.id, reason } })
     notify(t.worker_id, 'rejected', '交付被驳回', `「${t.title}」交付未通过验收：${reason}。请修改后重新提交（成果不合格不计酬）。`)
     res.json({ status: 'working' })
   } catch (err) {
@@ -698,7 +699,7 @@ router.post('/tasks/:id/cancel', requireCompanyRole('owner', 'operator'), (req, 
       db.prepare(`UPDATE applications SET status = 'rejected' WHERE task_id = ? AND status = 'applied'`).run(t.id)
     })()
 
-    logAction(req.user.id, 'task_cancel', `task#${t.id}`)
+    logAction(req.user.id, 'task_cancel', `task#${t.id}`, { json: { taskId: t.id } })
     notifyMany(applicants.map(a => a.worker_id), 'cancelled', '任务已取消', `您报名的「${t.title}」已被发布企业取消。`)
     res.json({ status: 'cancelled', unfrozen: centsToYuan(t.price) })
   } catch (err) {
@@ -722,7 +723,7 @@ router.post('/tasks/:id/dispute', requireCompanyRole('owner', 'operator'), (req,
       task: t, type: body.type, initiatorRole: 'company', initiatorId: req.user.id,
       claim: body.claim, claimAmount: yuanToCents(body.claimAmount), attachmentIds: body.attachmentIds
     })
-    logAction(req.user.id, 'dispute_create', `${r.no} task#${t.id}`)
+    logAction(req.user.id, 'dispute_create', `${r.no} task#${t.id}`, { json: { taskId: t.id, disputeNo: r.no } })
     res.status(201).json(r)
   } catch (err) {
     next(err)
@@ -744,7 +745,7 @@ router.post('/tasks/:id/review', requireCompanyRole('owner', 'operator'), (req, 
       taskId: Number(req.params.id), reviewerRole: 'company', reviewerId: req.user.id,
       score: body.score, tags: body.tags, comment: body.comment
     })
-    logAction(req.user.id, 'review_submit', `task#${req.params.id} score=${body.score}`)
+    logAction(req.user.id, 'review_submit', `task#${req.params.id} score=${body.score}`, { json: { taskId: Number(req.params.id) } })
     res.status(201).json({ ok: true })
   } catch (err) {
     next(err)
@@ -757,6 +758,20 @@ router.get('/tasks/:id/reviews', (req, res, next) => {
     const t = db.prepare(`SELECT 1 FROM tasks WHERE id = ? AND company_id = ?`).get(req.params.id, c.id)
     if (!t) throw notFound('任务不存在')
     res.json(getTaskReviews(Number(req.params.id), 'company'))
+  } catch (err) {
+    next(err)
+  }
+})
+
+// —— 单笔工单证据链（操作留痕时间轴 + 四流凭证 + 完整性结论；企业端 IP 脱敏）——
+router.get('/tasks/:id/evidence', (req, res, next) => {
+  try {
+    const c = myCompany(req)
+    const t = db.prepare(`SELECT 1 FROM tasks WHERE id = ? AND company_id = ?`).get(req.params.id, c.id)
+    if (!t) throw notFound('任务不存在')
+    const evidence = buildTaskEvidence(Number(req.params.id), { full: false })
+    if (!evidence) throw notFound('任务不存在')
+    res.json(evidence)
   } catch (err) {
     next(err)
   }

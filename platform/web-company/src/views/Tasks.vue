@@ -265,6 +265,91 @@
             <el-button type="primary" :loading="acceptingId === detail.id" @click="onAccept(detail.id)">验收通过</el-button>
             <el-button type="danger" plain @click="openReject(detail.id)">驳回</el-button>
           </div>
+
+          <!-- 证据链：派单/抢单/单据管理/单据验收 全环节操作留痕 + 四流凭证 + 防篡改结论 -->
+          <el-collapse v-model="evidencePanel" class="evidence-collapse" @change="loadEvidence">
+            <el-collapse-item name="ev">
+              <template #title>
+                <el-icon class="ev-title-icon"><Document /></el-icon>
+                <span class="ev-title">证据链（操作留痕 · 四流凭证 · 防篡改）</span>
+              </template>
+              <div v-loading="evidenceLoading">
+                <template v-if="evidence">
+                  <el-alert type="info" :closable="false" class="ev-intro" show-icon>
+                    本工单从派单、抢单、签约到交付验收的全流程操作均已留痕，并固化合同/业务/资金/票据四流凭证，
+                    支持防篡改校验，可用于争议举证与税务核查。
+                  </el-alert>
+                  <div class="ev-flags">
+                    <el-tag :type="evidence.completeness.contract ? 'success' : 'info'" size="small" effect="plain">合同流 {{ evidence.completeness.contract ? '✓' : '—' }}</el-tag>
+                    <el-tag :type="evidence.completeness.business ? 'success' : 'info'" size="small" effect="plain">业务流 {{ evidence.completeness.business ? '✓' : '—' }}</el-tag>
+                    <el-tag :type="evidence.completeness.fund ? 'success' : 'info'" size="small" effect="plain">资金流 {{ evidence.completeness.fund ? '✓' : '—' }}</el-tag>
+                    <el-tag :type="evidence.completeness.invoice ? 'success' : 'info'" size="small" effect="plain">票据流 {{ evidence.completeness.invoice ? '✓' : '—' }}</el-tag>
+                    <el-tooltip :content="evidence.chain?.ok ? '审计记录以哈希链固化，未检测到任何篡改' : '检测到审计记录被改动，请联系平台核查'" placement="top">
+                      <el-tag :type="evidence.chain?.ok ? 'success' : 'danger'" size="small" effect="dark">{{ evidence.chain?.ok ? '🛡 审计链完好' : '⚠ 审计链异常' }}</el-tag>
+                    </el-tooltip>
+                    <el-button class="ev-print-btn" size="small" :icon="Printer" @click="printEvidence">打印 / 导出</el-button>
+                  </div>
+
+                  <div class="section-title">操作留痕时间轴（{{ evidence.timeline.length }}）</div>
+                  <el-timeline v-if="evidence.timeline.length" class="ev-timeline">
+                    <el-timeline-item
+                      v-for="e in evidence.timeline"
+                      :key="e.id"
+                      :timestamp="fmtDateTime(e.at)"
+                      placement="top"
+                      :type="STAGE_TYPE[e.stage] || 'primary'"
+                    >
+                      <div class="ev-node">
+                        <el-tag size="small" :type="STAGE_TYPE[e.stage] || 'primary'" effect="light">{{ e.stage }}</el-tag>
+                        <span class="ev-label">{{ e.label }}</span>
+                      </div>
+                      <div class="ev-meta">
+                        <span>操作人：{{ e.actor.name }}<template v-if="e.actor.role">（{{ ROLE_CN[e.actor.role] || e.actor.role }}）</template></span>
+                        <el-tooltip v-if="e.ip" content="操作发起方 IP（为保护隐私已脱敏）" placement="top">
+                          <span class="ev-ip">IP {{ e.ip }}</span>
+                        </el-tooltip>
+                        <a v-if="e.geo" class="ev-geo" :href="geoMapUrl(e.geo)" target="_blank" rel="noopener" title="点击在高德地图查看操作现场">📍 现场 {{ fmtGeo(e.geo) }}</a>
+                      </div>
+                    </el-timeline-item>
+                  </el-timeline>
+                  <el-empty v-else description="暂无操作留痕" :image-size="56" />
+
+                  <div class="section-title">合同流凭证（电子签 + 内容哈希）</div>
+                  <el-descriptions :column="1" size="small" border>
+                    <el-descriptions-item v-for="c in evidence.contract" :key="c.no" :label="c.label">
+                      <span class="ev-no">{{ c.no }}</span>
+                      <el-tooltip v-if="c.contentHash" :content="c.contentHash" placement="top">
+                        <span class="ev-hash">· 内容哈希 {{ shortHash(c.contentHash) }}</span>
+                      </el-tooltip>
+                    </el-descriptions-item>
+                  </el-descriptions>
+
+                  <template v-if="evidence.business.attachments.length">
+                    <div class="section-title">交付物存证（SHA256，防篡改）</div>
+                    <el-descriptions :column="1" size="small" border>
+                      <el-descriptions-item v-for="(a, i) in evidence.business.attachments" :key="i" :label="a.name">
+                        <el-tooltip :content="'sha256:' + a.sha256" placement="top">
+                          <span class="ev-hash">{{ shortHash(a.sha256) }}</span>
+                        </el-tooltip>
+                      </el-descriptions-item>
+                    </el-descriptions>
+                  </template>
+
+                  <template v-if="evidence.settlement || evidence.invoice.no">
+                    <div class="section-title">资金 / 票据凭证</div>
+                    <el-descriptions :column="1" size="small" border>
+                      <el-descriptions-item v-if="evidence.settlement" label="业务交易确认单">{{ evidence.settlement.confirmNo }}</el-descriptions-item>
+                      <el-descriptions-item v-if="evidence.invoice.no" label="发票号">{{ evidence.invoice.no }}</el-descriptions-item>
+                      <el-descriptions-item v-if="evidence.invoice.taxVoucher" label="完税凭证">{{ evidence.invoice.taxVoucher }}</el-descriptions-item>
+                      <el-descriptions-item v-if="evidence.insurance" label="按单保单">{{ evidence.insurance.policyNo }}</el-descriptions-item>
+                      <el-descriptions-item label="证据包指纹">{{ shortHash(evidence.evidenceHash) }}</el-descriptions-item>
+                    </el-descriptions>
+                  </template>
+                </template>
+                <el-empty v-else-if="!evidenceLoading" description="暂无证据链数据" :image-size="60" />
+              </div>
+            </el-collapse-item>
+          </el-collapse>
         </template>
       </div>
     </el-drawer>
@@ -512,7 +597,7 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search } from '@element-plus/icons-vue'
+import { Search, Printer } from '@element-plus/icons-vue'
 import PageHeader from '../components/PageHeader.vue'
 import StatusTag from '../components/StatusTag.vue'
 import {
@@ -526,7 +611,8 @@ import {
   reviewTask,
   getTaskReviews,
   getDispatchCandidates,
-  dispatchTask
+  dispatchTask,
+  getTaskEvidence
 } from '../api/company'
 import { downloadFile } from '../utils/download'
 import { useProfileStore } from '../stores/profile'
@@ -548,6 +634,111 @@ const loading = ref(false)
 const drawerVisible = ref(false)
 const detailLoading = ref(false)
 const detail = ref(null)
+
+// 证据链（懒加载：展开折叠区时才拉取）
+const evidence = ref(null)
+const evidenceLoading = ref(false)
+const evidencePanel = ref([])
+const STAGE_TYPE = { 派单: 'warning', 抢单: 'primary', 单据管理: 'info', 单据验收: 'success', 其他: 'info' }
+const ROLE_CN = { company: '企业', worker: '零工', admin: '平台' }
+const shortHash = h => (h ? String(h).replace('sha256:', '').slice(0, 12) + '…' : '—')
+// 经纬度人话化：保留精度但加空格便于阅读（业务用户视角）
+function fmtGeo(g) {
+  if (!g) return ''
+  const [lat, lng] = String(g).split(',')
+  return lat && lng ? `${lat.trim()}, ${lng.trim()}` : g
+}
+// 点击在高德地图查看操作现场（geo 为 gcj02 "lat,lng"；高德 marker 需 "lng,lat"）
+function geoMapUrl(g) {
+  if (!g) return ''
+  const [lat, lng] = String(g).split(',').map(s => s.trim())
+  return `https://uri.amap.com/marker?position=${lng},${lat}&name=${encodeURIComponent('操作现场')}&coordinate=gaode`
+}
+const STATUS_CN = { recruiting: '报名中', working: '进行中', delivered: '待验收', settled: '已结算', cancelled: '已取消' }
+async function loadEvidence(panels) {
+  if (!panels.includes('ev') || evidence.value || evidenceLoading.value || !detail.value?.id) return
+  evidenceLoading.value = true
+  try {
+    evidence.value = await getTaskEvidence(detail.value.id)
+  } catch {
+    evidence.value = null
+  } finally {
+    evidenceLoading.value = false
+  }
+}
+
+// 打印 / 导出证据链：新窗口生成可打印的证据链报告（操作时间轴 + 四流凭证 + 完整性结论），
+// 覆盖任意状态工单（争议中/进行中亦可），用于争议举证与税务核查。
+function printEvidence() {
+  const ev = evidence.value
+  if (!ev) return
+  const win = window.open('', '_blank', 'width=900,height=960')
+  if (!win) {
+    ElMessage.warning('请允许浏览器弹出窗口后重试')
+    return
+  }
+  const esc = v => String(v ?? '—').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  const flag = (label, ok) => `<span class="flag ${ok ? 'on' : 'off'}">${label} ${ok ? '✓' : '—'}</span>`
+  const rows = ev.timeline.map(e => `
+    <tr>
+      <td class="nowrap">${esc(fmtDateTime(e.at))}</td>
+      <td><span class="stage">${esc(e.stage)}</span></td>
+      <td>${esc(e.label)}</td>
+      <td>${esc(e.actor.name)}${e.actor.role ? `（${esc(ROLE_CN[e.actor.role] || e.actor.role)}）` : ''}</td>
+      <td class="mono">${esc(e.ip || '—')}</td>
+      <td>${e.geo ? '📍 ' + esc(fmtGeo(e.geo)) : '—'}</td>
+    </tr>`).join('') || '<tr><td colspan="6">暂无操作留痕</td></tr>'
+  const contracts = (ev.contract || []).map(c => `<li><b>${esc(c.label)}</b>：<span class="mono">${esc(c.no)}</span>${c.contentHash ? ` · 内容哈希 <span class="mono">${esc(c.contentHash)}</span>` : ''}</li>`).join('') || '<li>—</li>'
+  const attaches = (ev.business.attachments || []).map(a => `<li>${esc(a.name)} · SHA256 <span class="mono">${esc(a.sha256)}</span></li>`).join('') || '<li>—</li>'
+  win.document.write(`<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8"><title>工单证据链·${esc(ev.task.title)}</title>
+<style>
+  body{font-family:'PingFang SC','Microsoft YaHei',sans-serif;color:#1f2937;margin:36px;}
+  h1{font-size:21px;text-align:center;margin-bottom:2px;}
+  .sub{text-align:center;color:#6b7280;font-size:12px;margin-bottom:20px;}
+  .flags{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:18px;}
+  .flag{font-size:12px;padding:3px 10px;border-radius:14px;border:1px solid #d1d5db;}
+  .flag.on{background:#ecfdf5;border-color:#a7f3d0;color:#047857;}
+  .flag.off{background:#f3f4f6;color:#9ca3af;}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 28px;font-size:13px;margin-bottom:18px;}
+  h2{font-size:14px;margin:22px 0 8px;border-left:3px solid #6366f1;padding-left:8px;}
+  table{width:100%;border-collapse:collapse;font-size:12px;}
+  th,td{border:1px solid #e5e7eb;padding:7px 9px;text-align:left;vertical-align:top;}
+  th{background:#f9fafb;}
+  .stage{background:#eef2ff;color:#4338ca;border-radius:4px;padding:1px 6px;font-size:11px;}
+  .mono{font-family:Consolas,'Courier New',monospace;word-break:break-all;}
+  ul{margin:0;padding-left:18px;} li{line-height:1.9;}
+  .nowrap{white-space:nowrap;}
+  .foot{margin-top:26px;display:flex;justify-content:space-between;color:#6b7280;font-size:11px;}
+  .fp{margin-top:14px;padding:10px 12px;border:1px dashed #9ca3af;border-radius:8px;font-size:11px;}
+  @media print{body{margin:14px;}}
+</style></head><body>
+  <h1>灵工云 · 工单证据链</h1>
+  <div class="sub">操作留痕时间轴 · 四流凭证 · 防篡改哈希固化 — 可用于争议举证与税务核查</div>
+  <div class="flags">${flag('合同流', ev.completeness.contract)}${flag('业务流', ev.completeness.business)}${flag('资金流', ev.completeness.fund)}${flag('票据流', ev.completeness.invoice)}<span class="flag ${ev.chain?.ok ? 'on' : 'off'}">${ev.chain?.ok ? '🛡 审计链完好' : '⚠ 审计链异常'}</span></div>
+  <div class="meta">
+    <span><b>工单：</b>${esc(ev.task.title)}（#${esc(ev.task.id)}）</span>
+    <span><b>状态：</b>${esc(STATUS_CN[ev.task.status] || ev.task.status)}</span>
+    <span><b>发单企业：</b>${esc(ev.company?.companyName)}</span>
+    <span><b>承接零工：</b>${esc(ev.worker?.name)}</span>
+    <span><b>承揽价：</b>¥${esc(Number(ev.task.price).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))}</span>
+  </div>
+  <h2>① 操作留痕时间轴</h2>
+  <table><thead><tr><th>时间</th><th>环节</th><th>操作</th><th>操作人</th><th>IP</th><th>现场定位</th></tr></thead><tbody>${rows}</tbody></table>
+  <h2>② 合同流凭证（电子签 + 内容哈希）</h2><ul>${contracts}</ul>
+  <h2>③ 交付物存证（SHA256）</h2><ul>${attaches}</ul>
+  <h2>④ 资金 / 票据凭证</h2>
+  <ul>
+    <li>业务交易确认单：<span class="mono">${esc(ev.settlement?.confirmNo)}</span></li>
+    <li>发票号：<span class="mono">${esc(ev.invoice?.no)}</span></li>
+    <li>完税凭证：<span class="mono">${esc(ev.invoice?.taxVoucher)}</span></li>
+    <li>按单保单：<span class="mono">${esc(ev.insurance?.policyNo)}</span></li>
+  </ul>
+  <div class="fp"><b>证据包指纹（SHA-256）：</b><span class="mono">${esc(ev.evidenceHash)}</span></div>
+  <div class="foot"><span>导出时间：${esc(fmtDateTime(new Date().toISOString()))}</span><span>灵工云企业端 · 承揽后分包合规留痕</span></div>
+  ${'<'}script>window.onload=function(){window.print()}${'<'}/script>
+</body></html>`)
+  win.document.close()
+}
 
 const hiringId = ref(null)
 const hireResultVisible = ref(false)
@@ -721,6 +912,8 @@ async function openDetail(id) {
   drawerVisible.value = true
   detailLoading.value = true
   detail.value = null
+  evidence.value = null
+  evidencePanel.value = []
   try {
     detail.value = await getTaskDetail(id)
   } finally {
@@ -1109,6 +1302,72 @@ onMounted(fetchList)
 
 .review-time {
   margin-top: 6px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+
+/* —— 证据链 —— */
+.evidence-collapse {
+  margin-top: 18px;
+  border-top: 1px solid var(--el-border-color-lighter);
+}
+.ev-title-icon {
+  margin-right: 6px;
+  color: var(--el-color-primary);
+}
+.ev-title {
+  font-weight: 600;
+}
+.ev-intro {
+  margin: 4px 0 12px;
+  line-height: 1.6;
+}
+.ev-flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 10px;
+}
+.ev-print-btn {
+  margin-left: auto;
+}
+.ev-ip {
+  font-family: var(--el-font-family-monospace, monospace);
+  cursor: help;
+}
+.ev-geo {
+  color: var(--success, #67c23a);
+  text-decoration: none;
+}
+.ev-geo:hover {
+  text-decoration: underline;
+}
+.ev-timeline {
+  padding-left: 4px;
+  margin-top: 6px;
+}
+.ev-node {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ev-label {
+  font-weight: 500;
+}
+.ev-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.ev-no {
+  font-family: var(--el-font-family-monospace, monospace);
+}
+.ev-hash {
+  font-family: var(--el-font-family-monospace, monospace);
   font-size: 12px;
   color: var(--text-3);
 }
