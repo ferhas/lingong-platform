@@ -14,77 +14,79 @@
 
     <el-alert v-if="!canWrite" type="info" :closable="false" show-icon class="ro-tip" title="当前账号无 config:write 权限，仅可查看模板。" />
 
-    <div v-if="model" class="workbench">
-      <!-- 左：模板导航 -->
-      <aside class="nav">
-        <div class="nav-prio">
-          解析优先级：<b>工种覆盖</b> <i>›</i> <b>大类基础</b> <i>›</i> <b>默认兜底</b>
-        </div>
-        <el-input v-model="kw" :prefix-icon="Search" placeholder="搜索类目 / 工种" clearable size="small" class="nav-search" />
-
-        <div class="nav-group">
-          <div class="nav-gh">默认</div>
-          <button class="nav-item" :class="{ on: sel.type === 'default' }" @click="select('default')">
-            <span class="ni-name">默认兜底模板</span>
-            <span class="ni-meta">{{ miniCount(model.default) }}</span>
-          </button>
+    <template v-if="model">
+      <!-- 模板选择器（顶部横排，自动换行，无需竖向滚动） -->
+      <div class="chooser">
+        <div class="ch-top">
+          <span class="ch-prio">解析优先级：<b>工种覆盖</b> <i>›</i> <b>大类基础</b> <i>›</i> <b>默认兜底</b></span>
+          <el-input v-model="kw" :prefix-icon="Search" placeholder="搜索类目 / 工种" clearable size="small" class="ch-search" />
         </div>
 
-        <div class="nav-group">
-          <div class="nav-gh">按大类<em>{{ categoryKeys.length }}</em></div>
-          <div class="nav-list">
+        <div class="ch-row">
+          <span class="ch-label">默认</span>
+          <div class="chips">
+            <button class="chip" :class="{ on: sel.type === 'default' }" :title="miniCount(model.default)" @click="select('default')">
+              默认兜底模板
+            </button>
+          </div>
+        </div>
+
+        <div class="ch-row">
+          <span class="ch-label">按大类<em>{{ categoryKeys.length }}</em></span>
+          <div class="chips">
             <button
               v-for="c in shownCategories"
               :key="'c' + c"
-              class="nav-item"
+              class="chip"
               :class="{ on: sel.type === 'cat' && sel.key === c }"
+              :title="miniCount(model.byCategory[c])"
               @click="select('cat', c)"
             >
-              <span class="ni-name">{{ c }}</span>
-              <span class="ni-meta">{{ miniCount(model.byCategory[c]) }}</span>
-              <el-icon v-if="canWrite" class="ni-del" title="删除" @click.stop="remove('cat', c)"><Close /></el-icon>
+              {{ c }}
+              <el-icon v-if="canWrite" class="chip-x" title="删除" @click.stop="remove('cat', c)"><Close /></el-icon>
             </button>
-            <div v-if="!shownCategories.length" class="nav-none">无匹配类目</div>
-          </div>
-          <div v-if="canWrite" class="nav-add">
-            <el-select v-model="newCategory" placeholder="选择类目添加" size="small" filterable clearable>
-              <el-option v-for="c in addableCategories" :key="c" :label="c" :value="c" />
-            </el-select>
-            <el-button size="small" :icon="Plus" :disabled="!newCategory" @click="addCategory" />
+            <span v-if="!shownCategories.length" class="chips-none">无匹配类目</span>
+            <div v-if="canWrite && !kw" class="chip-add">
+              <el-select v-model="newCategory" placeholder="+ 添加类目" size="small" filterable clearable>
+                <el-option v-for="c in addableCategories" :key="c" :label="c" :value="c" />
+              </el-select>
+              <el-button size="small" :icon="Plus" :disabled="!newCategory" @click="addCategory" />
+            </div>
           </div>
         </div>
 
-        <div class="nav-group">
-          <div class="nav-gh">按工种覆盖<em>{{ tradeKeys.length }}</em></div>
-          <div class="nav-list">
+        <div class="ch-row">
+          <span class="ch-label">按工种<em>{{ tradeKeys.length }}</em></span>
+          <div class="chips">
             <button
               v-for="t in shownTrades"
               :key="'t' + t"
-              class="nav-item"
+              class="chip chip-trade"
               :class="{ on: sel.type === 'trade' && sel.key === t }"
+              :title="miniCount(model.byTrade[t])"
               @click="select('trade', t)"
             >
-              <span class="ni-name">{{ t }}</span>
-              <span class="ni-meta">{{ miniCount(model.byTrade[t]) }}</span>
-              <el-icon v-if="canWrite" class="ni-del" title="删除" @click.stop="remove('trade', t)"><Close /></el-icon>
+              {{ t }}
+              <el-icon v-if="canWrite" class="chip-x" title="删除" @click.stop="remove('trade', t)"><Close /></el-icon>
             </button>
-            <div v-if="!shownTrades.length" class="nav-none">暂无工种覆盖</div>
-          </div>
-          <div v-if="canWrite" class="nav-add">
-            <el-select v-model="newTrade" placeholder="选择/输入工种" size="small" filterable allow-create default-first-option clearable>
-              <el-option v-for="t in addableTrades" :key="t" :label="t" :value="t" />
-            </el-select>
-            <el-button size="small" :icon="Plus" :disabled="!newTrade" @click="addTrade" />
+            <span v-if="!shownTrades.length && !canWrite" class="chips-none">暂无工种覆盖</span>
+            <div v-if="canWrite && !kw" class="chip-add">
+              <el-select v-model="newTrade" placeholder="+ 添加工种" size="small" filterable allow-create default-first-option clearable>
+                <el-option v-for="t in addableTrades" :key="t" :label="t" :value="t" />
+              </el-select>
+              <el-button size="small" :icon="Plus" :disabled="!newTrade" @click="addTrade" />
+            </div>
           </div>
         </div>
-      </aside>
+      </div>
 
-      <!-- 右：编辑 + 预览 -->
+      <!-- 编辑 + 零工端预览 -->
       <section v-loading="loading" class="main">
         <div class="main-head">
           <div class="mh-left">
             <h3 class="mh-title">{{ selTitle }}</h3>
             <el-tag :type="selTagType" size="small" effect="light" round>{{ selTagText }}</el-tag>
+            <span class="mh-sum">{{ selSummary }}</span>
           </div>
           <p class="mh-note">{{ selNote }}</p>
         </div>
@@ -100,7 +102,7 @@
           </div>
         </div>
       </section>
-    </div>
+    </template>
     <div v-else v-loading="loading" class="loading-holder" />
   </div>
 </template>
@@ -149,10 +151,7 @@ const selectedSpec = computed(() => {
   return model.value.byTrade[sel.value.key] || emptySpec()
 })
 const selKey = computed(() => sel.value.type + ':' + sel.value.key)
-const selTitle = computed(() => {
-  if (sel.value.type === 'default') return '默认兜底模板'
-  return sel.value.key
-})
+const selTitle = computed(() => (sel.value.type === 'default' ? '默认兜底模板' : sel.value.key))
 const selTagText = computed(() => ({ default: '默认兜底', cat: '大类基础', trade: '工种覆盖' }[sel.value.type]))
 const selTagType = computed(() => ({ default: 'info', cat: 'warning', trade: 'success' }[sel.value.type]))
 const selNote = computed(() => ({
@@ -160,13 +159,16 @@ const selNote = computed(() => ({
   cat: `承接「${sel.value.key}」类目、且无更细工种覆盖的任务，使用这套模板。`,
   trade: `承接「${sel.value.key}」工种的任务优先使用这套模板（覆盖所属大类）。`
 }[sel.value.type]))
+const selSummary = computed(() => {
+  const s = selectedSpec.value
+  const reqF = (s.fields || []).filter(f => f.required).length
+  const reqU = (s.uploads || []).filter(u => u.required).length
+  return `${s.fields?.length || 0} 个字段 · ${s.uploads?.length || 0} 项材料 · ${reqF + reqU} 项必填必传`
+})
 
 function miniCount(spec) {
-  const f = spec?.fields?.length || 0
-  const u = spec?.uploads?.length || 0
-  return `${f}填·${u}传`
+  return `${spec?.fields?.length || 0} 填 · ${spec?.uploads?.length || 0} 传`
 }
-
 function select(type, key = '') {
   sel.value = { type, key }
 }
@@ -185,7 +187,6 @@ async function load() {
     original.value = JSON.stringify(cloned)
     categories.value = list.find(c => c.key === 'categories')?.value || []
     allTrades.value = [...new Set([...Object.keys(cloned.byTrade)])]
-    // 选中项失效则回到默认
     if (sel.value.type === 'cat' && !cloned.byCategory[sel.value.key]) select('default')
     if (sel.value.type === 'trade' && !cloned.byTrade[sel.value.key]) select('default')
   } catch {
@@ -268,124 +269,112 @@ onMounted(load)
   line-height: 1.6;
 }
 .head-actions { display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-.dirty-tip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
-  color: var(--el-color-warning);
-}
+.dirty-tip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--el-color-warning); }
 .dirty-tip i { width: 7px; height: 7px; border-radius: 50%; background: var(--el-color-warning); }
 .ro-tip { margin-bottom: 14px; }
 .loading-holder { min-height: 300px; }
 
-.workbench {
-  display: grid;
-  grid-template-columns: 264px 1fr;
-  gap: 16px;
-  align-items: start;
-}
-
-/* —— 左侧导航 —— */
-.nav {
+/* —— 顶部选择器 —— */
+.chooser {
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   background: var(--el-bg-color);
-  padding: 12px;
-  position: sticky;
-  top: 8px;
-  max-height: calc(100vh - 100px);
-  overflow-y: auto;
+  padding: 14px 16px;
+  margin-bottom: 14px;
 }
-.nav-prio {
-  font-size: 11.5px;
-  color: var(--el-text-color-secondary);
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
-  padding: 7px 9px;
-  margin-bottom: 10px;
-  line-height: 1.5;
+.ch-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
-.nav-prio b { color: var(--el-text-color-regular); font-weight: 600; }
-.nav-prio i { color: var(--el-color-primary); font-style: normal; margin: 0 2px; }
-.nav-search { margin-bottom: 12px; }
-.nav-group { margin-bottom: 14px; }
-.nav-gh {
-  font-size: 12px;
+.ch-prio { font-size: 12px; color: var(--el-text-color-secondary); }
+.ch-prio b { color: var(--el-text-color-regular); font-weight: 600; }
+.ch-prio i { color: var(--el-color-primary); font-style: normal; margin: 0 3px; }
+.ch-search { width: 220px; flex: none; }
+
+.ch-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 9px 0;
+}
+.ch-row + .ch-row { border-top: 1px dashed var(--el-border-color-lighter); }
+.ch-label {
+  flex: 0 0 64px;
+  font-size: 12.5px;
   font-weight: 700;
   color: var(--el-text-color-secondary);
-  margin: 0 0 7px 2px;
-  display: flex;
-  align-items: center;
+  padding-top: 6px;
 }
-.nav-gh em {
+.ch-label em {
   font-style: normal;
-  margin-left: 6px;
+  margin-left: 5px;
   font-weight: 600;
   color: var(--el-text-color-placeholder);
 }
-.nav-list { display: flex; flex-direction: column; gap: 2px; }
-.nav-item {
+.chips {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  width: 100%;
-  text-align: left;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  padding: 8px 9px;
-  cursor: pointer;
-  color: var(--el-text-color-regular);
-  font-size: 13.5px;
+  flex: 1;
+  align-items: center;
+}
+.chip {
   position: relative;
-  transition: background .15s;
-}
-.nav-item:hover { background: var(--el-fill-color-light); }
-.nav-item.on {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--el-color-primary);
-}
-.ni-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ni-meta {
-  flex: none;
-  font-size: 11px;
-  color: var(--el-text-color-placeholder);
-  font-variant-numeric: tabular-nums;
-}
-.nav-item.on .ni-meta { color: var(--el-color-primary); }
-.ni-del {
-  flex: none;
+  border: 1px solid var(--el-border-color);
+  background: var(--el-fill-color-blank, var(--el-bg-color));
+  color: var(--el-text-color-regular);
+  border-radius: 18px;
+  padding: 5px 13px;
   font-size: 13px;
-  color: var(--el-text-color-placeholder);
-  opacity: 0;
-  transition: opacity .15s, color .15s;
-  border-radius: 4px;
+  cursor: pointer;
+  transition: all .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.4;
 }
-.nav-item:hover .ni-del { opacity: 1; }
-.ni-del:hover { color: var(--el-color-danger); }
-.nav-none { font-size: 12px; color: var(--el-text-color-placeholder); padding: 6px 9px; }
-.nav-add { display: flex; gap: 6px; margin-top: 8px; }
-.nav-add .el-select { flex: 1; }
+.chip:hover { border-color: var(--el-color-primary); color: var(--el-color-primary); }
+.chip.on {
+  background: var(--el-color-primary);
+  border-color: var(--el-color-primary);
+  color: #fff;
+  font-weight: 600;
+  box-shadow: 0 4px 12px -4px var(--el-color-primary);
+}
+.chip-trade.on { background: var(--el-color-success); border-color: var(--el-color-success); box-shadow: 0 4px 12px -4px var(--el-color-success); }
+.chip-trade:hover { border-color: var(--el-color-success); color: var(--el-color-success); }
+.chip-x {
+  font-size: 13px;
+  margin-right: -4px;
+  border-radius: 50%;
+  opacity: .55;
+  transition: opacity .15s, background .15s;
+}
+.chip-x:hover { opacity: 1; background: rgba(0, 0, 0, .12); }
+.chip.on .chip-x { opacity: .8; }
+.chips-none { font-size: 12.5px; color: var(--el-text-color-placeholder); padding: 4px 0; }
+.chip-add { display: inline-flex; gap: 6px; align-items: center; }
+.chip-add :deep(.el-select) { width: 130px; }
 
-/* —— 右侧主区 —— */
+/* —— 主区 —— */
 .main {
   border: 1px solid var(--el-border-color-light);
   border-radius: 12px;
   background: var(--el-bg-color);
   padding: 18px 20px;
-  min-height: 420px;
-  min-width: 0;
+  min-height: 360px;
 }
 .main-head {
   border-bottom: 1px solid var(--el-border-color-lighter);
   padding-bottom: 14px;
   margin-bottom: 16px;
 }
-.mh-left { display: flex; align-items: center; gap: 10px; }
+.mh-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .mh-title { font-size: 17px; font-weight: 700; color: var(--el-text-color-primary); }
+.mh-sum { font-size: 12px; color: var(--el-text-color-secondary); }
 .mh-note { margin-top: 6px; font-size: 12.5px; color: var(--el-text-color-secondary); }
 
 .main-grid {
@@ -398,13 +387,14 @@ onMounted(load)
 .preview-col { border-left: 1px dashed var(--el-border-color); padding-left: 20px; min-width: 0; }
 .pv-sticky { position: sticky; top: 12px; }
 
-@media (max-width: 1280px) {
+@media (max-width: 1100px) {
   .main-grid { grid-template-columns: 1fr; }
   .preview-col { border-left: none; padding-left: 0; border-top: 1px dashed var(--el-border-color); padding-top: 16px; }
   .pv-sticky { position: static; }
 }
-@media (max-width: 880px) {
-  .workbench { grid-template-columns: 1fr; }
-  .nav { position: static; max-height: none; }
+@media (max-width: 640px) {
+  .ch-top { flex-direction: column; align-items: stretch; }
+  .ch-search { width: 100%; }
+  .ch-row { flex-direction: column; gap: 6px; }
 }
 </style>
