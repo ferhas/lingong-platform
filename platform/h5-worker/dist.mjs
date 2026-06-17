@@ -8,7 +8,7 @@ import path from 'node:path'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const dist = path.join(here, 'dist')
-const FILES = ['index.html', 'runtime.js', 'mp-bundle.js']
+const FILES = ['index.html', 'runtime.js', 'mp-bundle.js', 'favicon.svg']
 
 await mkdir(dist, { recursive: true })
 for (const f of FILES) {
